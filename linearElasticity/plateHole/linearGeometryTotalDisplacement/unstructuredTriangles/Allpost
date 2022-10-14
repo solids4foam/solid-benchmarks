@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+SUFFIX="linearGeometryTotalDisplacement"
+
+if [[ -f "${SUFFIX}.displacementErrors.txt" ]]
+then
+    echo "Case ${SUFFIX}.displacementErrors.txt already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Write headers to results files
+echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.displacementErrors.txt"
+echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.stressErrors.xx.txt"
+echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.stressErrors.xy.txt"
+echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.stressErrors.yy.txt"
+
+# Record results
+for i in `seq 1 9`;
+do
+    CASE="${SUFFIX}.$i"
+    echo "Extracting the results from ${CASE}"
+
+    # Replace the blockMeshDict
+    cd "${CASE}"
+
+    # Calculate average mesh spacing
+    #DX=$(echo "scale=10; sqrt(2.0*2.0 - 0.25*3.1415926536*0.5*0.5)/(sqrt(4^($i-1))*250)" | bc)
+    DX=$(echo "scale=10; 0.1/(2^(${i}-1))" | bc)
+
+    # Record the displacements errors
+    tail -7 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.displacementErrors.txt"
+
+    # Record the stress errors
+    tail -19 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xx.txt"
+    tail -15 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xy.txt"
+    tail -11 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.yy.txt"
+
+    # Navigate back to the parent directory
+    cd ..
+done

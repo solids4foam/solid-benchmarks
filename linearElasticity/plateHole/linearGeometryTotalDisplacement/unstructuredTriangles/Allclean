@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rm -rf linearGeometryTotalDisplacement.[1-9] linearGeometryTotalDisplacement.*.txt
