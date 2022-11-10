@@ -21,7 +21,7 @@ echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.stressErrors.xy.txt"
 echo "# DX L1 L2 LInfinity" >> "${SUFFIX}.stressErrors.yy.txt"
 
 # Record results
-for i in `seq 1 9`;
+for i in `seq 1 5`;
 do
     CASE="${SUFFIX}.$i"
     echo "Extracting the results from ${CASE}"
@@ -36,9 +36,9 @@ do
     tail -7 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.displacementErrors.txt"
 
     # Record the stress errors
-    tail -19 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xx.txt"
-    tail -15 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xy.txt"
-    tail -11 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.yy.txt"
+    tail -21 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xx.txt"
+    tail -17 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.xy.txt"
+    tail -13 log.solids4Foam | head -1 | awk -v dx=$DX '{print dx, "", $1, " ", $2, " ", $3}' >> ../"${SUFFIX}.stressErrors.yy.txt"
 
     # Navigate back to the parent directory
     cd ..

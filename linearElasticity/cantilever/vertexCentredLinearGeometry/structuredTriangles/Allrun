@@ -16,7 +16,7 @@ then
 fi
 
 # Run cases
-for i in `seq 1 9`;
+for i in `seq 1 5`;
 do
     CASE="${SUFFIX}.$i"
     echo "Running ${CASE}"
