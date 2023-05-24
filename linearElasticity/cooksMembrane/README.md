@@ -38,7 +38,7 @@ The purpose of this benchmark problem is:
 | Code_Aster |                  32.20                             |                          32.20                      |
 |    Elmer   |                  32.28                             |                          32.27                      |
 | __solids4foam__:linearGeometryTotalDisplacement                 | 32.29
-| __solids4foam__:coupledUnsLinearGeometryLinearElastic           | 32.36
+| __solids4foam__:coupledUnsLinearGeometryLinearElastic           | 32.33
 
 ---
 
@@ -55,3 +55,5 @@ __FVM literature where this example is used__
 Part A: Applications. 2017 Aug 3;72(3):215-35.](https://www.tandfonline.com/doi/abs/10.1080/10407782.2017.1372665?journalCode=unht20)
 
 [4] [Bijelonja I, Demirdžić I, Muzaferija S. A finite volume method for incompressible linear elasticity. Computer methods in applied mechanics and engineering. 2006 Sep 15;195(44-47):6378-90.](https://www.sciencedirect.com/science/article/abs/pii/S0045782506000387)
+
+Ivan Batistić, 05/2023
