@@ -1,0 +1,6 @@
+#!/bin/bash
+
+rm -rf linearGeometryTotalDisplacement.[1-9] \
+       linearGeometryTotalDisplacement.*.txt \
+       linearGeometryTotalDisplacement.verticalDisplacement.txt \
+       linearGeometryTotalDisplacement.verticalDisplacement.eps
