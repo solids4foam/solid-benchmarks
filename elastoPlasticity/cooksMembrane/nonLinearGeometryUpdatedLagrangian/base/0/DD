@@ -11,52 +11,46 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      fvSolution;
+    class       volVectorField;
+    location    "0";
+    object      DD;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solvers
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
 {
-    // Coupled solver
-    "blockDD|blockD"
+    left
     {
-        // Direct solver
-        solver              EigenSparseLU;
-
-        // Iterative solver
-        //solver            BiCGStab;
-        //preconditioner    myCholesky;
-        //tolerance         1e-10;
-        //relTol            0;
-        //minIter           0;
-        //maxIter           3000;
+        type            fixedDisplacement;
+        value           uniform (0 0 0);
     }
-
-    // Segregated solver
-    "D|DD"
+    right
     {
-        tolerance       1e-8;
-        relTol          0.1;
-        maxIter         50;
-
-        solver          PCG;
-        preconditioner  FDIC;
+        type            solidTraction;
+        tractionSeries
+        {
+            "fileName|file"    "$FOAM_CASE/constant/timeVsTraction";
+            outOfBounds clamp;
+        }
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    topAndBottom
+    {
+        type            solidTraction;
+        traction        uniform ( 0 0 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    frontAndBack
+    {
+        type            empty;
     }
 }
 
-relaxationFactors
-{
-    equations
-    {
-        //D           0.9999;
-    }
-
-    fields
-    {
-        //D              0.9;
-    }
-}
 
 // ************************************************************************* //

@@ -12,51 +12,32 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "system";
-    object      fvSolution;
+    location    "constant";
+    object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solvers
+solidModel     nonLinearGeometryUpdatedLagrangian;
+// solidModel     nonLinearGeometryTotalLagrangian;
+//solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
+//solidModel     unsNonLinearGeometryUpdatedLagrangian;
+
+"nonLinearGeometryUpdatedLagrangianCoeffs|unsNonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
-    // Coupled solver
-    "blockDD|blockD"
-    {
-        // Direct solver
-        solver              EigenSparseLU;
+    // Maximum number of momentum correctors
+    nCorrectors             40000;
 
-        // Iterative solver
-        //solver            BiCGStab;
-        //preconditioner    myCholesky;
-        //tolerance         1e-10;
-        //relTol            0;
-        //minIter           0;
-        //maxIter           3000;
-    }
+    // Solution tolerance for displacement
+    solutionTolerance       1e-06;
 
-    // Segregated solver
-    "D|DD"
-    {
-        tolerance       1e-8;
-        relTol          0.1;
-        maxIter         50;
+    // Alternative solution tolerance for displacement
+    alternativeTolerance    1e-12;
 
-        solver          PCG;
-        preconditioner  FDIC;
-    }
-}
+    // Material law solution tolerance
+    materialTolerance       1e-06;
 
-relaxationFactors
-{
-    equations
-    {
-        //D           0.9999;
-    }
-
-    fields
-    {
-        //D              0.9;
-    }
+    // Write frequency for the residuals
+    infoFrequency           500;
 }
 
 // ************************************************************************* //
