@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+SUFFIX="nonLinearGeometryTotalLagrangian"
+
+BASE="base"
+
+if [[ -d "${SUFFIX}.1*" ]]
+then
+    echo "Case ${SUFFIX}.1 already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Run cases
+for i in `seq 1 5`;
+do
+    CASE="${SUFFIX}.$i"
+    echo "Running ${CASE}"
+
+    # Copy template case
+    cp -r "${BASE}" "${CASE}"
+
+    # Enter the case
+    cd "${CASE}"
+
+    # Set the mesh spacing
+    d=$(echo "scale=2; 8*2^(${i}-1)" | bc)
+    sed -i "s/hex.*/hex (0 1 2 3 4 5 6 7) ($d $d 1) simpleGrading (1 1 1)/"\
+        system/blockMeshDict 
+        
+    # Convert case version to FOAM EXTEND
+    solids4Foam::convertCaseFormatFoamExtend .
+
+    # Check OpenFOAM version (tested only with fe41)
+    solids4Foam::caseOnlyRunsWithFoamExtend
+
+    # Create the mesh
+    solids4Foam::runApplication blockMesh
+
+    # Run the solver
+    solids4Foam::runApplication solids4Foam
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+# Extract the results
+echo "Running Allpost"
+./Allpost
+
+# Plot results
+gnuplot plot.gnuplot

@@ -12,51 +12,49 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "system";
-    object      fvSolution;
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solvers
+application     solids4Foam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         30;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   5;
+
+purgeWrite      1;
+
+cycleWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
+
+functions
 {
-    // Coupled solver
-    "blockDD|blockD"
-    {
-        // Direct solver
-        solver              EigenSparseLU;
-
-        // Iterative solver
-        //solver            BiCGStab;
-        //preconditioner    myCholesky;
-        //tolerance         1e-10;
-        //relTol            0;
-        //minIter           0;
-        //maxIter           3000;
-    }
-
-    // Segregated solver
-    "D|DD"
-    {
-        tolerance       1e-8;
-        relTol          0.1;
-        maxIter         50;
-
-        solver          PCG;
-        preconditioner  FDIC;
-    }
-}
-
-relaxationFactors
-{
-    equations
-    {
-        //D           0.9999;
-    }
-
-    fields
-    {
-        //D              0.9;
-    }
+   pointDisp
+   {
+       type    solidPointDisplacement;
+       point   (0.048 0.060 0);
+   }
 }
 
 // ************************************************************************* //
