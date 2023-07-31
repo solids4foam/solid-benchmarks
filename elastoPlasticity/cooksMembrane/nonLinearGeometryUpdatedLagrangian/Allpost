@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+SUFFIX="nonLinearGeometryUpdatedLagrangian"
+
+if [[ -f "${SUFFIX}.verticalDisplacement.txt" ]]
+then
+    echo "${SUFFIX}.verticalDisplacement.txt already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Write headers to result file
+echo "# DIS TIME DX DY DZ MAG(D)" >> "${SUFFIX}.verticalDisplacement.txt"
+
+# Record results
+for i in `seq 1 5`;
+do
+    CASE="${SUFFIX}.$i"
+    echo "Extracting the results from ${CASE}"
+
+    # Replace the blockMeshDict
+    cd "${CASE}"
+
+    # Calculate number of CVs per membrane side
+    d=$(echo "scale=2; 8*2^(${i}-1)" | bc)
+    
+    # Record the displacements errors
+    echo -n $d " " >> ../"${SUFFIX}.verticalDisplacement.txt"
+    tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat >> ../"${SUFFIX}.verticalDisplacement.txt"
+
+    # Navigate back to the parent directory
+    cd ..
+done

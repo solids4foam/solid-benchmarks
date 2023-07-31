@@ -1,0 +1,6 @@
+#!/bin/bash
+
+rm -rf nonLinearGeometryUpdatedLagrangian.[1-9] \
+       nonLinearGeometryUpdatedLagrangian.*.txt \
+       nonLinearGeometryUpdatedLagrangian.verticalDisplacement.txt \
+       nonLinearGeometryUpdatedLagrangian.verticalDisplacement.eps

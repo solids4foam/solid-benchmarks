@@ -53,9 +53,7 @@ snGradSchemes
 
 interpolationSchemes
 {
-    default                 none;
-    mu                      linear;
-    lambda                  linear;
+    default                 linear;
 }
 
 // ************************************************************************* //
