@@ -8,7 +8,7 @@ Prepared by Ivan Batistić
 
 ## Case overview
 
-The curved cantilever beam is fixed on the left side and the right side has prescribed horizontal traction, as shown in Fig 1. The prescribed horizontal traction is 200 Pa. The beam inner radius is set to $a=$0.31 m and the beam outer radius to $b=$0.33 m. The Young's modulus is $E=$100 Pa, and the Poisson's ratio is $\nu=$0.3. Gravitation effects are neglected, and there are no body forces. The problem is solved as static, using one loading increment.
+The curved cantilever beam is fixed on the left side and the right side has prescribed horizontal traction, as shown in Fig 1. The prescribed horizontal traction is 200 Pa. The beam inner radius is set to $a=$ 0.31 m and the beam outer radius to $b = $ 0.33 m. The Young's modulus is $E=$ 100 Pa, and the Poisson's ratio is $\nu=$ 0.3. Gravitation effects are neglected, and there are no body forces. The problem is solved as static, using one loading increment.
 
 <div style="text-align: center;">
   <img src="./images/problem_geometry.png" alt="Image" width="400">
@@ -68,7 +68,8 @@ Other versions of the OpenFOAM may require some small tweaks.
   }
   ```
 
-  Figures 2 and 3 are showing $\sigma_{xx}$, $\sigma_{xy}$ and $\sigma_{yy}$ stress distributions along the line $\theta$=45$^{\circ}$ for computational meshes consisting of 100×100 and 200×50 control volumes. One can see that with mesh refinement, numerical results are converging to analytical ones. Plots are generated using `foam-extend 4.1` and with block-coupled solver named`coupledUnsLinearGeometryLinearElastic`.
+
+Figures 2 and 3 are showing $\sigma_{xx}$, $\sigma_{xy}$ and $\sigma_{yy}$ stress distributions along the line $\theta$=45$^{\circ}$ for computational meshes consisting of 100×100 and 200×50 control volumes. One can see that with mesh refinement, numerical results are converging to analytical ones. Plots are generated using `foam-extend 4.1` and with block-coupled solver named`coupledUnsLinearGeometryLinearElastic`.
 
 <div style="text-align: center;">
   <img src="./images/sigmaAtTheta45deg_mesh_100x10.png" alt="Image" width="800">
@@ -88,7 +89,7 @@ Other versions of the OpenFOAM may require some small tweaks.
 
 ---
 
-### Literature 
+### References 
 
 [1] [Sadd MH. Elasticity: Theory, Applications, and Numerics. Elsevier 2009.](https://www.sciencedirect.com/book/9780123744463/elasticity)
 

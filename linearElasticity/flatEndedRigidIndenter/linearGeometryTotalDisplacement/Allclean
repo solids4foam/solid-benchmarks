@@ -9,11 +9,8 @@ source solids4FoamScripts.sh
 cleanCase
 \rm -f constant/polyMesh/boundary case.foam 
 \rm -rf system/*Subset constant/*Subset VTK postProcessing/
-\rm -rf sigmaAtTheta45deg.png
+\rm -rf pressureDistribution.png
 
 # Convert case version to FOAM EXTEND
 solids4Foam::convertCaseFormatFoamExtend .
 
-cd curvedCantileverAnalyticalSolution
-wclean libso
-rmdepall
