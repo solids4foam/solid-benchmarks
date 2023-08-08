@@ -1,0 +1,77 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# License
+#     This file is part of solids4foam, licensed under GNU General Public
+#     License <http://www.gnu.org/licenses/>.
+#
+# Script
+#     makeCombinedREADME
+#
+# Description
+#     Generate one README file consisting of all available ones
+#
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit  # Run from this directory
+
+root_directory=$(pwd)
+combined_README_directory="combinedREADME"
+combined_README_name="combinedREADME"
+
+# Combined README file is located in combinedREADME directory
+if [ ! -d "$combined_README_directory" ]; then
+    mkdir "$combined_README_directory"
+else
+    echo "Directory already exists: $combined_README_directory" 1>&2
+    echo "Please remove it to proceed" 1>&2
+    exit 1
+fi
+
+# Check if pandoc is installed
+if command -v pandoc &>/dev/null; then
+    echo "Pandoc is installed. Proceeding..."
+else
+    echo "Pandoc is not installed: Please install Pandoc to proceed!"
+    exit 1
+fi
+
+# Find all README files and convert them into html
+find "$root_directory" -type f -name "README.md" -print0 | while IFS= read -r -d '' readme_file; do
+
+    readme_path=$(dirname "${readme_file}")
+    readme_name=$(basename "${readme_path}")
+    echo "Processing README.md file in: $readme_path"
+    
+    cd  $readme_path
+    pandoc README.md -o $readme_name.html --standalone --mathml --quiet
+
+    echo -e '<hr style="height:5px;border:none;color:red;background-color:red;">' >> "$readme_name.html"
+
+    mv $readme_name.html $root_directory/$combined_README_directory
+done
+
+# Copy images to combinedREADME directory 
+# The relative path in html will not work without a local copy
+mkdir $combined_README_directory/images
+
+find . -type d -name "images" | while read -r images_folder; do
+    
+    # Copy the contents of the current "images" folder to the destination folder   
+    if [[ "$images_folder" != "./combinedREADME/images" ]]; then
+        cp -r "$images_folder"/* "$combined_README_directory/images"
+    fi
+done
+
+# Combine html of each case into one html file
+cd $combined_README_directory
+touch $combined_README_name.html
+
+for html_file in *.html; do
+    cat "$html_file" >> "$combined_README_name.html"
+    rm -f $html_file
+done
+
+# This command can be used to generate pdf from the html
+#wkhtmltopdf --quiet --enable-local-file-access $combined_README_name.html $combined_README_name.pdf
+
+echo "Done, combined README file is located in ./$combined_README_directory/$combined_README_name.html"
+
