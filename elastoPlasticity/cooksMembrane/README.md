@@ -70,3 +70,4 @@ Figure 2 shows the convergence of the vertical displacement in `solids4Foam` in 
 [2] [http://www.simplassoftware.com/benchmarks.html](http://www.simplassoftware.com/benchmarks.html)
 
 [4] [J.M.A. César de Sá, P. Areias and R.M. Natal Jorge. “Quadrilateral elements for the solution of elasto-plastic finite strain problems“. *IJNME*, 51:883-917, 2001.](https://repositorio-aberto.up.pt/handle/10216/438)
+
