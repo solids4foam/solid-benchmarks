@@ -1,0 +1,67 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.0                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      D;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    bottom
+    {
+        type            analyticalBoussinesqProblemDisplacement;
+        force           (0 0 -4e5);
+        E               1e9;
+        nu              0.3;
+        value           uniform (0 0 0);
+    }
+    sides
+    {
+        type            analyticalBoussinesqProblemDisplacement;
+        force           (0 0 -4e5);
+        E               1e9;
+        nu              0.3;
+        value           uniform (0 0 0);
+    }
+    top
+    {
+        type            concentratedForce;
+        // A quarter of the force is prescribed because a quarter 
+        // of geometry is considered
+        force           (0 0 -1e5);
+        forceLocation   (0 0 0);
+        value           uniform (0 0 0);
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+    symmetry-x
+    {
+        type            symmetryPlane;	
+    }
+    symmetry-y
+    {
+        type            symmetryPlane;	
+    }
+
+}
+
+
+// ************************************************************************* //
