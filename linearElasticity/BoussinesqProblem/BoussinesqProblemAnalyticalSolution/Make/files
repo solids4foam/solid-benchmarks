@@ -1,0 +1,8 @@
+/* Boundary conditions  */
+concentratedForce/concentratedForceFvPatchVectorField.C
+analyticalBoussinesqProblemDisplacement/analyticalBoussinesqProblemDisplacementFvPatchVectorField.C
+
+/* Function object  */
+BoussinesqProblemAnalyticalSolution/BoussinesqProblemAnalyticalSolution.C
+
+LIB = $(FOAM_USER_LIBBIN)/libAnalyticalBoussinesqProblem
