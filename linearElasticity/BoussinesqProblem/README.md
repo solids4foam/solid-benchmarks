@@ -99,7 +99,19 @@ nu              0.3;
 value           uniform (0 0 0);
 ```
 
-The load is applied to an individual boundary face to approximate the concentrated load.
+The load is applied to an individual boundary face using the `concentratedForce` boundary condition:
+```
+    top
+    {
+        type            concentratedForce;
+        // A quarter of the force is prescribed because a quarter
+        // of geometry is considered
+        force           (0 0 -1e5);
+        forceLocation   (0 0 0);
+        value           uniform (0 0 0);
+    }
+```
+This approximates the concentrated point load as the mesh is refined.
 
 Figure 1 shows the distribution of $\sigma_{zz}$ stress along the $z-$axis, whereas Figure 2 shows the distribution of vertical displacement $u_z$. Diagrams are generated using the `plot.gnuplot` Gnuplot script, which is located in the case directory. At the location where the point force is applied, the analytical fields tend to infinity, whereas the numerically obtained ones are finite; however, as the mesh is refined, the numerically predicted solutions will also tend to infinity. 
 
