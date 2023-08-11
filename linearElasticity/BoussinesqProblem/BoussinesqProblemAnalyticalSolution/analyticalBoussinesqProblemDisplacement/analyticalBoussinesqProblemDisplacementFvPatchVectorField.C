@@ -50,7 +50,7 @@ analyticalBoussinesqProblemDisplacementFvPatchVectorField::analyticalBoussinesqP
 :
     fixedDisplacementFvPatchVectorField(ptf, p, iF, mapper),
     E_(ptf.E_),
-    nu_(ptf.nu_),   
+    nu_(ptf.nu_),
     force_(ptf.force_)
 {}
 
@@ -66,8 +66,7 @@ analyticalBoussinesqProblemDisplacementFvPatchVectorField::analyticalBoussinesqP
     E_(readScalar(dict.lookup("E"))),
     nu_(readScalar(dict.lookup("nu"))),
     force_(dict.lookup("force"))
-{
-}
+{}
 
 #ifndef OPENFOAMFOUNDATION
 analyticalBoussinesqProblemDisplacementFvPatchVectorField::analyticalBoussinesqProblemDisplacementFvPatchVectorField
@@ -77,7 +76,7 @@ analyticalBoussinesqProblemDisplacementFvPatchVectorField::analyticalBoussinesqP
 :
     fixedDisplacementFvPatchVectorField(pivpvf),
     E_(pivpvf.E_),
-    nu_(pivpvf.nu_),   
+    nu_(pivpvf.nu_),
     force_(pivpvf.force_)
 {}
 #endif
@@ -90,7 +89,7 @@ analyticalBoussinesqProblemDisplacementFvPatchVectorField::analyticalBoussinesqP
 :
     fixedDisplacementFvPatchVectorField(pivpvf, iF),
     E_(pivpvf.E_),
-    nu_(pivpvf.nu_),   
+    nu_(pivpvf.nu_),
     force_(pivpvf.force_)
 {}
 
@@ -104,17 +103,17 @@ void analyticalBoussinesqProblemDisplacementFvPatchVectorField::updateCoeffs()
     {
         return;
     }
-    
+
     const scalar& E = E_;
     const scalar& nu = nu_;
     const scalar& normalForce = force_.z();
-    
+
     const vectorField& Cf = patch().Cf();
-    
+
     // Shear modulus
     const scalar G = E/(2.0*(1.0+nu));
-    const scalar C = -normalForce/(mathematicalConstant::pi*4*G);    
-    
+    const scalar C = -normalForce/(mathematicalConstant::pi*4*G);
+
     vectorField& disp = totalDisp();
     forAll(disp, faceI)
     {
@@ -122,14 +121,14 @@ void analyticalBoussinesqProblemDisplacementFvPatchVectorField::updateCoeffs()
         const scalar& Y = Cf[faceI].y();
         const scalar& Z = -Cf[faceI].z();
         const scalar R = Foam::sqrt(Foam::sqr(X) + Foam::sqr(Y) + Foam::sqr(Z));
-    
+
         disp[faceI].x() = C * (X*Z/Foam::pow(R,3) - (1-2*nu)*(X/(R*(R+Z))));
 
         disp[faceI].y() = C * (Y*Z/Foam::pow(R,3) - (1-2*nu)*(Y/(R*(R+Z))));
 
         disp[faceI].z() = -C * (Foam::sqr(Z)/Foam::pow(R,3) + ((2*(1-nu))/R));
     }
-    
+
     fixedDisplacementFvPatchVectorField::updateCoeffs();
 }
 
@@ -138,10 +137,10 @@ void analyticalBoussinesqProblemDisplacementFvPatchVectorField::write(Ostream& o
 {
     os.writeKeyword("nu")
         << nu_ << token::END_STATEMENT << nl;
-        
+
     os.writeKeyword("E")
         << E_ << token::END_STATEMENT << nl;
-        
+
     os.writeKeyword("force")
         << force_ << token::END_STATEMENT << nl;
 

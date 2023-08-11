@@ -1,0 +1,19 @@
+#!/bin/bash
+cd ${0%/*} || exit 1    # run from this directory
+
+# Check if OpenFOAM/FOAM has been sourced
+if [[ -z "${WM_PROJECT}" ]]
+then
+    echo "Please source the OpenFOAM/FOAM bashrc first!"
+    exit 1
+fi
+
+# Check if solids4foam installation address is set
+if [[ -z "${SOLIDS4FOAM_INST_DIR}" ]]
+then
+    echo "Please set SOLIDS4FOAM_INST_DIR first!"
+    exit 1
+fi
+
+# Compile library
+wmake libso
