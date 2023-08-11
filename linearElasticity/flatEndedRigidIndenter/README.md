@@ -15,7 +15,7 @@ A rigid flat-ended indenter is pressed onto an elastic-half space, as shown in F
 <div style="text-align: center;">
   <img src="./images/flatEndedRigidIndenter-geometry.png" alt="Image" width="400">
     <figcaption>
-     <strong>Figure 1: Problem geometry [1]</strong>
+     <strong>Figure 1: Problem geometry (H = 0.2 m, a = 0.01 m) [1]</strong>
     </figcaption>
 </div>
 
