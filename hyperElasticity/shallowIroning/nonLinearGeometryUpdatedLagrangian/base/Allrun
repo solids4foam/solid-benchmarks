@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Convert case version to FOAM EXTEND
+solids4Foam::convertCaseFormatFoamExtend .
+
+# Check OpenFOAM version (tested only with fe41)
+solids4Foam::caseOnlyRunsWithFoamExtend
+
+# Create mesh
+m4 -P constant/polyMesh/blockMeshDict.m4 > constant/polyMesh/blockMeshDict
+solids4Foam::runApplication blockMesh
+
+# Create cell zones needed by the mechanical law
+solids4Foam::runApplication setsToZones
+
+# Run solver
+solids4Foam::runApplication solids4Foam
+
+# Plot forces
+if python3 -c "import numpy" &> /dev/null; then
+    if python3 -c "import matplotlib" &> /dev/null; then
+        python plot.py &> /dev/null
+    else
+            echo "Please install matplotlib package if you would like" \
+                 "to generate the plots"
+    fi    
+else
+    echo "Please install numpy package if you would like to generate the plots"
+fi
