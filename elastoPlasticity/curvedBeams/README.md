@@ -44,13 +44,13 @@ Figures 2 and 3 compare the evolution of the horizontal and vertical total react
      <strong>Figure 2: Total reaction force in x-direction 	</strong>
     </figcaption>
 </div>
-
 <div style="text-align: center;">
   <img src="./images/curvedBeams-reaction-y.png" alt="Image" width="700">
     <figcaption>
-        <strong>Figure 3: total reaction force in y-direction </strong>
+        <strong>Figure 3: Total reaction force in y-direction </strong>
     </figcaption>
 </div>
+
 
 
 ---
