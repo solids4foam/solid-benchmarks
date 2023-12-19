@@ -1,0 +1,5 @@
+#!/bin/bash
+
+rm -rf nonLinearGeometryUpdatedLagrangian.0.* \
+       nonLinearGeometryUpdatedLagrangian.reaction-x.png \
+       nonLinearGeometryUpdatedLagrangian.reaction-y.png
