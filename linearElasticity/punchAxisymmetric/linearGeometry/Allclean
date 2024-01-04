@@ -10,4 +10,5 @@ cleanCase
 \rm -rf system/*Subset constant/*Subset VTK postProcessing/ case.foam \
         0/DDx 0/DDy 0/DDz *.png \
         constant/mechanicalProperties.withDefaultValues \
-        constant/solidProperties.withDefaultValues
+        constant/solidProperties.withDefaultValues \
+        constant/polyMesh/blockMeshDict
