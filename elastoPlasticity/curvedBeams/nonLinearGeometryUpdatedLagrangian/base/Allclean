@@ -7,4 +7,5 @@
 source solids4FoamScripts.sh
 
 cleanCase
-\rm -rf system/*Subset constant/*Subset VTK postProcessing/ case.foam 
+\rm -rf system/*Subset constant/*Subset VTK postProcessing/ case.foam \
+        constant/polyMesh/blockMeshDict 

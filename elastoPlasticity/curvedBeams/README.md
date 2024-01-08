@@ -13,7 +13,7 @@ This example considers large sliding between two curved beams (see figure below)
 <div style="text-align: center;">
   <img src="./images/curvedBeams-geometry.png" alt="Image" width="600">
     <figcaption>
-     <strong>Figure 1: Problem geometry [1]</strong>
+     <strong>Figure 1: Problem geometry (dimensions in mm) [1]</strong>
     </figcaption>
 </div>
 
@@ -34,7 +34,7 @@ Other versions of the OpenFOAM may require some small tweaks.
 
 ## Expected results
 
-* During the sliding, due to the larger diameter, the lower beam exhibits larger plastic deformation which is reduced by the larger values of the coefficient of friction;
+* During the sliding, due to the larger diameter, the lower beam exhibits larger plastic deformation which is reduced by the larger values of the coefficient of friction.
 
 Figures 2 and 3 compare the evolution of the horizontal and vertical total reaction force between `solids4foam` and results reported using finite element code  [[2]](https://www.sciencedirect.com/science/article/abs/pii/S0045782515003643). `solids4foam` results are obtained using updated Lagrangian formulation.
 
@@ -54,9 +54,9 @@ Figures 2 and 3 compare the evolution of the horizontal and vertical total react
 
 ---
 
-### Literature 
+### References
 
-[1] [I. Batistić, P. Cardiff, and Ž. Tuković, “A finite volume penalty based segment-to-segment method for frictional contact problems,” Applied Mathematical Modelling, vol. 101, pp. 673–693, 2022.](https://www.sciencedirect.com/science/article/abs/pii/S0307904X21004248)https://www.sciencedirect.com/science/article/abs/pii/S0045782515003643)
+[1] [I. Batistić, P. Cardiff, and Ž. Tuković, “A finite volume penalty based segment-to-segment method for frictional contact problems,” Applied Mathematical Modelling, vol. 101, pp. 673–693, 2022.](https://www.sciencedirect.com/science/article/abs/pii/S0307904X21004248)https://www.sciencedirect.com/science/article/abs/pii/S0045782515003643
 
 [2] [D. Neto, M. Oliveira, L. Menezes, and J. Alves, “A contact smoothing method for arbitrary surface meshes using Nagata patches,” Computer Methods in Applied Mechanics and Engineering, vol. 299, pp. 283 – 315, 2016.](https://www.sciencedirect.com/science/article/abs/pii/S0045782515003643)
 
