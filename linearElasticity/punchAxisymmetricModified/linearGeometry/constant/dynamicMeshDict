@@ -12,33 +12,11 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    system;
-    object      sampleDict;
+    location    "constant";
+    object      dynamicMeshDict;
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+dynamicFvMesh   staticFvMesh;
 
-setFormat raw;
-surfaceFormat raw;
-interpolationScheme cellPoint;
-
-fields
-(
-    sigma D
-);
-
-sets
-(
-);
-
-surfaces
-(
-    surface
-    {
-        type patch;   
-        patchName   foundation;
-    }
-);
-
-
-// *********************************************************************** //
+// ************************************************************************* //

@@ -12,33 +12,21 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    system;
-    object      sampleDict;
+    object      mechanicalProperties;
 }
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+planeStress     no;
 
-setFormat raw;
-surfaceFormat raw;
-interpolationScheme cellPoint;
-
-fields
+mechanical
 (
-    sigma D
-);
-
-sets
-(
-);
-
-surfaces
-(
-    surface
+    steel
     {
-        type patch;   
-        patchName   foundation;
+        type            linearElastic;
+        rho             rho [1 -3 0 0 0 0 0] 0;
+        E               E [1 -1 -2 0 0 0 0] 1e11;
+        nu              nu [0 0 0 0 0 0 0] 0.3;
     }
 );
 
-
-// *********************************************************************** //
+// ************************************************************************* //

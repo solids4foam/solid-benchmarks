@@ -12,33 +12,46 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    system;
-    object      sampleDict;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+d2dt2Schemes
+{
+    default            steadyState;
 }
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+ddtSchemes
+{
+    default            steadyState;
+}
 
-setFormat raw;
-surfaceFormat raw;
-interpolationScheme cellPoint;
+gradSchemes
+{
+    default            leastSquares;
+}
 
-fields
-(
-    sigma D
-);
+divSchemes
+{
+    default            Gauss linear;
+}
 
-sets
-(
-);
+laplacianSchemes
+{
+    default            Gauss linear corrected;
+}
 
-surfaces
-(
-    surface
-    {
-        type patch;   
-        patchName   foundation;
-    }
-);
+snGradSchemes
+{
+    default            corrected;
+}
 
+interpolationSchemes
+{
+    default            none;
+    interpolate(impK)  harmonic;
+    interpolate(grad(D)) linear;
+    interpolate(grad(DD)) linear;
+}
 
-// *********************************************************************** //
+// ************************************************************************* //

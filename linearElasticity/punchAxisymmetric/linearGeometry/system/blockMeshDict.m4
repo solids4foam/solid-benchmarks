@@ -30,34 +30,34 @@ m4_define(vlabel, [[// ]Vertex $1 = VCOUNT m4_define($1, VCOUNT)m4_define([VCOUN
 // "SSNA122 – Benchmark NAFEMS de validation du contact 2: punch (rounded edges)"
 
 m4_define(angle, 0.5)   // Half of the angle of axisymmetry geometry 
-m4_define(Rf, 100)      // Foundation (cylinder) radius
+m4_define(Rf, 100)      // Cylinder (cylinder) radius
 m4_define(Rb, 50)       // Block (punch) radius
-m4_define(Hf, 200)      // Foundation (cylinder) Height
+m4_define(Hf, 200)      // Cylinder (cylinder) Height
 m4_define(Hb, 100)      // Block (punch) height
 m4_define(rb, 10)       // Block (punch) fillet radius
 
-// MESH - foundation (cylinder)
-m4_define(foundationX, 30)   // Foundation refirement zone (nb. of cells in x dir.)
-m4_define(foundationZ, 30)   // Foundation refirement zone (nb. of cells in z dir.)
-m4_define(foundationZ_, 26)  // Foundation coarse zone (nb. of cells in z dir.)
-m4_define(foundationX_, 20)  // Foundation coarse zone (nb. of cells in x dir.) 
+// MESH - Cylinder (cylinder)
+m4_define(CylinderX, 30)   // Cylinder refirement zone (nb. of cells in x dir.)
+m4_define(CylinderZ, 30)   // Cylinder refirement zone (nb. of cells in z dir.)
+m4_define(CylinderZ_, 26)  // Cylinder coarse zone (nb. of cells in z dir.)
+m4_define(CylinderX_, 20)  // Cylinder coarse zone (nb. of cells in x dir.) 
 
 // MESH - block (punch)
 m4_define(blockX, 20)     // Block refirement zone (nb. of cells in x dir.)
 m4_define(blockZ, 12)     // Block refirement zone (nb. of cells in z dir.)
 m4_define(blockZ_, 16)    // Block coarse zone (nb. of cells in z dir.)
 
-// MESH - foundation (cylinder) gradings
-m4_define(fXgrading, 1.5)   // Foundation coarse zone x grading (to the right of the r.z)
-m4_define(fZgrading, 0.15)  // Foundation coarse zone z grading (lower part of the mesh)
+// MESH - Cylinder (cylinder) gradings
+m4_define(fXgrading, 1.5)   // Cylinder coarse zone x grading (to the right of the r.z)
+m4_define(fZgrading, 0.15)  // Cylinder coarse zone z grading (lower part of the mesh)
 
 // MESH - block (punch) gradings
 m4_define(bZgrading, 3)   // Block veritcal grading of coarse part
 
 // PRELIMINARIES
 m4_define(grading, 1 1 1)
-m4_define(Hfr, calc(Rb*0.975))          // Foundation height refirement
-m4_define(Rfr, calc(Rb*0.975))          // Foundation radius refirement
+m4_define(Hfr, calc(Rb*0.975))          // Cylinder height refirement
+m4_define(Rfr, calc(Rb*0.975))          // Cylinder radius refirement
 m4_define(sinAngle, calc(sin(rad(angle))))
 m4_define(cosAngle, calc(cos(rad(angle))))
 m4_define(sin45, calc(sin(rad(45))))
@@ -73,7 +73,7 @@ convertToMeters 0.001;
 vertices
 (
 
-// Foundation
+// Cylinder
 
     //Plane A (positive angle):
     (0                    0                       0)            vlabel(A0)
@@ -128,10 +128,10 @@ vertices
 
 blocks
 (
-    hex ( A0 A1 A4 A3 A0 B1 B4 A3 ) punch_bottom (foundationX  foundationZ_ 1) simpleGrading  (1 fZgrading 1)
-    hex ( A3 A4 A7 A6 A3 B4 B7 A6 ) punch_bottom (foundationX  foundationZ  1) simpleGrading  (1 1 1)
-    hex ( A1 A2 A5 A4 B1 B2 B5 B4 ) punch_bottom (foundationX_ foundationZ_ 1) simpleGrading  (fXgrading fZgrading 1)
-    hex ( A4 A5 A8 A7 B4 B5 B8 B7 ) punch_bottom (foundationX_ foundationZ  1) simpleGrading  (fXgrading 1 1)
+    hex ( A0 A1 A4 A3 A0 B1 B4 A3 ) punch_bottom (CylinderX  CylinderZ_ 1) simpleGrading  (1 fZgrading 1)
+    hex ( A3 A4 A7 A6 A3 B4 B7 A6 ) punch_bottom (CylinderX  CylinderZ  1) simpleGrading  (1 1 1)
+    hex ( A1 A2 A5 A4 B1 B2 B5 B4 ) punch_bottom (CylinderX_ CylinderZ_ 1) simpleGrading  (fXgrading fZgrading 1)
+    hex ( A4 A5 A8 A7 B4 B5 B8 B7 ) punch_bottom (CylinderX_ CylinderZ  1) simpleGrading  (fXgrading 1 1)
 
     hex ( C0 C1 C44 C03 C0 D1 D44 C03 ) punch_top (blockX calc(blockZ/2) 1)         simpleGrading (grading)
     hex ( C03 C44 C4 C3 C03 D44 D4 C3 ) punch_top (blockX calc(blockZ/2) 1)         simpleGrading (grading)
