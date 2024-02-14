@@ -45,9 +45,14 @@ Fig. 2 shows the radial and axial displacement profile for the cylindrical found
   <img src="./images/punchAxisymmetric-contactPressureStress.png" alt="Image" width="470">
   <img src="./images/punchAxisymmetric-contactFrictionStress.png" alt="Image" width="470">
     <figcaption>
-     <strong>Figure 2: Normal and tangential contact stress profiles </strong>
+     <strong>Figure 3: Normal and tangential contact stress profiles </strong>
     </figcaption>
 </div>
+```warning
+The case is set using foam-extend 4.1. 
+Other versions of the OpenFOAM may require some small tweaks.
+```
+
 
 ---
 
