@@ -1,4 +1,4 @@
-# `Shallow ironing`
+# Shallow Ironing: `shallowIroning`
 
 ---
 
