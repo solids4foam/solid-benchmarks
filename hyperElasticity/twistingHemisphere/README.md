@@ -44,7 +44,7 @@ Other versions of the OpenFOAM may require some small tweaks.
     </figcaption>
 </div>
 
-- During block deformation, i.e., for rotation angles smaller than $$\theta = 120^{\circ}$$, the torque value gradually increases until its constant evolution is reached. Figures 3 and 4 compare the evolution of the half-sphere twisting torque and vertical force with results from [2] and [3].  One can see that the twisting torque is in good agreement during the transition from stick to slip behaviour. In the regime of dominant slip behaviour, the twisting torque is slightly overpredicted due to the higher value of the normal contact force. It should be emphasized that in the results from [2] and [3] the compression of the ball is without friction, which certainly affects the results.
+- During block deformation, i.e., for rotation angles smaller than $$\theta = 120^{\circ}$$, the torque value gradually increases until its constant evolution is reached. Figures 3 and 4 compare the evolution of the half-sphere twisting torque and vertical force with results from [2] and [3].  One can see that the twisting torque is in good agreement during the transition from stick to slip behaviour. In the regime of dominant slip behaviour, the twisting torque is slightly overpredicted due to the higher value of the normal contact force. It should be emphasized that in the results from [2] and [3] the compression of the ball is without friction, which affects the results.
 
 <div style="text-align: center;">
   <img src="./images/twistingHemisphere-force.png" alt="Image" width="700">
