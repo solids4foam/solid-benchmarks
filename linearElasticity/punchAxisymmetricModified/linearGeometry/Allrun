@@ -23,5 +23,11 @@ solids4Foam::runApplication solids4Foam
 solids4Foam::runApplication foamCalc components D -latestTime
 solids4Foam::runApplication sample -latestTime
 
-# Plot results
-gnuplot plot.gnuplot
+# Create plots
+if command -v gnuplot &> /dev/null
+then
+    echo "Generating sigmaR.png and sigmaTheta.png using gnuplot"
+    gnuplot plot.gnuplot &> /dev/null
+else
+    echo "Please install gnuplot if you would like to generate the plots"
+fi

@@ -12,21 +12,13 @@ solids4Foam::convertCaseFormatFoamExtend .
 # Check OpenFOAM version (tested only with fe41)
 solids4Foam::caseOnlyRunsWithFoamExtend
 
-# Create mesh
-m4 -P system/blockMeshDict.m4 > constant/polyMesh/blockMeshDict
-solids4Foam::runApplication blockMesh
-
 # Run solver
 solids4Foam::runApplication solids4Foam
-
-# Post-processing
-solids4Foam::runApplication foamCalc components D -latestTime
-solids4Foam::runApplication sample -latestTime
 
 # Create plots
 if command -v gnuplot &> /dev/null
 then
-    echo "Generating sigmaR.png and sigmaTheta.png using gnuplot"
+    echo "Generating torque evolution diagram using gnuplot"
     gnuplot plot.gnuplot &> /dev/null
 else
     echo "Please install gnuplot if you would like to generate the plots"
