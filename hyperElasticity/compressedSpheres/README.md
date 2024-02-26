@@ -43,15 +43,21 @@ Other versions of the OpenFOAM may require some small tweaks.
 </div>
 
 
-- Figure 3 show the evolution of the compression force for the frictional case. The compression force before buckling of the inner sphere matches well with the results from the literature. After the start of the inner sphere buckling, a difference exists in the evolution of the compression force and the structure shows less stiffness in `solids4foam`.
+- Figure 3 and 4 shows the evolution of the compression force for the frictional and frictionless case, respectively. The compression force before buckling of the inner sphere matches well with the results from the literature. After the start of the inner sphere buckling, a difference exists in the evolution of the compression force and the structure shows less stiffness in `solids4foam`.
 
 <div style="text-align: center;">
   <img src="./images/compressedSpheres-frictionForce.png" alt="Image" width="700">
     <figcaption>
-     <strong> <br> Figure 3: Evolution of the compression force for frictional case (COF=0.5)</strong>
+     <strong> <br> Figure 3: Evolution of the compression force for the frictional case (COF=0.5)</strong>
     </figcaption>
 </div>
 
+<div style="text-align: center;">
+  <img src="./images/compressedSpheres-frictionlessForce.png" alt="Image" width="700">
+    <figcaption>
+     <strong> <br> Figure 4: Evolution of the compression force for the frictionless case</strong>
+    </figcaption>
+</div>
 
 The results from [2], [3] and [4] have been digitised using the [WebPlotDigitizer](https://apps.automeris.io/wpd/) software.
 
