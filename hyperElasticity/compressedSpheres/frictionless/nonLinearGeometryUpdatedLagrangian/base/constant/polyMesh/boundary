@@ -1,0 +1,159 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | foam-extend: Open Source CFD                    |
+|  \\    /   O peration     | Version:     4.0                                |
+|   \\  /    A nd           | Web:         http://www.foam-extend.org         |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       polyBoundaryMesh;
+    location    "constant/polyMesh";
+    object      boundary;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+15
+(
+r_bottom
+
+{
+    type            patch;
+    nFaces          405;
+    startFace       10790;
+}
+
+
+r_top
+
+{
+    type            patch;
+    nFaces          405;
+    startFace       11195;
+}
+
+
+sym1
+
+{
+    type            symmetryPlane;
+    nFaces          108;
+    startFace       11600;
+}
+
+
+sym2
+
+{
+    type            symmetryPlane;
+    nFaces          108;
+    startFace       11708;
+}
+
+
+sym3
+
+{
+    type            symmetryPlane;
+    nFaces          72;
+    startFace       11816;
+}
+
+
+bottom_contact
+
+{
+    type            patch;
+    nFaces          1;
+    startFace       11888;
+}
+
+
+disp
+
+{
+    type            patch;
+    nFaces          1;
+    startFace       11889;
+}
+
+
+fixed
+
+{
+    type            patch;
+    nFaces          5;
+    startFace       11890;
+}
+
+
+free
+
+{
+    type            patch;
+    nFaces          4;
+    startFace       11895;
+}
+
+
+top_contact
+
+{
+    type            patch;
+    nFaces          1;
+    startFace       11899;
+}
+
+
+R_bottom
+
+{
+    type            patch;
+    nFaces          605;
+    startFace       11900;
+}
+
+
+R_top
+
+{
+    type            patch;
+    nFaces          605;
+    startFace       12505;
+}
+
+
+sym4
+
+{
+    type            symmetryPlane;
+    nFaces          88;
+    startFace       13110;
+}
+
+
+sym5
+
+{
+    type            symmetryPlane;
+    nFaces          132;
+    startFace       13198;
+}
+
+
+sym6
+
+{
+    type            symmetryPlane;
+    nFaces          132;
+    startFace       13330;
+}
+
+
+)
+
+
+// ************************************************************************* //
