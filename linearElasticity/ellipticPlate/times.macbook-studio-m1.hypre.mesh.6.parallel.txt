@@ -1,0 +1,6 @@
+# Number of Cores    Mesh 6 Time (in seconds)
+1   987.67
+2   584.59
+4   355.36
+8   199.37
+16  116.88

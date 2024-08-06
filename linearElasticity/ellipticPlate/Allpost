@@ -6,12 +6,8 @@
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
 
-BASE="base"
-CASE_NAME="mesh"
-MACHINE="macbook-pro-m3"
-#SETTINGS="lu"
-SETTINGS="hypre"
-TIMES_FILE="times.${MACHINE}.${SETTINGS}.txt"
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
 
 if [[ -f "${TIMES_FILE}" ]]
 then

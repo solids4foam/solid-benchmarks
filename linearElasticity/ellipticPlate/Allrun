@@ -6,9 +6,9 @@
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
 
-BASE="base"
-CASE_NAME="mesh"
-MACHINE="macbook-pro-m3"
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
 
 if [[ -d "${SUFFIX}.1" ]]
 then
