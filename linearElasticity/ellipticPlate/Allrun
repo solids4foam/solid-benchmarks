@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+BASE="base"
+CASE_NAME="mesh"
+MACHINE="macbook-pro-m3"
+
+if [[ -d "${SUFFIX}.1" ]]
+then
+    echo "Case ${SUFFIX}.1 already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Run cases
+for i in `seq 1 6`;
+do
+    CASE="${CASE_NAME}.$i.${MACHINE}"
+    echo "Running ${CASE}"
+
+    # Copy template case
+    cp -r "${BASE}" "${CASE}"
+
+    # Enter the case
+    cd "${CASE}"
+
+    # Replace the meshSpacing file
+    if [[ ! -f "meshes/meshSpacing$i.geo" ]]
+    then
+        echo "Cannot find ${CASE}/meshes/meshSpacing$i.geo: please add it to ${BASE}/meshes/"; echo
+        exit 1;
+    else
+        echo "Copying ${CASE}/meshes/meshSpacing$i.geo to ${CASE}/meshes/meshSpacing.geo"
+        \cp "meshes/meshSpacing$i.geo" meshes/meshSpacing.geo
+    fi
+
+    # Create the mesh
+    if command -v gmsh &> /dev/null
+    then
+        # Create mesh with gmsh
+        solids4Foam::runApplication gmsh -3 -format msh2 meshes/ellipticPlate.geo
+        solids4Foam::runApplication gmshToFoam meshes/ellipticPlate.msh
+    else
+        # Fail silently
+        echo; echo "Gmsh is required to run this case: please install it"
+        exit 0        
+    fi
+
+    # Run the solver
+    #solids4Foam::runApplication solids4Foam
+    echo "Running solids4Foam on ${CASE}"
+    mpirun -np 1 solids4Foam &> log.solids4Foam
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Done"; echo
+
+echo "Run ./Allpost to extract the results"; echo

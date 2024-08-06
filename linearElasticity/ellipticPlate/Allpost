@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+BASE="base"
+CASE_NAME="mesh"
+MACHINE="macbook-pro-m3"
+TIMES_FILE="times.${MACHINE}.txt"
+
+if [[ -f "${TIMES_FILE}" ]]
+then
+    echo "The file ${TIMES_FILE} already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Write headers to results files
+echo "# Mesh Time (in seconds)" >> "${TIMES_FILE}"
+
+# Record results
+for i in `seq 1 6`;
+do
+    CASE="${CASE_NAME}.$i.${MACHINE}"
+
+    if [[ ! -d "${CASE}" ]]
+    then
+        echo "Skipping ${CASE}: case not found"
+        continue
+    fi
+
+    echo "Extracting the times from ${CASE}"
+
+    # Enter the case directory
+    cd "${CASE}"
+
+    # Record the displacements errors
+    tail -7 log.solids4Foam | head -1 | awk -v i=$i '{print i, " ", $3}' >> ../"${TIMES_FILE}"
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Done"; echo
