@@ -1,6 +1,0 @@
-# Mesh Time (in seconds)
-1   0.04
-2   0.08
-3   0.63
-4   8.08
-5   too much RAM

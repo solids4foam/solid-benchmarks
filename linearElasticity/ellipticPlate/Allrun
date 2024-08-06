@@ -47,13 +47,23 @@ do
     else
         # Fail silently
         echo; echo "Gmsh is required to run this case: please install it"
-        exit 0        
+        exit 0
     fi
 
     # Run the solver
-    #solids4Foam::runApplication solids4Foam
-    echo "Running solids4Foam on ${CASE}"
-    mpirun -np 1 solids4Foam &> log.solids4Foam
+    # If "gtime" is available (could be called "time" on Linux), use it to
+    # record the max memory usage
+    if command -v gtime &> /dev/null
+    then
+        echo "Running solids4Foam on ${CASE} and recording the memory usage"
+        # Run with gnu-time (should just be "time" on Linux)
+        gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+    else
+        echo "Running solids4Foam on ${CASE}"
+        #solids4Foam::runApplication solids4Foam
+        # Strange PETSc issue on Macbook where I need to use mpirun for serial
+        mpirun -np 1 solids4Foam &> log.solids4Foam
+    fi
 
     # Navigate back to the parent directory
     cd ..
