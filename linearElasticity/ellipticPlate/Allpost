@@ -8,6 +8,7 @@ source solids4FoamScripts.sh
 
 # Load user variables
 echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
 
 if [[ -f "${TIMES_FILE}" ]]
 then
