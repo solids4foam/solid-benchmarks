@@ -38,7 +38,7 @@ do
         # The last line is empty so "time" was not used
         echo "Extracting the times from ${CASE}"
 
-        # Record the displacements errors
+        # Record the times
         tail -7 log.solids4Foam | head -1 | awk -v i=$i '{print i, " ", $3}' >> ../"${TIMES_FILE}"
     else
         echo "Extracting the times and max memory usage from ${CASE}"
@@ -46,7 +46,7 @@ do
         # Extract the max memory from the last line
         MAX_MEMORY=$(awk '/Maximum resident set size/ {print $6}' log.solids4Foam)
 
-        # Record the displacements errors
+        # Record the times
         tail -8 log.solids4Foam | head -1 | awk -v i="$i" -v max_mem="$MAX_MEMORY" '{print i, " ", $3, " ", max_mem}' >> ../"${TIMES_FILE}"
     fi
 
