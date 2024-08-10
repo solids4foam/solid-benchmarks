@@ -10,8 +10,9 @@ MACHINE="mac-studio-m1"
 
 # Custom settings name to distinguish between different runs, e.g. when you
 # change the preconditioner or some other setting in the base case
-#SETTINGS="lu"
-SETTINGS="hypre"
+SETTINGS="lu"
+#SETTINGS="hypre"
+#SETTINGS="ilu1"
 
 # Times file created by Allpost
 TIMES_FILE="times.${MACHINE}.${SETTINGS}.txt"
