@@ -10,9 +10,9 @@ source solids4FoamScripts.sh
 echo "Sourcing the USER_VARIABLE_NAMES file"
 source USER_VARIABLE_NAMES
 
-if [[ -d "${SUFFIX}.1" ]]
+if [[ -d "${CASE_NAME}.1" ]]
 then
-    echo "Case ${SUFFIX}.1 already exists: please remove it"; echo
+    echo "Case ${CASE_NAME}.1 already exists: please remove it"; echo
     exit 1;
 fi
 

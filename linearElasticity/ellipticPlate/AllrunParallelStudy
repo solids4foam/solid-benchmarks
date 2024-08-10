@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# Perform a parallel strong scaling study on a given mesh
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
+
+# Mesh file
+#MESH_FILE=meshSpacing2.geo
+#MESH_FILE=meshSpacing3.geo
+MESH_FILE=meshSpacing6.geo
+
+export CASE_NAME="${CASE_NAME}.parallelStudy"
+
+if find . -type d -name "${CASE_NAME}.*" | grep -q .
+then
+    echo "Please remove all ${CASE_NAME}.* cases"; echo
+    exit 1;
+fi
+
+# Run cases
+# The number of cores is 2^i
+# Adjust the max "i" as needed, i.e. i=6 corresponds to 2^6=64 cores 
+for i in `seq 0 6`;
+do
+    N_CORES=$((2**i))
+
+    CASE="${CASE_NAME}.${N_CORES}cores.${MACHINE}"
+    echo "Running ${CASE}"
+
+    # Copy template case
+    cp -r "${BASE}" "${CASE}"
+
+    # Enter the case
+    cd "${CASE}"
+
+    # Replace the meshSpacing file
+    if [[ ! -f "meshes/${MESH_FILE}" ]]
+    then
+        echo "Cannot find ${CASE}/meshes/${MESH_FILE}: please add it to ${BASE}/meshes/"; echo
+        exit 1;
+    else
+        echo "Copying ${CASE}/meshes/${MESH_FILE} to ${CASE}/meshes/meshSpacing.geo"
+        \cp "meshes/${MESH_FILE}" meshes/meshSpacing.geo
+    fi
+
+    # Create the mesh
+    if command -v gmsh &> /dev/null
+    then
+        # Create mesh with gmsh
+        solids4Foam::runApplication gmsh -3 -format msh2 meshes/ellipticPlate.geo
+        solids4Foam::runApplication gmshToFoam meshes/ellipticPlate.msh
+    else
+        # Fail silently
+        echo; echo "Gmsh is required to run this case: please install it"
+        exit 0
+    fi
+
+    # Run the solver
+    if [ ${N_CORES} = 1 ]
+    then
+        echo "Running solids4Foam in serial on ${CASE}"
+        mpirun -np 1 solids4Foam &> log.solids4Foam &
+    else
+        # Update N_CORES in the decomposeParDict
+        sed -i "s/numberOfSubdomains  [^;]*;/numberOfSubdomains  ${N_CORES};/" system/decomposeParDict
+
+        # Decompose the case
+        echo "Running decomposePar on ${CASE}"
+        decomposePar &> log.decomposePar
+
+        # Run the solver
+        echo "Running solids4Foam using $N_CORES cores on ${CASE}"
+        mpirun -np ${N_CORES} solids4Foam -parallel &> log.solids4Foam &
+    fi
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Waiting for jobs to finish..."; echo
+INTERVAL=60;  # Adjust the interval as needed
+while true
+do
+    sleep "${INTERVAL}"
+
+    # Check running background jobs
+    running_jobs=$(jobs -r)
+    
+    if [[ -z "$running_jobs" ]]; then
+        echo "All jobs are complete"
+        break
+    else
+        echo "The following jobs are still running:"
+        jobs -r
+        echo
+    fi
+done
+
+echo; echo "All done"; echo
