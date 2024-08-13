@@ -5,15 +5,16 @@ BASE="base"
 CASE_NAME="mesh"
 
 # Machine name used as a suffix for case and file names
-#MACHINE="mac-studio-m1"
+MACHINE="mac-studio-m1"
 #MACHINE="macbook-pro-m3"
-MACHINE="meluxina-AMD7H12"
+#MACHINE="meluxina-AMD7H12"
 
 # Custom settings name to distinguish between different runs, e.g. when you
 # change the preconditioner or some other setting in the base case
 #SETTINGS="lu"
 SETTINGS="hypre"
 #SETTINGS="ilu1"
+#SETTINGS="segregated"
 
 # Times file created by Allpost
 TIMES_FILE="times.${MACHINE}.${SETTINGS}.txt"
