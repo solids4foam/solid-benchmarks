@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
+
+if [[ -f "${TIMES_FILE}" ]]
+then
+    echo "The file ${TIMES_FILE} already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Write headers to results files
+echo "# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)" >> "${TIMES_FILE}"
+
+# Record results
+for i in `seq 1 6`;
+do
+    CASE="${CASE_NAME}.$i.${MACHINE}"
+
+    if [[ ! -f "${CASE}/log.solids4Foam" ]]
+    then
+        echo "Skipping: ${CASE}/log.solids4Foam not found"
+        continue
+    fi
+
+    # Enter the case directory
+    cd "${CASE}"
+
+    if [ "$(tail -n 1 log.solids4Foam | wc -c)" -eq 1 ]
+    then
+        # The last line is empty so "time" was not used
+        echo "Extracting the times from ${CASE}"
+
+        # Record the times
+        tail -7 log.solids4Foam | head -1 | awk -v i=$i '{print i, " ", $3}' >> ../"${TIMES_FILE}"
+    else
+        echo "Extracting the times and max memory usage from ${CASE}"
+
+        # Extract the max memory from the last line
+        MAX_MEMORY=$(awk '/Maximum resident set size/ {print $6}' log.solids4Foam)
+
+        # Record the times
+        tail -8 log.solids4Foam | head -1 | awk -v i="$i" -v max_mem="$MAX_MEMORY" '{print i, " ", $3, " ", max_mem}' >> ../"${TIMES_FILE}"
+    fi
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Done"; echo
