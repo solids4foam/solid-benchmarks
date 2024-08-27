@@ -33,11 +33,8 @@ ddtSchemes
 
 gradSchemes
 {
-    //default                pointCellsLeastSquares;
-    // default                Gauss linear;
     default                 none;
-    grad(D).segregated      extendedLeastSquares 0;
-    grad(D)                 leastSquaresS4f;
+    grad(D)                 leastSquaresS4f false;
 }
 
 divSchemes
@@ -50,14 +47,14 @@ divSchemes
 laplacianSchemes
 {
     default                 none;
-    laplacian(DD,D)         Gauss linear corrected;
-    // laplacian(DD,D)         Gauss linear skewCorrected;
+    //laplacian(DD,D)         Gauss linear corrected;
+    laplacian(DD,D)         Gauss linear skewCorrected;
 }
 
 snGradSchemes
 {
-    // default                 skewCorrected;
-    default                 corrected;
+    //default                 corrected;
+    default                 skewCorrected;
 }
 
 interpolationSchemes
