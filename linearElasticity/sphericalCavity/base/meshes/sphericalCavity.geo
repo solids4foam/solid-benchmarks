@@ -1,5 +1,8 @@
 // Gmsh .geo file to create a mesh of a cube with a spherical cavity
 
+// Mesh spacing parameters
+Include "meshSpacing.geo";
+
 SetFactory("OpenCASCADE");  // Use OpenCASCADE kernel
 
 // Define parameters
@@ -26,6 +29,21 @@ Physical Surface("cavity", 23) = {6};
 
 // Define physical volume for the 3D region
 Physical Volume("volume") = {1};
+
+// Define a distance field around the cavity
+Field[1] = Distance;
+Field[1].FacesList = {6};  // Surface ID of the cavity
+
+// Define a threshold field for mesh size transition
+Field[2] = Threshold;
+Field[2].IField = 1;
+Field[2].LcMin = minDeltaX;   // Minimum mesh size near the cavity
+Field[2].LcMax = maxDeltaX;   // Maximum mesh size away from the cavity
+Field[2].DistMin = minDist; // Distance at which LcMin is applied
+Field[2].DistMax = maxDist;  // Distance at which LcMax is applied
+
+// Use the threshold field to control mesh size
+Background Field = 2;
 
 // Mesh the geometry
 Mesh 3;

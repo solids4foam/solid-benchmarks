@@ -28,18 +28,25 @@ do
     # Enter the case
     cd "${CASE}"
 
+    # Replace the meshSpacing file
+    if [[ ! -f "meshes/meshSpacing$i.geo" ]]
+    then
+        echo "Cannot find ${CASE}/meshes/meshSpacing$i.geo: please add it to ${BASE}/meshes/"; echo
+        exit 1;
+    else
+        echo "Copying ${CASE}/meshes/meshSpacing$i.geo to ${CASE}/meshes/meshSpacing.geo"
+        \cp "meshes/meshSpacing$i.geo" meshes/meshSpacing.geo
+    fi
+
     # Create the mesh
     if command -v gmsh &> /dev/null
     then
         # Remporarily rename 0 to avoid issues
         mv 0 0.tmp
 
-        # Calculate the max cell size
-        MAX_CELL_SIZE=$(echo "scale=10; 0.04/(2^(${i}-1))" | bc)
-
         # Create mesh with gmsh
-        solids4Foam::runApplication gmsh -3 -clmax ${MAX_CELL_SIZE} -format msh2 sphericalCavity.geo
-        solids4Foam::runApplication gmshToFoam sphericalCavity.msh
+        solids4Foam::runApplication gmsh -3 -format msh2 meshes/sphericalCavity.geo
+        solids4Foam::runApplication gmshToFoam meshes/sphericalCavity.msh
         solids4Foam::runApplication polyDualMesh 30 -overwrite
         solids4Foam::runApplication combinePatchFaces 45 -overwrite
         solids4Foam::runApplication changeDictionary
@@ -47,9 +54,8 @@ do
         # Move 0 back
         mv 0.tmp 0
     else
-        # Fail silently
         echo; echo "Gmsh is required to run this case: please install it"
-        exit 0
+        exit 1
     fi
 
     # Run the solver
