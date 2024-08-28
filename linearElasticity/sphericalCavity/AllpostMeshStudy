@@ -17,7 +17,7 @@ then
 fi
 
 # Write headers to results files
-echo "# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)    L2-sigmaZZ    LInf-sigmaZZ" >> "${TIMES_FILE}"
+echo "# Mesh Time (in seconds) Max Memory (in kB, if 'time' was used) L2-disp LInf-disp L2-sigmaZZ LInf-sigmaZZ" >> "${TIMES_FILE}"
 
 # Record results
 for i in `seq 1 6`;
@@ -38,29 +38,46 @@ do
         # The last line is empty so "time" was not used
         echo "Extracting the times from ${CASE}"
 
-        # Record the times
-        tail -42 log.solids4Foam | head -1 | awk -v i=$i '{print i, " ", $3}' >> ../"${TIMES_FILE}"
+        MAX_MEMORY="memory_not_recorded"
+
+        # Record the time
+        CLOCK_TIME=$(tail -42 log.solids4Foam | head -1 | awk '{print $7}')
+
+        # Extract the L2 (average) error for displacement
+        DISP_L2_ERROR=$(tail -7 log.solids4Foam | head -1 | awk '{print $2}')
+
+        # Extract the LInfinity (max) error for displacement
+        DISP_LINF_ERROR=$(tail -7 log.solids4Foam | head -1 | awk '{print $3}')
     else
         echo "Extracting the times and max memory usage from ${CASE}"
 
         # Extract the max memory from the last line
         MAX_MEMORY=$(awk '/Maximum resident set size/ {print $6}' log.solids4Foam)
 
-        if [[ ! -f "postProcessing/0/sphericalCavityStressErrors.dat" ]]
-        then
-            echo "Skipping: ${CASE}/postProcessing/0/sphericalCavityStressErrors.dat not found"
-            continue
-        fi
+        # Record the time
+        CLOCK_TIME=$(tail -43 log.solids4Foam | head -1 | awk '{print $7}')
 
-        # Extract the L2 (average) error for sigmaZZ
-        L2_ERROR=$(awk 'END {print $(NF-1)}' postProcessing/0/sphericalCavityStressErrors.dat)
+        # Extract the L2 (average) error for displacement
+        DISP_L2_ERROR=$(tail -8 log.solids4Foam | head -1 | awk '{print $2}')
 
-        # Extract the LInfinity (max) error for sigmaZZ
-        LINFINITY_ERROR=$(awk 'END {print $(NF)}' postProcessing/0/sphericalCavityStressErrors.dat)
-
-        # Record the times
-        tail -43 log.solids4Foam | head -1 | awk -v i="$i" -v max_mem="$MAX_MEMORY" -v l2="$L2_ERROR" -v lInf="$LINFINITY_ERROR" '{print i, " ", $3, " ", max_mem, " ", l2, " ", lInf}' >> ../"${TIMES_FILE}"
+        # Extract the LInfinity (max) error for displacement
+        DISP_LINF_ERROR=$(tail -8 log.solids4Foam | head -1 | awk '{print $3}')
     fi
+
+    if [[ ! -f "postProcessing/0/sphericalCavityStressErrors.dat" ]]
+    then
+        echo "Skipping: ${CASE}/postProcessing/0/sphericalCavityStressErrors.dat not found"
+        continue
+    fi
+
+    # Extract the L2 (average) error for sigmaZZ
+    STRESS_L2_ERROR=$(awk 'END {print $(NF-1)}' postProcessing/0/sphericalCavityStressErrors.dat)
+
+    # Extract the LInfinity (max) error for sigmaZZ
+    STRESS_LINF_ERROR=$(awk 'END {print $(NF)}' postProcessing/0/sphericalCavityStressErrors.dat)
+
+    # Write data to file
+    echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${TIMES_FILE}"
 
     # Navigate back to the parent directory
     cd ..
