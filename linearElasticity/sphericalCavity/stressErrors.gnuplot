@@ -16,7 +16,7 @@ if (strlen(datafile) == 0) {
 set term pdfcairo dashed enhanced
 set datafile separator " "
 
-set output "dispErrors.pdf"
+set output "stressErrors.pdf"
 
 #set size ratio 1
 
@@ -35,7 +35,7 @@ set logscale x
 set logscale y
 #set ytics 0.002
 set xlabel "Average cell spacing (in mm)"
-set ylabel "Error (in μm)"
+set ylabel "Error (in MPa)"
 set key left top;
 
 # Average mesh spacing of mesh1
@@ -45,8 +45,8 @@ dx=0.04984171255
 
 # Assume the mesh spacing is being halved for each succesive mesh
 plot \
-    datafile u (1e3*dx/(2**($0))):(1e6*$4) w lp t "L_2", \
-    datafile u (1e3*dx/(2**($0))):(1e6*$5) w lp t "L_∞", \
-    "orderOfAccuracySlopesDisp.dat" u 1:2 w l t "1^{st} order", \
-    "orderOfAccuracySlopesDisp.dat" u 1:3 w l t "2^{nd} order"
+    datafile u (1e3*dx/(2**($0))):(1e-6*$6) w lp t "L_2", \
+    datafile u (1e3*dx/(2**($0))):(1e-6*$7) w lp t "L_∞", \
+    "orderOfAccuracySlopesStress.dat" u 1:2 w l t "1^{st} order", \
+    "orderOfAccuracySlopesStress.dat" u 1:3 w l t "2^{nd} order"
 
