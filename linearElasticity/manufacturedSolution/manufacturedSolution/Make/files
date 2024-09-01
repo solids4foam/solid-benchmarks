@@ -1,0 +1,4 @@
+manufacturedSolutionSource.C
+manufacturedSolutionFunctionObject.C
+
+LIB = $(FOAM_USER_LIBBIN)/libmanufacturedSolution
