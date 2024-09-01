@@ -7,5 +7,5 @@
 source solids4FoamScripts.sh
 
 cleanCase
-\rm -rf constant/polyMesh/sets constant/polyMesh/*Zones* sphericalCavity.msh
+\rm -rf constant/polyMesh/sets constant/polyMesh/*Zones* meshes/sphericalCavity.msh
 \rm -rf VTK case.foam postProcessing constant/polyMesh/boundary* *.obj
