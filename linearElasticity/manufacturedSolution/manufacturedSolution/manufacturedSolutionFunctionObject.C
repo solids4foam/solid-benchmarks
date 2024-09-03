@@ -40,114 +40,6 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-Foam::symmTensor Foam::manufacturedSolutionFunctionObject::MMSCubeStress
-(
-    const vector& point
-)
-{
-    symmTensor sigma = symmTensor::zero;
-
-    // Shear modulus
-    const scalar mu = E_/(2.0*(1.0 + nu_));
-
-    // Lambda parameter
-    const scalar lambda = (E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_));
-
-    // pi
-    const scalar pi = Foam::constant::mathematical::pi;
-
-    sigma.xx() =
-        lambda*(4*ax_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z())
-      + 2*ay_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z())
-      + az_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y()))
-      + 8*ax_*mu*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    sigma.yy() =
-        lambda*(4*ax_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z())
-      + 2*ay_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z())
-      + az_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y()))
-      + 4*ay_*mu*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z());
-
-    sigma.zz() =
-        lambda*(4*ax_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z())
-      + 2*ay_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z())
-      + az_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y()))
-      + 2*az_*mu*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y());
-
-    sigma.xy() =
-        2*ax_*mu*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z())
-     +  4*ay_*mu*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    // sigma.yx() = sigma.xy();
-
-    sigma.yz() =
-        ay_*mu*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y())
-      + 2*az_*mu*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z());
-
-    // sigma.zy() = sigma.yz();
-
-    sigma.xz() =
-        ax_*mu*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y())
-      + 4*az_*mu*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    // sigma.zx() = sigma.xz();
-
-    return sigma;
-}
-
-Foam::symmTensor Foam::manufacturedSolutionFunctionObject::MMSCubeEpsilon
-(
-    const vector& point
-)
-{
-    symmTensor epsilon = symmTensor::zero;
-
-    //pi
-    const scalar pi = Foam::constant::mathematical::pi;
-
-    epsilon.xx() =
-        4*ax_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    epsilon.yy() =
-        2*ay_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z());
-
-    epsilon.zz() =
-        az_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y());
-
-    epsilon.xy() =
-        ax_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z()) + 2*ay_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    // epsilon.yx() = epsilon.xy();
-
-    epsilon.yz() =
-        (ay_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y()))/2 + az_*pi*Foam::cos(2*pi*point.y())*Foam::sin(4*pi*point.x())*Foam::sin(pi*point.z());
-
-    // epsilon.zy() = epsilon.yz();
-
-    epsilon.xz() =
-        (ax_*pi*Foam::cos(pi*point.z())*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y()))/2 + 2*az_*pi*Foam::cos(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z());
-
-    // epsilon.zx() = epsilon.xz();
-
-    return epsilon;
-}
-
-Foam::vector Foam::manufacturedSolutionFunctionObject::MMSCubeDisplacement
-(
-    const vector& point
-)
-{
-    //pi
-    const scalar pi = Foam::constant::mathematical::pi;
-
-    return vector
-    (
-        ax_*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z()),
-        ay_*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z()),
-        az_*Foam::sin(4*pi*point.x())*Foam::sin(2*pi*point.y())*Foam::sin(pi*point.z())
-    );
-}
-
 bool Foam::manufacturedSolutionFunctionObject::writeData()
 {
     // Lookup the solid mesh
@@ -161,6 +53,12 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
         meshPtr = &(time_.lookupObject<fvMesh>("region0"));
     }
     const fvMesh& mesh = *meshPtr;
+
+    // Create the MMS object, if needed
+    if (!mmsPtr_.valid())
+    {
+        mmsPtr_.reset(new manufacturedSolution(mesh, ax_, ay_, az_, E_, nu_));
+    }
 
     // Lookup the point mesh
     const pointMesh& pMesh = mesh.lookupObject<pointMesh>("pointMesh");
@@ -272,7 +170,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
 
         forAll(sI, cellI)
         {
-            sI[cellI] = MMSCubeStress(CI[cellI]);
+            sI[cellI] = mmsPtr_->calculateStress(CI[cellI]);
             sEqI[cellI] =
                 sqrt
                 (
@@ -289,18 +187,18 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
 
         forAll(pEI, pointI)
         {
-            pEI[pointI] = MMSCubeEpsilon(points[pointI]);
+            pEI[pointI] = mmsPtr_->calculateStrain(points[pointI]);
             pEEqI[pointI] = sqrt((2.0/3.0)*magSqr(dev(pEI[pointI])));
         }
 
         forAll(aPDI, pointI)
         {
-            aPDI[pointI] = MMSCubeDisplacement(points[pointI]);
+            aPDI[pointI] = mmsPtr_->calculateDisplacement(points[pointI]);
         }
 
         forAll(aDI, cellI)
         {
-            aDI[cellI] = MMSCubeDisplacement(CI[cellI]);
+            aDI[cellI] = mmsPtr_->calculateDisplacement(CI[cellI]);
         }
 
         forAll(analyticalStress.boundaryField(), patchI)
@@ -318,7 +216,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
 
                 forAll(sP, faceI)
                 {
-                        sP[faceI] = MMSCubeStress(CP[faceI]);
+                        sP[faceI] = mmsPtr_->calculateStress(CP[faceI]);
                         sEqP[faceI] = sqrt((sqr(sP[faceI].xx() - sP[faceI].yy()) + sqr(sP[faceI].yy() - sP[faceI].zz()) + sqr(sP[faceI].zz() - sP[faceI].xx()) +
                 6*(sqr(sP[faceI].xy()) + sqr(sP[faceI].yz()) + sqr(sP[faceI].zx())))/2);
                 }
@@ -364,23 +262,19 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             diff.write();
 
             const vectorField& diffI = diff;
-            Info<< "    Displacement norms: mean L1, mean L2, LInf: " << nl
+            Info<< "    Displacement error norms: mean L1, mean L2, LInf: " << nl
                 << "    Magnitude: " << gAverage(mag(diffI))
                 << " " << Foam::sqrt(gAverage(magSqr(diffI)))
                 << " " << gMax(mag(diffI))
-                << nl
-                << "    u: " << gAverage(mag(diffI.component(0)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(0))))
-                << " " << gMax(mag(diffI.component(0)))
-                << nl
-                << "    v: " << gAverage(mag(diffI.component(1)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(1))))
-                << " " << gMax(mag(diffI.component(1)))
-                << nl
-                << "    w: " << gAverage(mag(diffI.component(2)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(2))))
-                << " " << gMax(mag(diffI.component(2)))
-                << nl << endl;
+                << endl;
+            for (int cmptI = 0; cmptI < 3; cmptI++)
+            {
+                Info<< "    " << cmptI << " "
+                    << gAverage(mag(diffI.component(cmptI)))
+                    << " " << Foam::sqrt(gAverage(magSqr(diffI.component(cmptI))))
+                    << " " << gMax(mag(diffI.component(cmptI)))
+                    << endl;
+            }
         }
 
         if
@@ -400,23 +294,19 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             diff.write();
 
             const vectorField& diffI = diff;
-            Info<< "    Displacement norms: mean L1, mean L2, LInf: " << nl
+            Info<< "    Displacement error norms: mean L1, mean L2, LInf: " << nl
                 << "    Magnitude: " << gAverage(mag(diffI))
                 << " " << Foam::sqrt(gAverage(magSqr(diffI)))
                 << " " << gMax(mag(diffI))
-                << nl
-                << "    u: " << gAverage(mag(diffI.component(0)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(0))))
-                << " " << gMax(mag(diffI.component(0)))
-                << nl
-                << "    v: " << gAverage(mag(diffI.component(1)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(1))))
-                << " " << gMax(mag(diffI.component(1)))
-                << nl
-                << "    w: " << gAverage(mag(diffI.component(2)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffI.component(2))))
-                << " " << gMax(mag(diffI.component(2)))
-                << nl << endl;
+                << endl;
+            for (int cmptI = 0; cmptI < 3; cmptI++)
+            {
+                Info<< "    " << cmptI << " "
+                    << gAverage(mag(diffI.component(cmptI)))
+                    << " " << Foam::sqrt(gAverage(magSqr(diffI.component(cmptI))))
+                    << " " << gMax(mag(diffI.component(cmptI)))
+                    << endl;
+            }
         }
 
         if
@@ -436,7 +326,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             diff.write();
 
             const symmTensorField& diffI = diff;
-            Info<< "    Stress norms: mean L1, mean L2, LInf: " << nl
+            Info<< "    Stress error norms: mean L1, mean L2, LInf: " << nl
                 << "    Magnitude: " << gAverage(mag(diffI))
                 << " " << Foam::sqrt(gAverage(magSqr(diffI)))
                 << " " << gMax(mag(diffI))
@@ -468,7 +358,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             diffEpsilon.write();
 
             const symmTensorField& diffEpsilonI = diffEpsilon;
-            Info<< "    pEpsilon norms: mean L1, mean L2, LInf: " << nl
+            Info<< "    pEpsilon error norms: mean L1, mean L2, LInf: " << nl
                 << "    Component XX: " << gAverage(mag(diffEpsilonI.component(0)))
                 << " " << Foam::sqrt(gAverage(magSqr(diffEpsilonI.component(0))))
                 << " " << gMax(mag(diffEpsilonI.component(0)))
@@ -494,75 +384,6 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
                 << " " << gMax(mag(diffEpsilonI.component(5)))
                 << nl << endl;
         }
-
-
-        if
-        (
-            pointStress_
-         && mesh.foundObject<volSymmTensorField>("sigma")
-        )
-        {
-
-            const volSymmTensorField& pointSigma =
-                mesh.lookupObject<volSymmTensorField>("sigma");
-
-//            const scalarField& pointSigmaEq(mesh.nPoints(),0);
-
-//            forAll (pointSigma, pointI)
-//            {
-//            pointSigmaEq[pointI] =
-//            sqrt((sqr(pointSigma[pointI].xx() - pointSigma[pointI].yy()) + sqr(pointSigma[pointI].yy() - pointSigma[pointI].zz()) +
-//            sqr(pointSigma[pointI].zz() - pointSigma[pointI].xx()) + 6*(sqr(pointSigma[pointI].xy()) + sqr(pointSigma[pointI].yz())
-//            + sqr(pointSigma[pointI].zx())))/2);
-//            }
-
-
-            const volSymmTensorField diffSigma
-            (
-                "pointSigmaDifference", analyticalStress - pointSigma
-            );
-
-//            const volScalarField diffSigmaEq
-//            (
-//                "pointSigmaEqDifference", analyticalStressEq - pointSigmaEq
-//            );
-
-            Info<< "Writing pointSigmaDifference and pointSigmaEqDifference fields" << endl;
-            diffSigma.write();
-            //diffSigmaEq.write();
-
-            const symmTensorField& diffSigmaI = diffSigma;
-            //const scalarField& diffSigmaEqI = diffSigmaEq;
-            Info<< "    Sigma norms: mean L1, mean L2, LInf: " << nl
-                << "    Component XX: " << gAverage(mag(diffSigmaI.component(0)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(0))))
-                << " " << gMax(mag(diffSigmaI.component(0)))
-                << nl
-                << "    Component XY: " << gAverage(mag(diffSigmaI.component(1)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(1))))
-                << " " << gMax(mag(diffSigmaI.component(1)))
-                << nl
-                << "    Component XZ: " << gAverage(mag(diffSigmaI.component(2)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(2))))
-                << " " << gMax(mag(diffSigmaI.component(2)))
-                << nl
-                << "    Component YY: " << gAverage(mag(diffSigmaI.component(3)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(3))))
-                << " " << gMax(mag(diffSigmaI.component(3)))
-                << nl
-                << "    Component YZ: " << gAverage(mag(diffSigmaI.component(4)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(4))))
-                << " " << gMax(mag(diffSigmaI.component(4)))
-                << nl
-                << "    Component ZZ: " << gAverage(mag(diffSigmaI.component(5)))
-                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI.component(5))))
-                << " " << gMax(mag(diffSigmaI.component(5)))
-                << nl << endl;
-//                << "    SigmaEq: " << gAverage(mag(diffSigmaEqI))
-//                << " " << Foam::sqrt(gAverage(magSqr(diffSigmaI)))
-//                << " " << gMax(mag(diffSigmaI))
-//                << nl << endl;
-        }
     }
 
     return true;
@@ -580,6 +401,10 @@ Foam::manufacturedSolutionFunctionObject::manufacturedSolutionFunctionObject
     functionObject(name),
     name_(name),
     time_(t),
+    mmsPtr_(),
+    ax_(readScalar(dict.lookup("ax"))),
+    ay_(readScalar(dict.lookup("ay"))),
+    az_(readScalar(dict.lookup("az"))),
     E_(readScalar(dict.lookup("E"))),
     nu_(readScalar(dict.lookup("nu"))),
     cellDisplacement_
@@ -597,10 +422,7 @@ Foam::manufacturedSolutionFunctionObject::manufacturedSolutionFunctionObject
     pointStress_
     (
         dict.lookupOrDefault<Switch>("pointStress", true)
-    ),
-    ax_(readScalar(dict.lookup("ax"))),
-    ay_(readScalar(dict.lookup("ay"))),
-    az_(readScalar(dict.lookup("az")))
+    )
 {
     Info<< "Creating " << this->name() << " function object" << endl;
 

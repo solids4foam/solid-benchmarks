@@ -38,6 +38,7 @@ SourceFiles
 #include "dictionary.H"
 #include "fvMesh.H"
 #include "OFstream.H"
+#include "manufacturedSolution.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -60,6 +61,14 @@ class manufacturedSolutionFunctionObject
         //- Reference to main object registry
         const Time& time_;
 
+        //- Object that calculates the manufactured solution
+        autoPtr<manufacturedSolution> mmsPtr_;
+
+        //- User parameters for manufactured solution
+        const scalar ax_;
+        const scalar ay_;
+        const scalar az_;
+
         //- Young's modulus
         const scalar E_;
 
@@ -78,22 +87,8 @@ class manufacturedSolutionFunctionObject
         //- Calculate point stress fields
         const Switch pointStress_;
 
-        //-Parameters for analytical equation
-        const scalar ax_;
-        const scalar ay_;
-        const scalar az_;
-
 
     // Private Member Functions
-
-        //- Analytical stress solution
-        symmTensor MMSCubeStress(const vector& point);
-
-        //- Analytical point strain solution
-        symmTensor MMSCubeEpsilon(const vector& point);
-
-        //- Analytical displacement solution
-        vector MMSCubeDisplacement(const vector& point);
 
         //- Write data
         bool writeData();

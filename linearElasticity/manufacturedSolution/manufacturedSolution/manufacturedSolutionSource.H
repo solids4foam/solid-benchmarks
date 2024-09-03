@@ -60,7 +60,7 @@ Author
 #define manufacturedSolutionSource_H
 
 #include "fvOption.H"
-#include "volFields.H"
+#include "manufacturedSolution.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -79,19 +79,8 @@ class manufacturedSolutionSource
 {
     // Private Data
 
-        //- Shear modulus
-        scalar mu_;
-
-        //- Second Lame parameter
-        scalar lambda_;
-
-        //- Solution parameters
-        const scalar ax_;
-        const scalar ay_;
-        const scalar az_;
-
-        //- Body forces
-        volVectorField bodyForces_;
+        //- Manufactured solution object
+        manufacturedSolution mms_;
 
 
 public:

@@ -12,56 +12,42 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
+    note        "mesh decomposition control dictionary";
     location    "system";
-    object      controlDict;
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            ("libmanufacturedSolution.so");
+numberOfSubdomains  2;
 
-application     solids4Foam;
+method          scotch;
+// method          hierarchical;
+//method          simple;
+//method          metis;
+// method          manual;
 
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+simpleCoeffs
 {
-    mms
-    {
-        type manufacturedSolution;
-        E    200e9;
-        nu   0.3;
-        ax   2e-6;
-        ay   4e-6;
-	az   6e-6;
-        cellDisplacement yes;
-        pointDisplacement yes;
-	cellStress yes;
-	pointStress yes;
-    }
+    n           (2 1 1);
+    delta       0.001;
+}
+
+hierarchicalCoeffs
+{
+    n           (2 2 1);
+    delta       0.001;
+    order       xyz;
+}
+
+metisCoeffs
+{}
+
+scotchCoeffs
+{}
+
+manualCoeffs
+{
+    dataFile    "cellDecomposition";
 }
 
 // ************************************************************************* //

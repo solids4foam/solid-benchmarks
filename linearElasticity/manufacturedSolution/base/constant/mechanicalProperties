@@ -12,56 +12,22 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "system";
-    object      controlDict;
+    location    "constant";
+    object      mechanicalProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            ("libmanufacturedSolution.so");
+planeStress        no;
 
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
-{
-    mms
+mechanical
+(
+    steel
     {
-        type manufacturedSolution;
-        E    200e9;
-        nu   0.3;
-        ax   2e-6;
-        ay   4e-6;
-	az   6e-6;
-        cellDisplacement yes;
-        pointDisplacement yes;
-	cellStress yes;
-	pointStress yes;
+        type            linearElastic;
+        rho             rho [1 -3 0 0 0 0 0] 7800;
+        E               E [1 -1 -2 0 0 0 0] 200e+09;
+        nu              nu [0 0 0 0 0 0 0] 0.3;
     }
-}
+);
 
 // ************************************************************************* //

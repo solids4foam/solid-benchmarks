@@ -13,55 +13,48 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "system";
-    object      controlDict;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            ("libmanufacturedSolution.so");
-
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+d2dt2Schemes
 {
-    mms
-    {
-        type manufacturedSolution;
-        E    200e9;
-        nu   0.3;
-        ax   2e-6;
-        ay   4e-6;
-	az   6e-6;
-        cellDisplacement yes;
-        pointDisplacement yes;
-	cellStress yes;
-	pointStress yes;
-    }
+    default                 steadyState;
+}
+
+ddtSchemes
+{
+    default                 steadyState;
+}
+
+gradSchemes
+{
+    //default                extendedLeastSquares 0;
+    default                leastSquaresS4f;
+}
+
+divSchemes
+{
+    default                 none;
+    div(sigma)              Gauss linear;
+    div((impK*grad(D)))     Gauss linear;
+}
+
+laplacianSchemes
+{
+    //default                 Gauss linear corrected;
+    default                 Gauss linear skewCorrected;
+}
+
+snGradSchemes
+{
+    //default                 corrected;
+    default                 skewCorrected;
+}
+
+interpolationSchemes
+{
+    default                 linear;
 }
 
 // ************************************************************************* //
