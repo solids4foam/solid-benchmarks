@@ -1,5 +1,9 @@
+sinclude $(SOLIDS4FOAM_DIR)/etc/wmake-options
+sinclude $(SOLIDS4FOAM_DIR)/../etc/wmake-options
+
 EXE_INC = \
-    -DOPENFOAM_NOT_EXTEND -DOPENFOAM_COM \
+    $(VERSION_SPECIFIC_INC) \
+    -I$(SOLIDS4FOAM_DIR)/src/solids4FoamModels/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
     -I$(LIB_SRC)/meshTools/lnInclude
 

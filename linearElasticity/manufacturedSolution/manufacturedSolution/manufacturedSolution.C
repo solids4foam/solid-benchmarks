@@ -149,6 +149,29 @@ Foam::manufacturedSolution::manufacturedSolution
 }
 
 
+Foam::manufacturedSolution::manufacturedSolution
+(
+    const fvMesh& mesh,
+    const dictionary& dict
+)
+:
+    mesh_(mesh),
+    ax_(readScalar(dict.lookup("ax"))),
+    ay_(readScalar(dict.lookup("ay"))),
+    az_(readScalar(dict.lookup("az"))),
+    E_(readScalar(dict.lookup("E"))),
+    nu_(readScalar(dict.lookup("nu"))),
+    mu_(E_/(2.0*(1.0 + nu_))),
+    lambda_((E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_)))    
+{
+    if (E_ < SMALL || nu_ < SMALL)
+    {
+        FatalErrorIn("manufacturedSolution::manufacturedSolution(...)")
+            << "E and nu should be positive!"
+            << abort(FatalError);
+    }
+}
+
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 

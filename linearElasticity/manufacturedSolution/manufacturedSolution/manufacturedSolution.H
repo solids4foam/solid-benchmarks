@@ -112,15 +112,24 @@ public:
 
 
     //- Constructor
-    manufacturedSolution
-    (
-        const fvMesh& mesh,
-        const scalar ax,
-        const scalar ay,
-        const scalar az,
-        const scalar E,
-        const scalar nu
-    );
+
+        //- Construct from mesh and parameters
+        manufacturedSolution
+        (
+            const fvMesh& mesh,
+            const scalar ax,
+            const scalar ay,
+            const scalar az,
+            const scalar E,
+            const scalar nu
+        );
+
+        //- Construct from mesh and dictionary
+        manufacturedSolution
+        (
+            const fvMesh& mesh,
+            const dictionary& dict
+        );
 
     //- Destructor
     virtual ~manufacturedSolution()

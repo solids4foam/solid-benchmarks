@@ -64,16 +64,8 @@ class manufacturedSolutionFunctionObject
         //- Object that calculates the manufactured solution
         autoPtr<manufacturedSolution> mmsPtr_;
 
-        //- User parameters for manufactured solution
-        const scalar ax_;
-        const scalar ay_;
-        const scalar az_;
-
-        //- Young's modulus
-        const scalar E_;
-
-        //- Poisson's ratio
-        const scalar nu_;
+        //- A copy of the input dictionary
+        const dictionary dict_;
 
         //- Calculate cell displacement fields
         const Switch cellDisplacement_;

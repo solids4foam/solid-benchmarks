@@ -53,15 +53,7 @@ Foam::fv::manufacturedSolutionSource::manufacturedSolutionSource
 )
 :
     fv::option(sourceName, modelType, dict, mesh),
-    mms_
-    (
-        mesh,
-        readScalar(dict.lookup("ax")),
-        readScalar(dict.lookup("ay")),
-        readScalar(dict.lookup("az")),
-        readScalar(dict.lookup("E")),
-        readScalar(dict.lookup("nu"))
-    )
+    mms_(mesh, dict)
 {
     coeffs_.readEntry("fields", fieldNames_);
 

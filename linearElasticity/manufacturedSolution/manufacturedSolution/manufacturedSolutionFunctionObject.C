@@ -57,7 +57,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
     // Create the MMS object, if needed
     if (!mmsPtr_.valid())
     {
-        mmsPtr_.reset(new manufacturedSolution(mesh, ax_, ay_, az_, E_, nu_));
+        mmsPtr_.reset(new manufacturedSolution(mesh, dict_));
     }
 
     // Lookup the point mesh
@@ -103,36 +103,6 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             "calculated"
         );
 
-        pointScalarField analyticalPointEpsilonEq
-        (
-            IOobject
-            (
-                "analyticalPointEpsilonEq",
-                time_.timeName(),
-                mesh,
-                IOobject::NO_READ,
-                IOobject::AUTO_WRITE
-            ),
-            pMesh,
-            dimensionedScalar("0", dimless, 0.0),
-            "calculated"
-        );
-
-        volScalarField analyticalStressEq
-        (
-            IOobject
-            (
-                "analyticalCellStressEq",
-                time_.timeName(),
-                mesh,
-                IOobject::NO_READ,
-                IOobject::AUTO_WRITE
-            ),
-            mesh,
-            dimensionedScalar("zero", dimPressure, 0),
-            "calculated"
-        );
-
         pointVectorField analyticalPointD
         (
             IOobject
@@ -163,42 +133,19 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
 
         symmTensorField& sI = analyticalStress;
         symmTensorField& pEI = analyticalPointEpsilon;
-        scalarField& pEEqI = analyticalPointEpsilonEq;
-        scalarField& sEqI = analyticalStressEq;
         vectorField& aPDI = analyticalPointD;
         vectorField& aDI = analyticalD;
 
         forAll(sI, cellI)
         {
             sI[cellI] = mmsPtr_->calculateStress(CI[cellI]);
-            sEqI[cellI] =
-                sqrt
-                (
-                    (
-                        sqr(sI[cellI].xx() - sI[cellI].yy()) + sqr(sI[cellI].yy()
-                      - sI[cellI].zz()) + sqr(sI[cellI].zz() - sI[cellI].xx())
-                      + 6
-                       *(
-                           sqr(sI[cellI].xy()) + sqr(sI[cellI].yz()) + sqr(sI[cellI].zx())
-                        )
-                    )/2
-                );
+            aDI[cellI] = mmsPtr_->calculateDisplacement(CI[cellI]);
         }
 
         forAll(pEI, pointI)
         {
             pEI[pointI] = mmsPtr_->calculateStrain(points[pointI]);
-            pEEqI[pointI] = sqrt((2.0/3.0)*magSqr(dev(pEI[pointI])));
-        }
-
-        forAll(aPDI, pointI)
-        {
             aPDI[pointI] = mmsPtr_->calculateDisplacement(points[pointI]);
-        }
-
-        forAll(aDI, cellI)
-        {
-            aDI[cellI] = mmsPtr_->calculateDisplacement(CI[cellI]);
         }
 
         forAll(analyticalStress.boundaryField(), patchI)
@@ -207,34 +154,34 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
             {
 #ifdef OPENFOAM_NOT_EXTEND
                 symmTensorField& sP = analyticalStress.boundaryFieldRef()[patchI];
-                scalarField& sEqP = analyticalStressEq.boundaryFieldRef()[patchI];
+                vectorField& DP = analyticalD.boundaryFieldRef()[patchI];
 #else
                 symmTensorField& sP = analyticalStress.boundaryField()[patchI];
-                scalarField& sEqP = analyticalStressEq.boundaryField()[patchI];
+                vectorField& DP = analyticalD.boundaryField()[patchI];
 #endif
                 const vectorField& CP = C.boundaryField()[patchI];
 
                 forAll(sP, faceI)
                 {
-                        sP[faceI] = mmsPtr_->calculateStress(CP[faceI]);
-                        sEqP[faceI] = sqrt((sqr(sP[faceI].xx() - sP[faceI].yy()) + sqr(sP[faceI].yy() - sP[faceI].zz()) + sqr(sP[faceI].zz() - sP[faceI].xx()) +
-                6*(sqr(sP[faceI].xy()) + sqr(sP[faceI].yz()) + sqr(sP[faceI].zx())))/2);
+                    sP[faceI] = mmsPtr_->calculateStress(CP[faceI]);
+                    DP[faceI] = mmsPtr_->calculateDisplacement(CP[faceI]);
                 }
             }
         }
 
+        analyticalStress.correctBoundaryConditions();
+        analyticalD.correctBoundaryConditions();
+
         // Write point analytical fields
         if (pointStress_)
         {
-            Info<< "Writing analyticalPointStress and analyticalPointStressEq"
+            Info<< "Writing analyticalPointStress"
                 << nl << endl;
             analyticalStress.write();
-            analyticalStressEq.write();
 
-            Info<< "Writing analyticalPointEpsilon and analyticalPointEpsilonEq"
+            Info<< "Writing analyticalPointEpsilon"
                 << nl << endl;
             analyticalPointEpsilon.write();
-            analyticalPointEpsilonEq.write();
         }
 
         if (pointDisplacement_)
@@ -402,11 +349,7 @@ Foam::manufacturedSolutionFunctionObject::manufacturedSolutionFunctionObject
     name_(name),
     time_(t),
     mmsPtr_(),
-    ax_(readScalar(dict.lookup("ax"))),
-    ay_(readScalar(dict.lookup("ay"))),
-    az_(readScalar(dict.lookup("az"))),
-    E_(readScalar(dict.lookup("E"))),
-    nu_(readScalar(dict.lookup("nu"))),
+    dict_(dict),
     cellDisplacement_
     (
         dict.lookupOrDefault<Switch>("cellDisplacement", true)
@@ -425,13 +368,6 @@ Foam::manufacturedSolutionFunctionObject::manufacturedSolutionFunctionObject
     )
 {
     Info<< "Creating " << this->name() << " function object" << endl;
-
-    if (E_ < SMALL || nu_ < SMALL)
-    {
-        FatalErrorIn(this->name() + " function object constructor")
-            << "E and nu should be positive!"
-            << abort(FatalError);
-    }
 }
 
 
