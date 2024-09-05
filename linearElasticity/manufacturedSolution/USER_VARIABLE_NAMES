@@ -1,7 +1,7 @@
 # Template case name
-BASE="base"
-#BASE="base.segregated"
-#BASE="base.segregated.uns"
+#BASE="base/hex.snes"
+BASE="base/tet.snes"
+#BASE="base/hex.segregated"
 
 # Prefix named used for the cases
 CASE_NAME="mesh"
@@ -11,10 +11,20 @@ MACHINE="mac-studio-m1"
 #MACHINE="macbook-pro-m3"
 #MACHINE="meluxina-AMD7H12"
 
+# Flag to use gmsh instead of blockMesh for meshing
+#USE_GMSH=0
+USE_GMSH=1
+
+# Flag to convert a tet mesh to polyhedra using polyDualMesh
+#USE_POLYDUALMESH=0
+USE_POLYDUALMESH=1
+
 # Custom settings name to distinguish between different runs, e.g. when you
 # change the preconditioner or some other setting in the base case
 #SETTINGS="lu"
-SETTINGS="hypre"
+#SETTINGS="hypre"
+#SETTINGS="tet.hypre"
+SETTINGS="poly.hypre"
 #SETTINGS="ilu1"
 #SETTINGS="seg"
 #SETTINGS="seg.uns"
