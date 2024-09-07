@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
+
+if [[ -d "${CASE_NAME}.1" ]]
+then
+    echo "Case ${CASE_NAME}.1 already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Run cases
+for i in `seq 1 6`;
+do
+    CASE="${CASE_NAME}.$i.${MACHINE}"
+    echo "Running ${CASE}"
+
+    # Copy template case
+    cp -r "${BASE}" "${CASE}"
+
+    # Enter the case
+    cd "${CASE}"
+
+    # Replace the meshSpacing file
+    if [[ ! -f "meshes/meshSpacing$i.geo" ]]
+    then
+        echo "Cannot find ${CASE}/meshes/meshSpacing$i.geo: please add it to ${BASE}/meshes/"; echo
+        exit 1;
+    else
+        echo "Copying ${CASE}/meshes/meshSpacing$i.geo to ${CASE}/meshes/meshSpacing.geo"
+        \cp "meshes/meshSpacing$i.geo" meshes/meshSpacing.geo
+    fi
+
+    # Create the mesh
+    if command -v gmsh &> /dev/null
+    then
+        # Create mesh with gmsh
+        solids4Foam::runApplication gmsh -3 -format msh2 meshes/ellipticPlate.geo
+        solids4Foam::runApplication gmshToFoam meshes/ellipticPlate.msh
+    else
+        echo; echo "Gmsh is required to run this case: please install it"
+        exit 1
+    fi
+
+    # Run the solver
+    # If "gtime" is available (could be called "time" on Linux), use it to
+    # record the max memory usage
+    if command -v gtime &> /dev/null
+    then
+        echo "Running solids4Foam on ${CASE} and recording the memory usage"
+        # Run with gnu-time (should just be "time" on Linux)
+        gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+    else
+        echo "Running solids4Foam on ${CASE}"
+        #solids4Foam::runApplication solids4Foam
+        # Strange PETSc issue on Macbook where I need to use mpirun for serial
+        mpirun -np 1 solids4Foam &> log.solids4Foam
+    fi
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Done"; echo
+
+echo "Run ./Allpost to extract the results"; echo

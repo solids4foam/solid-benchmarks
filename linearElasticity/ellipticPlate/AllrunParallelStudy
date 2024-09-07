@@ -1,0 +1,108 @@
+#!/bin/bash
+#
+# Perform a parallel strong scaling study on a given mesh
+
+#module load VTune/2023.2.0 PETSc/3.20.3-foss-2023a OpenFOAM/v2312-foss-2023a
+#export PETSC_DIR=/apps/USE/easybuild/release/2023.1/software/PETSc/3.20.3-foss-2023a
+#source $FOAM_BASH
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
+
+# Mesh file
+#MESH_FILE=meshSpacing2.geo
+#GEO_FILE=meshSpacing3.geo
+GEO_FILE=meshSpacing6.geo
+MESH_FILE=ellipticPlate.msh
+
+export CASE_NAME="${CASE_NAME}.parallelStudy"
+
+if find . -type d -name "${CASE_NAME}.*" | grep -q .
+then
+    echo "Please remove all ${CASE_NAME}.* cases"; echo
+    exit 1;
+fi
+
+# Run cases
+# The number of cores is 2^i
+# Adjust the max "i" as needed, i.e. i=6 corresponds to 2^6=64 cores 
+for i in `seq 4 -1 0`;
+do
+    N_CORES=$((2**i))
+
+    CASE="${CASE_NAME}.${N_CORES}cores.${MACHINE}.${SETTINGS}"
+    echo "Running ${CASE}"
+
+    # Copy template case
+    cp -r "${BASE}" "${CASE}"
+
+    # Enter the case
+    cd "${CASE}"
+
+    # Replace the meshSpacing file
+    if [[ ! -f "meshes/${GEO_FILE}" ]]
+    then
+        echo "Cannot find ${CASE}/meshes/${GEO_FILE}: please add it to ${BASE}/meshes/"; echo
+        exit 1;
+    else
+        echo "Copying ${CASE}/meshes/${GEO_FILE} to ${CASE}/meshes/meshSpacing.geo"
+        \cp "meshes/${GEO_FILE}" meshes/meshSpacing.geo
+    fi
+
+    # Create the mesh
+    if [[ ! -f "meshes/${MESH_FILE}" ]]
+    then
+        if command -v gmsh &> /dev/null
+        then
+            # Create mesh with gmsh
+            solids4Foam::runApplication gmsh -3 -format msh2 meshes/ellipticPlate.geo
+        else
+            # Fail silently
+            echo; echo "Gmsh is required to run this case: please install it"
+            exit 0
+        fi
+    fi
+
+    # Convert the mesh
+    solids4Foam::runApplication gmshToFoam meshes/ellipticPlate.msh
+
+    # Run the solver
+    if [ ${N_CORES} = 1 ]
+    then
+        echo "Running solids4Foam in serial on ${CASE}"
+        if [ ${MACHINE} = "meluxina-AMD7H12" ]
+        then
+            srun -n 1 solids4Foam &> log.solids4Foam
+        else
+            mpirun -n 1 solids4Foam &> log.solids4Foam
+        fi
+    else
+        # Update N_CORES in the decomposeParDict
+        sed -i "s/numberOfSubdomains  [^;]*;/numberOfSubdomains  ${N_CORES};/" system/decomposeParDict
+
+        # Decompose the case
+        echo "Running decomposePar on ${CASE}"
+        decomposePar &> log.decomposePar
+
+        # Run the solver
+        echo "Running solids4Foam using $N_CORES cores on ${CASE}"
+        if [ ${MACHINE} = "meluxina-AMD7H12" ]
+        then
+            srun -n ${N_CORES} solids4Foam -parallel &> log.solids4Foam
+        else
+            mpirun -n ${N_CORES} solids4Foam -parallel &> log.solids4Foam
+        fi
+    fi
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "All done"; echo

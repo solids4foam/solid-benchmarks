@@ -118,6 +118,7 @@ boundaryField
         {
             penaltyScale     3;
             relaxationFactor 0.005;
+            pressureMethod  standard;
         }
         frictionContactModel frictionless;
         value           uniform (0 0 0);
@@ -136,6 +137,7 @@ boundaryField
         {
             penaltyScale     3;
             relaxationFactor 0.005;
+            pressureMethod  standard;
         }
         frictionContactModel frictionless;
         value           uniform (0 0 0);
@@ -154,6 +156,7 @@ boundaryField
         {
             penaltyScale    1.5;
             relaxationFactor 0.005;
+            pressureMethod  standard;
         }
         frictionContactModel frictionless;
     }

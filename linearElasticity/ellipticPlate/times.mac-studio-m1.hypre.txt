@@ -1,0 +1,7 @@
+# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)
+1   0.03   71824
+2   0.06   77664
+3   0.53   152464
+4   7.17   753456
+5   95.04   3942864
+6   987.67   21883584
