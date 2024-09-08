@@ -42,7 +42,7 @@ do
     solids4Foam::runApplication blockMesh
 
     # Run the solver
-    # If "gtime" is available (could be called "time" on Linux), use it to
+    # If "gtime" is available (/usr/bin/time on Linux), use it to
     # record the max memory usage
     if command -v gtime &> /dev/null
     then
