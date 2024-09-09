@@ -49,7 +49,7 @@ timePrecision   6;
 runTimeModifiable no;
 
 functions
-(
+{
     analyticalSolution
     {
         type    contactPatchTestAnalyticalSolution;
@@ -75,5 +75,5 @@ functions
         type          solidForces;
         historyPatch  top;
     }
-);
+}
 // ************************************************************************* //
