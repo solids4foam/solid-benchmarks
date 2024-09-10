@@ -16,8 +16,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            1 ( "libcontactPatchTestAnalyticalSolution.so" );
-
 application     solids4Foam;
 
 startFrom       startTime;
@@ -26,11 +24,11 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         1;
+endTime         100;
 
 deltaT          1;
 
-writeControl    timeStep;
+writeControl    runTime;
 
 writeInterval   1;
 
@@ -40,7 +38,7 @@ writeFormat     ascii;
 
 writePrecision  6;
 
-writeCompression uncompressed;
+//writeCompression uncompressed;
 
 timeFormat      general;
 
@@ -50,30 +48,6 @@ runTimeModifiable no;
 
 functions
 {
-    analyticalSolution
-    {
-        type    contactPatchTestAnalyticalSolution;
-
-        // Upper block top surface vertical displacement
-        displacement   0.01;
-
-        // Young's modulus
-        E       1e6;
-
-        // Poisson's ratio
-        nu      1e-15;
-    }
-    
-    forceDispAtBottom
-    {
-        type          solidForces;
-        historyPatch  bottom;
-    }
-    
-    forceDispAtTop
-    {
-        type          solidForces;
-        historyPatch  top;
-    }
 }
+
 // ************************************************************************* //

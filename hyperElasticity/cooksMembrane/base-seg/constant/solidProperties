@@ -12,68 +12,33 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      controlDict;
+    location    "constant";
+    object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            1 ( "libcontactPatchTestAnalyticalSolution.so" );
+solidModel     nonLinearGeometryUpdatedLagrangian;
 
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression uncompressed;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+nonLinearGeometryUpdatedLagrangianCoeffs
 {
-    analyticalSolution
-    {
-        type    contactPatchTestAnalyticalSolution;
+    // Maximum number of momentum correctors
+    nCorrectors     3000;
 
-        // Upper block top surface vertical displacement
-        displacement   0.01;
+    // Solution tolerance for displacement
+    solutionTolerance 1e-06;
 
-        // Young's modulus
-        E       1e6;
+    // Alternative solution tolerance for displacement
+    alternativeTolerance 1e-07;
 
-        // Poisson's ratio
-        nu      1e-15;
-    }
-    
-    forceDispAtBottom
-    {
-        type          solidForces;
-        historyPatch  bottom;
-    }
-    
-    forceDispAtTop
-    {
-        type          solidForces;
-        historyPatch  top;
-    }
+    // Material law solution tolerance
+    materialTolerance 1e-05;
+
+    // Write frequency for the residuals
+    infoFrequency   100;
+
+    // Stabilise hydrostatic pressure
+    //stabilisePressure no;
 }
+
+
 // ************************************************************************* //

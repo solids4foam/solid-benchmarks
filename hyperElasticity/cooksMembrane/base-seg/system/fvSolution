@@ -12,68 +12,34 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      controlDict;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            1 ( "libcontactPatchTestAnalyticalSolution.so" );
-
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression uncompressed;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+solvers
 {
-    analyticalSolution
+    "D|DD"
     {
-        type    contactPatchTestAnalyticalSolution;
-
-        // Upper block top surface vertical displacement
-        displacement   0.01;
-
-        // Young's modulus
-        E       1e6;
-
-        // Poisson's ratio
-        nu      1e-15;
-    }
-    
-    forceDispAtBottom
-    {
-        type          solidForces;
-        historyPatch  bottom;
-    }
-    
-    forceDispAtTop
-    {
-        type          solidForces;
-        historyPatch  top;
+        solver          PCG;
+        preconditioner  FDIC;
+        tolerance       1e-8;
+        relTol          0.1;
+        maxIter         50;
     }
 }
+
+relaxationFactors
+{
+    equations
+    {
+       // DD           0.9999;
+    }
+
+    fields
+    {
+       // DD              0.9;
+    }
+}
+
 // ************************************************************************* //

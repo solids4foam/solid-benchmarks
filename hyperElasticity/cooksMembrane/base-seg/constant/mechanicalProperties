@@ -12,68 +12,21 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      controlDict;
+    object      mechanicalProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            1 ( "libcontactPatchTestAnalyticalSolution.so" );
+planeStress     no;
 
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression uncompressed;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
-{
-    analyticalSolution
+mechanical
+(
+    steel
     {
-        type    contactPatchTestAnalyticalSolution;
-
-        // Upper block top surface vertical displacement
-        displacement   0.01;
-
-        // Young's modulus
-        E       1e6;
-
-        // Poisson's ratio
-        nu      1e-15;
+        type            neoHookeanElastic;
+        rho             rho [ 1 -3 0 0 0 0 0 ] 7800;
+        E               E [ 1 -1 -2 0 0 0 0 ] 1098500;
+        nu              nu [ 0 0 0 0 0 0 0 ] 0.3;
     }
-    
-    forceDispAtBottom
-    {
-        type          solidForces;
-        historyPatch  bottom;
-    }
-    
-    forceDispAtTop
-    {
-        type          solidForces;
-        historyPatch  top;
-    }
-}
+);
+
 // ************************************************************************* //

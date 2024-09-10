@@ -11,69 +11,46 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      controlDict;
+    class       volVectorField;
+    location    "0";
+    object      DD;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            1 ( "libcontactPatchTestAnalyticalSolution.so" );
+dimensions      [0 1 0 0 0 0 0];
 
-application     solids4Foam;
+internalField   uniform (0 0 0);
 
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         1;
-
-deltaT          1;
-
-writeControl    timeStep;
-
-writeInterval   1;
-
-cycleWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression uncompressed;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+boundaryField
 {
-    analyticalSolution
+    left
     {
-        type    contactPatchTestAnalyticalSolution;
-
-        // Upper block top surface vertical displacement
-        displacement   0.01;
-
-        // Young's modulus
-        E       1e6;
-
-        // Poisson's ratio
-        nu      1e-15;
+        type            fixedDisplacement;
+        value           uniform (0 0 0);
     }
-    
-    forceDispAtBottom
+    right
     {
-        type          solidForces;
-        historyPatch  bottom;
+        type            solidTraction;
+        tractionSeries
+        {
+            "fileName|file"    "$FOAM_CASE/constant/timeVsTraction";
+            outOfBounds clamp;
+        }
+        pressure        uniform 0;
+        value           uniform (0 0 0);
     }
-    
-    forceDispAtTop
+    topAndBottom
     {
-        type          solidForces;
-        historyPatch  top;
+        type            solidTraction;
+        traction        uniform ( 0 0 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    frontAndBack
+    {
+        type            empty;
     }
 }
+
+
 // ************************************************************************* //
