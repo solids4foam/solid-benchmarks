@@ -1,5 +1,5 @@
 # Nonlinear solver
-# The default line search may sometimes fail; in that case, switch to basic
+# The default line search may sometimes fail; in that case, switch to "basic"
 -snes_type newtonls
 #-snes_linesearch_type basic
 #-snes_rtol 1e-6
