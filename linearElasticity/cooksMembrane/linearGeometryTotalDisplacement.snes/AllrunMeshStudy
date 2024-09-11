@@ -79,13 +79,16 @@ do
     fi
 
     # Run the solver
-    # If "gtime" is available (could be called "time" on Linux), use it to
-    # record the max memory usage
-    if command -v gtime &> /dev/null
+    # If "gtime" is available (/usr/bin/time on Linux), use it to
+    # record the max memory usage. On linux gtime is set to be alias for /usr/bin/time
+    if [ -f /usr/bin/time ] || command -v gtime &> /dev/null
     then
         echo "Running solids4Foam on ${CASE} and recording the memory usage"
-        # Run with gnu-time (should just be "time" on Linux)
-        gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        if [ -x /usr/bin/time ]; then
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        else
+            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        fi
     else
         echo "Running solids4Foam on ${CASE}"
         #solids4Foam::runApplication solids4Foam
