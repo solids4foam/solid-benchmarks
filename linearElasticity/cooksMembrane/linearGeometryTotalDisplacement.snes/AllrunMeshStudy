@@ -72,7 +72,7 @@ do
             echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
             \cp "system/blockMeshDict.$i" system/blockMeshDict
             # To avoid using it in hex.segregated case which is in fe format
-            rm constant/polyMesh/blockMeshDict
+            rm -f constant/polyMesh/blockMeshDict
         fi
 
         # Create the mesh
@@ -85,10 +85,10 @@ do
     if [ -f /usr/bin/time ] || command -v gtime &> /dev/null
     then
         echo "Running solids4Foam on ${CASE} and recording the memory usage"
-        if [ -x /usr/bin/time ]; then
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
-        else
+        if [ -x /opt/homebrew/bin/gtime ]; then
             gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        else
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
         fi
     else
         echo "Running solids4Foam on ${CASE}"
