@@ -12,33 +12,47 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+application     solids4Foam;
 
-linearGeometryTotalDisplacementCoeffs
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   1;
+
+cycleWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
+
+functions
 {
-    // Maximum number of momentum correctors
-    nCorrectors     10000;
-
-    // Solution tolerance for displacement
-    solutionTolerance 1e-07;
-
-    // Alternative solution tolerance for displacement
-    //alternativeTolerance 1e-07;
-
-    // Material law solution tolerance
-    //materialTolerance 1e-05;
-
-    // Write frequency for the residuals
-    infoFrequency   100;
+   pointDisp
+   {
+       type    solidPointDisplacement;
+       point   (0.048 0.060 0);
+   }
 }
 
 // ************************************************************************* //

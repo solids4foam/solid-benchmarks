@@ -5,7 +5,7 @@ load 'USER_VARIABLE_NAMES'
 
 # Remove "base/" from BASE and concatenate with MACHINE variable
 index = strstrt(BASE, "/") + 1
-trimmed_BASE = substr(BASE, index, strlen(BASE) - index + 1)
+trimmed_BASE = substr(BASE, index, strlen(BASE))
 filename = sprintf("disp.%s.%s.%s.pdf", trimmed_BASE, MACHINE, SETTINGS)
 
 set output filename

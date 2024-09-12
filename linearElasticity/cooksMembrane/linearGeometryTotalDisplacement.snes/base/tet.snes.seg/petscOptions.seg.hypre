@@ -5,7 +5,7 @@
 #-snes_rtol 1e-6
 #-snes_atol 1e-12
 #-snes_stol 1e-12
--snes_max_it 20000
+-snes_max_it 1000
 -snes_monitor
 
 # Calculate the Jacobian using matrix-free finite differencing
@@ -16,6 +16,7 @@
 # Lag Jacobian for segregated/Picard
 -snes_lag_jacobian_persists true
 -snes_lag_jacobian -2
+-snes_max_it 5000
 
 # Linear solver
 # Increase the restart (directions) if it is struggling to converged

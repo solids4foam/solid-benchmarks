@@ -12,33 +12,51 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
-
-linearGeometryTotalDisplacementCoeffs
+solvers
 {
-    // Maximum number of momentum correctors
-    nCorrectors     10000;
+    // Coupled solver
+    "blockDD|blockD"
+    {
+        // Direct solver
+        solver              EigenSparseLU;
 
-    // Solution tolerance for displacement
-    solutionTolerance 1e-07;
+        // Iterative solver
+        //solver            BiCGStab;
+        //preconditioner    myCholesky;
+        //tolerance         1e-10;
+        //relTol            0;
+        //minIter           0;
+        //maxIter           3000;
+    }
 
-    // Alternative solution tolerance for displacement
-    //alternativeTolerance 1e-07;
+    // Segregated solver
+    "D|DD"
+    {
+        tolerance       1e-8;
+        relTol          0.1;
+        maxIter         50;
 
-    // Material law solution tolerance
-    //materialTolerance 1e-05;
+        solver          PCG;
+        preconditioner  FDIC;
+    }
+}
 
-    // Write frequency for the residuals
-    infoFrequency   100;
+relaxationFactors
+{
+    equations
+    {
+        //D           0.9999;
+    }
+
+    fields
+    {
+        //D              0.9;
+    }
 }
 
 // ************************************************************************* //

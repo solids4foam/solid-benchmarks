@@ -1,8 +1,10 @@
 # Template case name
-BASE="base/hex.snes"
-#BASE="base/hex.snes.seg"
-#BASE="base/tet.snes"
+#BASE="base/hex.snes"
+BASE="base/hex.snes.seg"
 #BASE="base/hex.segregated"
+#BASE="base/tet.snes"
+#BASE="base/tet.snes.seg"
+#BASE="base/tet.segregated"
 
 # Prefix named used for the cases
 CASE_NAME="mesh"
@@ -23,13 +25,15 @@ USE_POLYDUALMESH=0
 
 # Custom settings name to distinguish between different runs, e.g. when you
 # change the preconditioner or some other setting in the base case
-SETTINGS="hex.lu"
+#SETTINGS="hex.lu"
 #SETTINGS="hex.hypre"
+#SETTINGS="hex.seg"
+SETTINGS="hex.snes.seg"
 #SETTINGS="tet.hypre"
+#SETTINGS="tet.lu"
+#SETTINGS="tet.seg"
 #SETTINGS="poly.hypre"
 #SETTINGS="ilu1"
-#SETTINGS="hex.seg"
-#SETTINGS="hex.snes.seg"
 #SETTINGS="seg.uns"
 
 # Times file created by Allpost

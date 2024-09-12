@@ -47,15 +47,14 @@ do
             mv 0 0.tmp
 
             # Create mesh with gmsh
-            solids4Foam::runApplication gmsh -3 -format msh2 meshes/cube.geo
-            solids4Foam::runApplication gmshToFoam meshes/cube.msh
-            solids4Foam::runApplication createPatch -overwrite
+    	    solids4Foam::runApplication gmsh -3 -format msh2 meshes/cooksMembrane.geo
+            solids4Foam::runApplication gmshToFoam meshes/cooksMembrane.msh
             if [ "$USE_POLYDUALMESH" -eq 1 ]
             then
                 solids4Foam::runApplication polyDualMesh 30 -overwrite
                 solids4Foam::runApplication combinePatchFaces 45 -overwrite
-                #solids4Foam::runApplication changeDictionary
             fi
+	    solids4Foam::runApplication changeDictionary
 
             # Move 0 back
             mv 0.tmp 0
@@ -72,6 +71,8 @@ do
         else
             echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
             \cp "system/blockMeshDict.$i" system/blockMeshDict
+            # To avoid using it in hex.segregated case which is in fe format
+            rm constant/polyMesh/blockMeshDict
         fi
 
         # Create the mesh

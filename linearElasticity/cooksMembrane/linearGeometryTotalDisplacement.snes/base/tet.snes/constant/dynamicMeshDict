@@ -13,32 +13,11 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      solidProperties;
+    object      dynamicMeshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+dynamicFvMesh   staticFvMesh;
 
-linearGeometryTotalDisplacementCoeffs
-{
-    // Maximum number of momentum correctors
-    nCorrectors     10000;
-
-    // Solution tolerance for displacement
-    solutionTolerance 1e-07;
-
-    // Alternative solution tolerance for displacement
-    //alternativeTolerance 1e-07;
-
-    // Material law solution tolerance
-    //materialTolerance 1e-05;
-
-    // Write frequency for the residuals
-    infoFrequency   100;
-}
 
 // ************************************************************************* //
