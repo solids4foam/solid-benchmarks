@@ -68,6 +68,9 @@ do
         mpirun -np 1 solids4Foam &> log.solids4Foam
     fi
 
+    # Run extractIdealisedVentricleResults
+    solids4Foam::runApplication extractIdealisedVentricleResults
+
     # Navigate back to the parent directory
     cd ..
 done

@@ -17,7 +17,7 @@ then
 fi
 
 # Write headers to results files
-echo "# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)" >> "${TIMES_FILE}"
+echo "# Mesh    Time (in s)    Max Memory (in kB)" >> "${TIMES_FILE}"
 
 # Record results
 for i in `seq 1 6`;

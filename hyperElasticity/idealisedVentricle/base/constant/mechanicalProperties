@@ -46,11 +46,7 @@ mechanical
             // The bulk modulus acts as a penalty factor to enforce
             // incompressiblity
             // Aim for 100 x shear modulus
-            bulkModulus     bulkModulus [1 -1 -2 0 0 0 0] 10e4; //16e5;
-
-            // Material tangent calculation
-            //numericalTangent yes;
-            //tangentEps      1e-10;
+            bulkModulus     bulkModulus [1 -1 -2 0 0 0 0] 1e6;
         }
     }
 );

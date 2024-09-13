@@ -32,7 +32,7 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
 
     // PETSc options file used by PETScSNES
-    optionsFile petscOptions.snes;
+    optionsFile petscOptions.hypre;
 
     // Optional: continue on PETSc SNES error
     // Useful for debugging
@@ -40,20 +40,6 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
     // Predictor D at the start of a new time step using U and A
     predictor yes;
-
-    // Maximum number of momentum correctors
-    nCorrectors     10;
-
-    // Solution tolerance for displacement
-    solutionTolerance 1e-3;
-    // Alternative solution tolerance for displacement
-    alternativeTolerance 1e-3;
-
-    // Material law solution tolerance
-    //materialTolerance 1e-05;
-
-    // Write frequency for the residuals
-    infoFrequency   10;
 
     stabilisation
     {
