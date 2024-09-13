@@ -12,38 +12,43 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+application     solids4Foam;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         30;
+
+deltaT          0.1;
+
+writeControl    runTime;
+
+writeInterval   1;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
+
+functions
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    //optionsFile petscOptions.lu;
-    optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
-
-    //stabilisation
-    //{
-    //    type            RhieChow;
-    //    scaleFactor     0.2;
-    //}
+   pointDisp
+   {
+       type    solidPointDisplacement;
+       point   (0.048 0.060 0);
+   }
 }
 
 // ************************************************************************* //

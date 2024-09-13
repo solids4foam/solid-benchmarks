@@ -13,37 +13,11 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      solidProperties;
+    object      dynamicMeshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+dynamicFvMesh   staticFvMesh;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
-{
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    //optionsFile petscOptions.lu;
-    optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
-
-    //stabilisation
-    //{
-    //    type            RhieChow;
-    //    scaleFactor     0.2;
-    //}
-}
 
 // ************************************************************************* //

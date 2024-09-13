@@ -12,38 +12,49 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
-
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+d2dt2Schemes
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
+    default                 steadyState;
+}
 
-    // PETSc options file used by PETScSNES
-    //optionsFile petscOptions.lu;
-    optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
+ddtSchemes
+{
+    default                 backward;
+}
 
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
+gradSchemes
+{
+    //default                extendedLeastSquares 0;
+    default                leastSquaresS4f;
+}
 
-    //stabilisation
-    //{
-    //    type            RhieChow;
-    //    scaleFactor     0.2;
-    //}
+divSchemes
+{
+    default                 none;
+    div(sigma)              Gauss linear;
+    div((impK*grad(D)))     Gauss linear;
+}
+
+laplacianSchemes
+{
+    default                 Gauss linear corrected;
+    //default                 Gauss linear skewCorrected;
+}
+
+snGradSchemes
+{
+    default                 corrected;
+    //default                 skewCorrected;
+}
+
+interpolationSchemes
+{
+    default                 linear;
 }
 
 // ************************************************************************* //

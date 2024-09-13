@@ -1,8 +1,8 @@
 # Template case name
 #BASE="base/hex.snes"
-BASE="base/hex.snes.seg"
+#BASE="base/hex.snes.seg"
 #BASE="base/hex.segregated"
-#BASE="base/tet.snes"
+BASE="base/tet.snes"
 #BASE="base/tet.snes.seg"
 #BASE="base/tet.segregated"
 
@@ -16,8 +16,8 @@ MACHINE="lenovo-ideapad-flex5"
 #MACHINE="meluxina-AMD7H12"
 
 # Flag to use gmsh instead of blockMesh for meshing
-USE_GMSH=0
-#USE_GMSH=1
+#USE_GMSH=0
+USE_GMSH=1
 
 # Flag to convert a tet mesh to polyhedra using polyDualMesh
 USE_POLYDUALMESH=0
@@ -28,10 +28,11 @@ USE_POLYDUALMESH=0
 #SETTINGS="hex.lu"
 #SETTINGS="hex.hypre"
 #SETTINGS="hex.seg"
-SETTINGS="hex.snes.seg"
-#SETTINGS="tet.hypre"
+#SETTINGS="hex.snes.seg"
+SETTINGS="tet.snes.hypre"
 #SETTINGS="tet.lu"
 #SETTINGS="tet.seg"
+#SETTINGS="tet.snes.seg"
 #SETTINGS="poly.hypre"
 #SETTINGS="ilu1"
 #SETTINGS="seg.uns"

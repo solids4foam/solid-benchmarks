@@ -17,13 +17,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 {
     // Solution algorithm
     //solutionAlgorithm implicitSegregated;
@@ -32,18 +28,21 @@ solidModel     linearGeometryTotalDisplacement;
 
     // PETSc options file used by PETScSNES
     //optionsFile petscOptions.lu;
-    optionsFile petscOptions.hypre;
+    optionsFile petscOptions.seg.hypre;
     //optionsFile petscOptions.ilu;
 
     // Damping is useful (and often required) for stabilising explicit
     // simulations
     //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
 
-    //stabilisation
-    //{
-    //    type            RhieChow;
-    //    scaleFactor     0.2;
-    //}
+    // Predict displacement at the start of a time step
+    predictor yes;
+
+    stabilisation
+    {
+        type            RhieChow;
+        scaleFactor     0.2;
+    }
 }
 
 // ************************************************************************* //
