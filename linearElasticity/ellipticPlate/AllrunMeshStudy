@@ -64,6 +64,9 @@ do
         mpirun -np 1 solids4Foam &> log.solids4Foam
     fi
 
+    # Extract results
+    solids4Foam::runApplication extractEllipticPlateResults
+
     # Navigate back to the parent directory
     cd ..
 done
