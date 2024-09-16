@@ -6,7 +6,18 @@
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
 
-solids4Foam::caseDoesNotRunWithFoamExtend
+# Check case version is correct
+solids4Foam::convertCaseFormat .
+
+# Use the new version of extendedLeastSquares for OF.com
+# Once we are confident this works, we should update solids4FoamScripts
+if [[ "${WM_PROJECT_VERSION}" == *"v"* ]]
+then
+    echo "OpenFOAM.com specific: using 'extendedLeastSquares 0' for the gradScheme in system/fvSchemes"
+    sed -i "s/ leastSquares;/ extendedLeastSquares 0;/g" "${CASE_DIR}"/system/fvSchemes
+    sed -i "s/ pointCellsLeastSquares;/ extendedLeastSquares 0;/g" "${CASE_DIR}"/system/fvSchemes
+fi
+
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
 # Create the mesh
@@ -23,7 +34,12 @@ then
     #solids4Foam::runApplication polyDualMesh 30 -overwrite
     #solids4Foam::runApplication combinePatchFaces 45 -overwrite
     
-    solids4Foam::runApplication changeDictionary
+    if [[ "${WM_PROJECT_VERSION}" == *"v"* ]]
+    then
+        solids4Foam::runApplication changeDictionary -dict system/changeDictionaryDict.of
+    else
+    	solids4Foam::runApplication changeDictionary
+    fi
     
     # Move 0 back
     mv 0.tmp 0
@@ -34,6 +50,4 @@ else
 fi
 
 # Run solver
-#solids4Foam::runApplication solids4Foam
-echo "Running solids4Foam"
-mpirun -np 1 solids4Foam &> log.solids4Foam
+solids4Foam::runApplication solids4Foam
