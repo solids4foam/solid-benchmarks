@@ -19,7 +19,7 @@ FoamFile
 
 solvers
 {
-    D
+    "DD|D"
     {
         solver          PCG;
         preconditioner  FDIC;

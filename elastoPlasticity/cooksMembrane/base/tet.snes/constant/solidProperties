@@ -17,9 +17,12 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     nonLinearGeometryUpdatedLagrangian;
+//solidModel     nonLinearGeometryUpdatedLagrangian;
+// solidModel     nonLinearGeometryTotalLagrangian;
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
+//solidModel     unsNonLinearGeometryUpdatedLagrangian;
 
-nonLinearGeometryUpdatedLagrangianCoeffs
+"nonLinearGeometryUpdatedLagrangianCoeffs|unsNonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianCoeffs"
 {
     // Solution algorithm
     //solutionAlgorithm implicitSegregated;

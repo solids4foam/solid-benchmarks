@@ -36,9 +36,9 @@ then
     
     if [[ "${WM_PROJECT_VERSION}" == *"v"* ]]
     then
-        solids4Foam::runApplication changeDictionary -dict system/changeDictionaryDict.of
+        solids4Foam::runApplication changeDictionary
     else
-    	solids4Foam::runApplication changeDictionary
+    	solids4Foam::runApplication changeDictionary -dict system/changeDictionaryDict.fe
     fi
     
     # Move 0 back

@@ -1,10 +1,10 @@
 # Template case name
 BASE="base/hex.snes"
 #BASE="base/hex.snes.seg"
-#BASE="base/hex.segregated"
+#BASE="base/hex.seg"
 #BASE="base/tet.snes"
 #BASE="base/tet.snes.seg"
-#BASE="base/tet.segregated"
+#BASE="base/tet.seg"
 
 # Prefix named used for the cases
 CASE_NAME="mesh"

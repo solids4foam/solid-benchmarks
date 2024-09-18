@@ -16,12 +16,15 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-boundary
+dictionaryReplacement
 {
-    frontAndBack
+    boundary
     {
-        type            empty;
-        physicalType    empty;
+        frontAndBack
+        {
+            type            empty;
+            physicalType    empty;
+        }
     }
 }
 

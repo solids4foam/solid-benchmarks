@@ -14,4 +14,6 @@ solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 solids4Foam::runApplication blockMesh
 
 # Run solver
-solids4Foam::runApplication solids4Foam
+#solids4Foam::runApplication solids4Foam
+echo "Running solids4Foam"
+mpirun -np 1 solids4Foam &> log.solids4Foam

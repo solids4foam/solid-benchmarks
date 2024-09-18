@@ -11,39 +11,46 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    class       volVectorField;
+    location    "0";
+    object      D;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// linearGeometry: assumes small strains and rotations
-//solidModel       coupledUnsLinearGeometryLinearElastic;
-//solidModel       coupledUnsLinGeometry;
-solidModel     linearGeometryTotalDisplacement;
-//solidModel     unsLinearGeometry;
+dimensions      [0 1 0 0 0 0 0];
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+internalField   uniform (0 0 0);
+
+boundaryField
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
-
-    //stabilisation
-    //{
-    //    type            RhieChow;
-    //    scaleFactor     0.2;
-    //}
+    left
+    {
+        type            fixedDisplacement;
+        value           uniform (0 0 0);
+    }
+    right
+    {
+        type            solidTraction;
+        tractionSeries
+        {
+            "fileName|file"    "$FOAM_CASE/constant/timeVsTraction";
+            outOfBounds clamp;
+        }
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    topAndBottom
+    {
+        type            solidTraction;
+        traction        uniform ( 0 0 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
 }
+
 
 // ************************************************************************* //

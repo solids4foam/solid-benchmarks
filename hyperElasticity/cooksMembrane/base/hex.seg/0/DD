@@ -11,9 +11,9 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       pointVectorField;
+    class       volVectorField;
     location    "0";
-    object      pointDD;
+    object      DD;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -25,12 +25,26 @@ boundaryField
 {
     left
     {
-        type            fixedValue;
+        type            fixedDisplacement;
         value           uniform (0 0 0);
     }
-    "right|topAndBottom"
+    right
     {
-        type            calculated;
+        type            solidTraction;
+        tractionSeries
+        {
+            "fileName|file"    "$FOAM_CASE/constant/timeVsTraction";
+            outOfBounds clamp;
+        }
+        pressure        uniform 0;
+        value           uniform (0 0 0);
+    }
+    topAndBottom
+    {
+        type            solidTraction;
+        traction        uniform ( 0 0 0 );
+        pressure        uniform 0;
+        value           uniform (0 0 0);
     }
     frontAndBack
     {
