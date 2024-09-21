@@ -1,0 +1,78 @@
+sinclude $(SOLIDS4FOAM_DIR)/etc/wmake-options
+sinclude $(SOLIDS4FOAM_DIR)/../etc/wmake-options
+
+ifdef PETSC_DIR
+    ifneq (,$(findstring -DFOAMEXTEND, $(VERSION_SPECIFIC_INC)))
+        include $(RULES)/mplib$(WM_MPLIB)
+    else ifneq (,$(findstring -DOPENFOAM_ORG, $(VERSION_SPECIFIC_INC)))
+        include $(GENERAL_RULES)/mplibType
+    else
+        include $(GENERAL_RULES)/mpi-rules
+    endif
+    VERSION_SPECIFIC_INC += \
+        $(PINC) -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+        -DUSE_PETSC
+    VERSION_SPECIFIC_LIBS += -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+endif
+
+EXE_INC = \
+    -std=c++14 \
+    -Wno-old-style-cast -Wno-deprecated-declarations \
+    $(VERSION_SPECIFIC_INC) \
+    -I$(SOLIDS4FOAM_DIR)/ThirdParty/eigen3 \
+    -I$(SOLIDS4FOAM_DIR)/src/solids4FoamModels/lnInclude \
+    -I$(SOLIDS4FOAM_DIR)/src/blockCoupledSolids4FoamTools/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/finiteArea/lnInclude \
+    -I$(LIB_SRC)/lagrangian/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/dynamicMesh/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/dynamicFvMesh/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/topoChangerFvMesh/lnInclude \
+    -I$(LIB_SRC)/dynamicFvMesh/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I$(LIB_SRC)/surfMesh/lnInclude \
+    -I$(LIB_SRC)/postProcessing/foamCalcFunctions/lnInclude \
+    -I$(LIB_SRC)/postProcessing/functionObjects/forces/lnInclude \
+    -I$(LIB_SRC)/errorEstimation/lnInclude \
+    -I$(LIB_SRC)/mesh/cfMesh/lnInclude \
+    -I$(LIB_SRC)/turbulenceModels \
+    -I$(LIB_SRC)/turbulenceModels/incompressible/RAS/RASModel \
+    -I$(LIB_SRC)/turbulenceModels/incompressible/turbulenceModel \
+    -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude \
+    -I$(LIB_SRC)/TurbulenceModels/incompressible/lnInclude \
+    -I$(LIB_SRC)/TurbulenceModels/compressible/lnInclude \
+    -I$(LIB_SRC)/TurbulenceModels/phaseIncompressible/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/compressible/lnInclude \
+    -I$(LIB_SRC)/MomentumTransportModels/incompressible/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/radiation/lnInclude \
+    -I$(LIB_SRC)/radiationModels/lnInclude \
+    -I$(LIB_SRC)/transportModels/interfaceProperties/lnInclude \
+    -I$(LIB_SRC)/transportModels \
+    -I$(LIB_SRC)/transportModels/lnInclude \
+    -I$(LIB_SRC)/transportModels/compressible/lnInclude \
+    -I$(LIB_SRC)/transportModels/incompressible/lnInclude \
+    -I$(LIB_SRC)/transportModels/twoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/transportModels/immiscibleIncompressibleTwoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/twoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/interfaceProperties/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/incompressibleTwoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/immiscibleIncompressibleTwoPhaseMixture/lnInclude \
+    -I$(LIB_SRC)/twoPhaseModels/twoPhaseChange/lnInclude \
+    -I$(LIB_SRC)/tetFiniteElement/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/meshMotion/fvMotionSolver/lnInclude \
+    -I$(LIB_SRC)/dynamicMesh/meshMotion/tetMotionSolver/lnInclude  \
+    -I$(LIB_SRC)/overset/oversetMesh/lnInclude \
+    -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/incompressibleInterPhaseTransportModel/lnInclude \
+    -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/VoFphaseIncompressibleTurbulenceModels/lnInclude \
+    -I$(LIB_SRC)/optimisation/adjointOptimisation/adjoint/lnInclude
+
+LIB_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools
