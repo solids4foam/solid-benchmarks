@@ -40,5 +40,5 @@ file_A = "data/Abaqus.dat"
 # Assume the mesh spacing is being halved for each succesive mesh
 plot \
     file u (dx/(2**($0))):($4*1000) w lp pt 6 ps 1.2 lw 1.2 lc "red" title"",\
-    file_ZT u (dxZT/(2**($0))):($2) w lp pt 8 ps 1.2 lw 1.2 lc "gray" title"Zienkiewicz and Taylor Q4 (2000)",\
+    file_ZT u (dxZT/(2**($0))):($2) w lp pt 8 ps 1.2 lw 1.2 lc "gray" title"Zienkiewicz and Taylor (2000) - Q4",\
     file_A u (dxZT/(2**($0))):($2) w lp pt 4 ps 1.2 lw 1.2 lc "black" title"Abaqus CPE4H"
