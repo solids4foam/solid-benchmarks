@@ -17,7 +17,7 @@ set format x "%g"
 #set logscale y
 #set ytics 0.002
 set xlabel "Average cell spacing (in mm)"
-set ylabel "Tip vertical displacement (in mm)"
+set ylabel "Tip vertical displacement (in µm)"
 set key bottom center;
 
 # Average mesh spacing of mesh1
@@ -39,6 +39,6 @@ file_A = "data/Abaqus.dat"
 
 # Assume the mesh spacing is being halved for each succesive mesh
 plot \
-    file u (dx/(2**($0))):($4*1000) w lp pt 6 ps 1.2 lw 1.2 lc "red" title"",\
+    file u (dx/(2**($0))):($4*1000*1000) w lp pt 6 ps 1.2 lw 1.2 lc "red" title"Present work",\
     file_ZT u (dxZT/(2**($0))):($2) w lp pt 8 ps 1.2 lw 1.2 lc "gray" title"Zienkiewicz and Taylor (2000) - Q4",\
-    file_A u (dxZT/(2**($0))):($2) w lp pt 4 ps 1.2 lw 1.2 lc "black" title"Abaqus CPE4H"
+    file_A u (dxZT/(2**($0))):($2) w lp pt 4 ps 1.2 lw 1.2 lc "black" title"Areias - Abaqus 6.8 CPE4H"

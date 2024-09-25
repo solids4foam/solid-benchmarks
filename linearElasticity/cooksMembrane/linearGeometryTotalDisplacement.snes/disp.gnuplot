@@ -28,7 +28,7 @@ set ylabel "Vertical Displacement (in mm)"
 set key right top;
 
 # Average mesh spacing of mesh1
-dx=14.6666666667
+dx=0.012649
 
 legendCurveName = sprintf("U_2 - %s", trimmed_BASE)
 timesFile = "times.".MACHINE.".".SETTINGS.".txt"
