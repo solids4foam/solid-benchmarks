@@ -37,6 +37,7 @@ boundaryField
             outOfBounds clamp;
         }
         pressure        uniform 0;
+        useUndeformedArea yes;
         value           uniform (0 0 0);
     }
     topAndBottom
