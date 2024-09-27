@@ -49,6 +49,11 @@ functions
        type    solidPointDisplacement;
        point   (0.048 0.060 0);
    }
+   pointDispMid
+   {
+       type    solidPointDisplacement;
+       point   (0.048 0.052 0);
+   }
 }
 
 // ************************************************************************* //
