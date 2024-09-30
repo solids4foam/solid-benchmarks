@@ -1,6 +1,6 @@
 # Template case name
-#BASE="base/hex.snes"
-BASE="base/hex.snes.seg"
+BASE="base/hex.snes"
+#BASE="base/hex.snes.seg"
 #BASE="base/hex.seg"
 #BASE="base/tet.snes"
 #BASE="base/tet.snes.seg"
@@ -31,7 +31,7 @@ SETTINGS="hex.lu"
 #SETTINGS="poly.hypre"
 #SETTINGS="ilu1"
 #SETTINGS="hex.seg"
-SETTINGS="hex.snes.seg"
+#SETTINGS="hex.snes.seg"
 #SETTINGS="seg.uns"
 
 # Times file created by Allpost

@@ -36,6 +36,8 @@ boundaryField
             "fileName|file"    "$FOAM_CASE/constant/timeVsTraction";
             outOfBounds clamp;
         }
+        // Not implemented for seg solvers
+        //useUndeformedArea true;
         pressure        uniform 0;
         value           uniform (0 0 0);
     }

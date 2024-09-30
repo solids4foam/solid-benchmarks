@@ -25,11 +25,6 @@ set key bottom center;
 # First mesh have 9 elements and one element area is then 0.00016. sqrt of that is 0.012649
 dx=0.012649
 
-# Average mesh spacing of mesh1
-# Area is 0.00144
-# First mesh have 9 elements and one element area is then 0.00016. sqrt of that is 0.012649
-dx=0.012649
-
 #Average mesh spacing of mesh 1 for Zienkiewicz and Taylor results
 dxZT = 0.018973666
 
