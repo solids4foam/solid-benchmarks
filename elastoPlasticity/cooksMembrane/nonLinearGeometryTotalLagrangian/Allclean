@@ -1,6 +1,0 @@
-#!/bin/bash
-
-rm -rf nonLinearGeometryTotalLagrangian.[1-9] \
-       nonLinearGeometryTotalLagrangian.*.txt \
-       nonLinearGeometryTotalLagrangian.verticalDisplacement.txt \
-       nonLinearGeometryTotalLagrangian.verticalDisplacement.eps
