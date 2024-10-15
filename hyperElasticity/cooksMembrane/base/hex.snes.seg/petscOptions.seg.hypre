@@ -5,8 +5,12 @@
 #-snes_rtol 1e-6
 #-snes_atol 1e-12
 #-snes_stol 1e-12
--snes_max_it 10000
--snes_monitor
+-snes_max_it 1000000
+#-snes_monitor
+-snes_converged_reason
+
+# Increase the max number of function evaluations
+-snes_max_funcs 1000000
 
 # Calculate the Jacobian using matrix-free finite differencing
 # Only for JFNK
@@ -46,8 +50,8 @@
 -pc_type hypre
 -pc_hypre_type boomeramg
 -pc_hypre_boomeramg_max_iter 1
-#-pc_hypre_boomeramg_strong_threshold 0.25
--pc_hypre_boomeramg_strong_threshold 0.7
+-pc_hypre_boomeramg_strong_threshold 0.25
+#-pc_hypre_boomeramg_strong_threshold 0.7
 -pc_hypre_boomeramg_grid_sweeps_up 1
 -pc_hypre_boomeramg_grid_sweeps_down 1
 -pc_hypre_boomeramg_agg_nl 1
