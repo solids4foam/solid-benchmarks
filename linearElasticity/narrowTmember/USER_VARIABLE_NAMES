@@ -35,3 +35,12 @@ SETTINGS="hex.hypre"
 # We need ot "export" the times file name so gnuplot can see it
 export TIMES_FILE="times.${MACHINE}.${SETTINGS}.txt"
 PARALLEL_FILE="times.${MACHINE}.${SETTINGS}.parallel.txt"
+
+# Inputs for scaling study scripts
+# List of Rhie-Chow stabilisation factors 
+RHIECHOWFACTORS=("0.01" "0.1" "0.5" "1")
+
+# Mesh number on which scaling factors will be tested
+MESH=2
+
+
