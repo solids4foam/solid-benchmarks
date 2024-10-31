@@ -37,7 +37,7 @@ for i in `seq 0 6`;
 do
     N_CORES=$((2**i))
 
-    CASE="${CASE_NAME}.${N_CORES}cores.${MACHINE}"
+    CASE="${CASE_NAME}.${N_CORES}cores.${MACHINE}.${SETTINGS}"
     echo "Running ${CASE}"
 
     # Copy template case
