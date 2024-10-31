@@ -1,0 +1,42 @@
+#!/bin/bash
+cd "${0%/*}" || exit  # Run from this directory
+
+# Stop at first error
+set -e
+
+# Check if OpenFOAM/FOAM has been sourced
+if [[ -z "${WM_PROJECT}" ]]
+then
+    echo "Please source the OpenFOAM/FOAM bashrc first!"
+    exit 1
+fi
+
+# Check if the solids4foam installation directory has been set
+if [[ -z "${SOLIDS4FOAM_DIR}" ]]
+then
+    echo "Please set SOLIDS4FOAM_DIR, e.g."
+    echo "    export SOLIDS4FOAM_DIR=/Users/philipc/OpenFOAM/philipc-v2312/solids4foam"
+    exit 1
+fi
+
+# Compile library
+wmake $* libso 2>&1 | tee log.wmake
+
+# Check if the build succeeded
+echo "Checking if the installation was a success:"
+N_ERRORS_1=$(find . -name log.wmake | xargs grep "\ Error\ " | wc -l)
+N_ERRORS_2=$(find . -name log.wmake | xargs grep "\ Stop." | wc -l)
+if [[ $N_ERRORS_1 -gt 0 ]] || [[ $N_ERRORS_2 -gt 0 ]]
+then
+    echo "** BUILD ERROR **"
+    echo "There were build errors in the following logs:"
+    echo $(find . -name log.wmake | xargs grep -l "\ Error\ ")
+    echo $(find . -name log.wmake | xargs grep -l "\ Stop.")
+    echo; echo "Please examine these logs for additional details"; echo
+    exit 1
+else
+    echo "There were no build errors: enjoy solids4foam!"; echo
+fi
+echo
+
+#------------------------------------------------------------------------------

@@ -2,9 +2,9 @@
 #
 # Perform a parallel strong scaling study on a given mesh
 
-module load VTune/2023.2.0 PETSc/3.20.3-foss-2023a OpenFOAM/v2312-foss-2023a
-export PETSC_DIR=/apps/USE/easybuild/release/2023.1/software/PETSc/3.20.3-foss-2023a
-source $FOAM_BASH
+#module load VTune/2023.2.0 PETSc/3.20.3-foss-2023a OpenFOAM/v2312-foss-2023a
+#export PETSC_DIR=/apps/USE/easybuild/release/2023.1/software/PETSc/3.20.3-foss-2023a
+#source $FOAM_BASH
 
 # Source tutorial run functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
@@ -33,7 +33,7 @@ fi
 # Run cases
 # The number of cores is 2^i
 # Adjust the max "i" as needed, i.e. i=6 corresponds to 2^6=64 cores 
-for i in `seq 0 6`;
+for i in `seq 4 -1 0`;
 do
     N_CORES=$((2**i))
 
@@ -77,7 +77,12 @@ do
     if [ ${N_CORES} = 1 ]
     then
         echo "Running solids4Foam in serial on ${CASE}"
-        srun -n 1 solids4Foam &> log.solids4Foam &
+        if [ ${MACHINE} = "meluxina-AMD7H12" ]
+        then
+            srun -n 1 solids4Foam &> log.solids4Foam
+        else
+            mpirun -n 1 solids4Foam &> log.solids4Foam
+        fi
     else
         # Update N_CORES in the decomposeParDict
         sed -i "s/numberOfSubdomains  [^;]*;/numberOfSubdomains  ${N_CORES};/" system/decomposeParDict
@@ -88,30 +93,16 @@ do
 
         # Run the solver
         echo "Running solids4Foam using $N_CORES cores on ${CASE}"
-        srun -n ${N_CORES} solids4Foam -parallel &> log.solids4Foam &
+        if [ ${MACHINE} = "meluxina-AMD7H12" ]
+        then
+            srun -n ${N_CORES} solids4Foam -parallel &> log.solids4Foam
+        else
+            mpirun -n ${N_CORES} solids4Foam -parallel &> log.solids4Foam
+        fi
     fi
 
     # Navigate back to the parent directory
     cd ..
-done
-
-echo; echo "Waiting for jobs to finish..."; echo
-INTERVAL=60;  # Adjust the interval as needed
-while true
-do
-    sleep "${INTERVAL}"
-
-    # Check running background jobs
-    running_jobs=$(jobs -r)
-    
-    if [[ -z "$running_jobs" ]]; then
-        echo "All jobs are complete"
-        break
-    else
-        echo "The following jobs are still running:"
-        jobs -r
-        echo
-    fi
 done
 
 echo; echo "All done"; echo

@@ -41,7 +41,7 @@ set xrange [0:60]
 set ytics 50
 set ylabel "Normal contact pressure [N/mm^2]"
 
-plot "postProcessing/surfaces/1/slavePressure_cylinderContact_cylinderContact.raw" u (1000*$1):($6*-1e-6) w lp ls 1 title"S4F",\
+plot "postProcessing/surfaces/1/normalTraction_cylinderContact_cylinderContact.raw" u (1000*$1):($6*-1e-6) w lp ls 1 title"S4F",\
      "../data/normalPressurePunchMARC.dat" u 1:2 w l ls 2 title"MSC.MARC cof=0.1",\
      "../data/normalPressurePunchABAQUS.dat" u 1:2 w p ls 4 title"ABAQUS cof=0.1"
 
@@ -52,6 +52,6 @@ set yrange [-5:45]
 set xrange [0:60]
 set ytics 5
 
-plot "postProcessing/surfaces/1/slaveShearTraction_cylinderContact_cylinderContact.raw" u ($1*1000):($4*1e-6) w lp ls 1 title"S4F",\
+plot "postProcessing/surfaces/1/shearTraction_cylinderContact_cylinderContact.raw" u ($1*1000):($4*1e-6) w lp ls 1 title"S4F",\
      "../data/frictionPressurePunchMARC.dat" u 1:2 w l ls 2 title"MSC.MARC cof=0.1",\
      "../data/frictionPressurePunchABAQUS.dat" u 1:2 w p ls 4 title"ABAQUS cof=0.1"

@@ -45,9 +45,8 @@ do
         solids4Foam::runApplication gmsh -3 -format msh2 meshes/ellipticPlate.geo
         solids4Foam::runApplication gmshToFoam meshes/ellipticPlate.msh
     else
-        # Fail silently
         echo; echo "Gmsh is required to run this case: please install it"
-        exit 0
+        exit 1
     fi
 
     # Run the solver
@@ -64,6 +63,9 @@ do
         # Strange PETSc issue on Macbook where I need to use mpirun for serial
         mpirun -np 1 solids4Foam &> log.solids4Foam
     fi
+
+    # Extract results
+    solids4Foam::runApplication extractEllipticPlateResults
 
     # Navigate back to the parent directory
     cd ..
