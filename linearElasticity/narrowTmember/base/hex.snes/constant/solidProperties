@@ -40,6 +40,13 @@ solidModel     linearGeometryTotalDisplacement;
     // Optional: continue on PETSc SNES error
     // Useful for debugging
     // stopOnPetscError no;
+    
+    stabilisation
+    {
+    	type        RhieChow;
+        scaleFactor 0.1;
+    }
+
 }
 
 // ************************************************************************* //

@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Load user variables
+echo "Sourcing the USER_VARIABLE_NAMES file"
+source USER_VARIABLE_NAMES
+
+if [[ -f "scalingStudy.mesh${MESH}.${TIMES_FILE}" ]]
+then
+    echo "The file scalingStudy.mesh${MESH}.${TIMES_FILE} already exists: please remove it"; echo
+    exit 1;
+fi
+
+# Write headers to results files
+echo "# Mesh Time (in seconds) Max Memory (in kB)" >> "${TIMES_FILE}"
+
+# Record results
+for i in "${RHIECHOWFACTORS[@]}";
+do
+    CASE="${CASE_NAME}.${MESH}.RC${i}.${MACHINE}.${SETTINGS}"
+
+    if [[ ! -f "${CASE}/log.solids4Foam" ]]
+    then
+        echo "Skipping: ${CASE}/log.solids4Foam not found"
+        continue
+    fi
+
+    # Enter the case directory
+    cd "${CASE}"
+
+    if [ "$(tail -n 1 log.solids4Foam | wc -c)" -eq 1 ]
+    then
+        # The last line is empty so "time" was not used
+        echo "Extracting the times from ${CASE}"
+
+        MAX_MEMORY="-"
+    else
+        echo "Extracting the times and max memory usage from ${CASE}"
+
+        # Extract the max memory from the last line
+        MAX_MEMORY=$(awk '/Maximum resident set size/ {print $6}' log.solids4Foam)
+    fi
+
+    # Record the time
+    CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+
+    # Write data to file
+    echo "$i $CLOCK_TIME $MAX_MEMORY" >> ../"scalingStudy.mesh${MESH}.${TIMES_FILE}"
+
+    # Navigate back to the parent directory
+    cd ..
+done
+
+echo; echo "Done"; echo

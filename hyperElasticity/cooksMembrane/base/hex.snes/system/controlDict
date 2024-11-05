@@ -26,7 +26,7 @@ stopAt          endTime;
 
 endTime         30;
 
-deltaT          0.1;
+deltaT          0.5;
 
 writeControl    runTime;
 
@@ -47,7 +47,7 @@ functions
    pointDisp
    {
        type    solidPointDisplacement;
-       point   (0.048 0.060 0);
+       point   (0.048 0.052 0);
    }
    pointDispMid
    {

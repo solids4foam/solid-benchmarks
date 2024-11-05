@@ -47,15 +47,14 @@ do
             mv 0 0.tmp
 
             # Create mesh with gmsh
-            solids4Foam::runApplication gmsh -3 -format msh2 meshes/cube.geo
-            solids4Foam::runApplication gmshToFoam meshes/cube.msh
-            solids4Foam::runApplication createPatch -overwrite
+    	    solids4Foam::runApplication gmsh -3 -format msh2 meshes/cooksMembrane.geo
+            solids4Foam::runApplication gmshToFoam meshes/cooksMembrane.msh
             if [ "$USE_POLYDUALMESH" -eq 1 ]
             then
                 solids4Foam::runApplication polyDualMesh 30 -overwrite
                 solids4Foam::runApplication combinePatchFaces 45 -overwrite
-                #solids4Foam::runApplication changeDictionary
             fi
+	    solids4Foam::runApplication changeDictionary
 
             # Move 0 back
             mv 0.tmp 0
@@ -72,6 +71,8 @@ do
         else
             echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
             \cp "system/blockMeshDict.$i" system/blockMeshDict
+            # To avoid using it in hex.segregated case which is in fe format
+            rm -f constant/polyMesh/blockMeshDict
         fi
 
         # Create the mesh
@@ -79,13 +80,16 @@ do
     fi
 
     # Run the solver
-    # If "gtime" is available (could be called "time" on Linux), use it to
-    # record the max memory usage
-    if command -v gtime &> /dev/null
+    # If "gtime" is available (/usr/bin/time on Linux), use it to
+    # record the max memory usage. On linux gtime is set to be alias for /usr/bin/time
+    if [ -f /usr/bin/time ] || command -v gtime &> /dev/null
     then
         echo "Running solids4Foam on ${CASE} and recording the memory usage"
-        # Run with gnu-time (should just be "time" on Linux)
-        gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        if [ -x /opt/homebrew/bin/gtime ]; then
+            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        else
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+        fi
     else
         echo "Running solids4Foam on ${CASE}"
         #solids4Foam::runApplication solids4Foam

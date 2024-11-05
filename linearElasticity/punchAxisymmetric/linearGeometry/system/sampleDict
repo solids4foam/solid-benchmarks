@@ -49,7 +49,7 @@ interpolationScheme cellPointFace;
 // Fields to sample.
 fields
 (
-    Dx Dz slavePressure_cylinderContact slaveShearTraction_cylinderContact
+    Dx Dz normalTraction_cylinderContact shearTraction_cylinderContact
 );
 
 sets

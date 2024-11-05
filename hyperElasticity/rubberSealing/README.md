@@ -19,7 +19,7 @@ The upper surface undergoes a prescribed displacement of $2.2$ mm, applied incre
 
 ### Expected Results
 
-The deformed sealing, coloured with equivalent stress, is shown in Fig. 2. Side-by-side comparison is made with results from [2].
+The deformed sealing, coloured with equivalent stress, is shown in Fig. 2. Side-by-side comparison is made with results from [2]. Unlike in [1] and [3], where the Ogden material model is used, [2] employs the Yeoh material model with the following parameters: $c_1 = 0.31237237$ MPa, $c_2 = 0.00054257$ MPa, and $c_3 = 0.00006962$ MPa.
 
 <div style="text-align: center;">
   <img src="./images/rubberSeal-sigmaEq.jpeg" alt="Image" width="750">
