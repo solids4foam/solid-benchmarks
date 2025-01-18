@@ -36,7 +36,7 @@ fi
 
 # Create timestamped working directory for this run
 DATE=$(date +%Y%m%d_%H%M%S)
-RUN_DIR="run.${CPU_TYPE}.${DATE}"
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
 
@@ -53,7 +53,7 @@ do
     echo "***************************************"
 
     # Define results summary file name
-    SUMMARY="${NAME}.${CPU_TYPE}.summary.txt"
+    SUMMARY="${NAME}.summary.txt"
     echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
@@ -146,14 +146,31 @@ do
     echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
 
     # Calculate the order of accuracy from the summary file
-    ORDER="${NAME}.${CPU_TYPE}.orderOfAccuracy.txt"
+    ORDER="${NAME}.orderOfAccuracy.txt"
     echo; echo "Creating ${ORDER} file"
     echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress" > "${ORDER}"
     awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7}' "${SUMMARY}" >> "${ORDER}"
     cat "${ORDER}"
 done
 
+# Create plots if gnuplot in installed
+if command -v gnuplot &>/dev/null
+then
+    # Copy gnuplot scripts
+    cp ../plotScripts/*gnuplot .
+    cp ../plotScripts/orderOfAccuracySlopes*.dat .
+
+    # Run all scripts
+    for f in *gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f"
+    done
+fi
+
 # Exit the run directory
 cd ..
 
-echo; echo; echo "Done"; echo; echo
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo
