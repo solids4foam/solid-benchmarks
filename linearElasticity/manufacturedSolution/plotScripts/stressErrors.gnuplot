@@ -28,11 +28,13 @@ dx=0.04
 
 # Assume the mesh spacing is being halved for each succesive mesh
 plot \
-    "hex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) w lp pt 5 lc "red" t "L_2 - Hexahedra", \
-    "hex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) w lp pt 4 lc "red" t "L_∞ - Hexahedra", \
-    "tet.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) w lp pt 9 lc "green" t "L_2 - Tetrahedra", \
-    "tet.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) w lp pt 8 lc "green" t "L_∞ - Tetrahedra", \
-    "poly.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) pt 15 lc "blue" w lp t "L_2 - Polyhedra", \
-    "poly.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) pt 14 lc "blue" w lp t "L_∞ - Polyhedra", \
+    "tet.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) w lp pt 9 lc "green" t "L_2 - Tet", \
+    "tet.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) w lp pt 8 lc "green" t "L_∞ - Tet", \
+    "poly.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) pt 15 lc "blue" w lp t "L_2 - Poly", \
+    "poly.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) pt 14 lc "blue" w lp t "L_∞ - Poly", \
+    "hex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) w lp pt 5 lc "red" t "L_2 - Hex", \
+    "hex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) w lp pt 4 lc "red" t "L_∞ - Hex", \
+    "distHex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$6) w lp pt 28 lc rgb "#800080" t "L_2 - Hex (distorted)", \
+    "distHex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e-6*$7) w lp pt 27 lc rgb "#800080" t "L_∞ - Hex (distorted)", \
     "orderOfAccuracySlopesStress.dat" u 1:2 w l lw 2 lc "black" notitle, \
     "orderOfAccuracySlopesStress.dat" u 1:3 w l lw 2 lc "black" notitle
