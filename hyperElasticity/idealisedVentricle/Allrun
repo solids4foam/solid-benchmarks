@@ -125,7 +125,7 @@ do
         fi
 
         # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
 
         # Write data to file
         echo "$i $CLOCK_TIME $MAX_MEMORY" >> ../"${SUMMARY}"
