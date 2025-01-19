@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# Load user variables
-echo "Sourcing the USER_VARIABLE_NAMES file"
-source USER_VARIABLE_NAMES
-
-# Remove cases
-echo "Removing ${CASE_NAME}.*"
-rm -rf "${CASE_NAME}".*

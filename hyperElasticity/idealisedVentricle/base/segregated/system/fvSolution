@@ -12,29 +12,20 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
+    location    "system";
     object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solvers
 {
-    "D|DD"
+    D
     {
         solver          PCG;
         preconditioner  FDIC;
         tolerance       1e-09;
-        relTol          0.1;
-    }
-    t
-    {
-        solver          PCG;
-        preconditioner  FDIC;
-        tolerance       1e-09;
-        relTol          0.0;
+        relTol          0.9;
     }
 }
-
-relaxationFactors
-{}
 
 // ************************************************************************* //

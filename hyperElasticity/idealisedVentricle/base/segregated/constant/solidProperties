@@ -12,43 +12,37 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fvSchemes;
+    location    "constant";
+    object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-d2dt2Schemes
-{
-    default            steadyState; //backward;
-}
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
-ddtSchemes
+"linearGeometryTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
-    default            steadyState; //backward;
-}
+    // Solution algorithm
+    solutionAlgorithm implicitSegregated;
+    //solutionAlgorithm PETScSNES;
+    //solutionAlgorithm explicit;
 
-gradSchemes
-{
-    default            pointCellsLeastSquares;
-}
+    // Maximum number of momentum correctors
+    nCorrectors     1000000;
 
-divSchemes
-{
-    default            Gauss linear;
-}
+    // Solution tolerance for displacement
+    solutionTolerance 1e-06;
 
-laplacianSchemes
-{
-    default            Gauss linear skewCorrected 1;
-}
+    // Alternative solution tolerance for displacement
+    alternativeTolerance 1e-06;
 
-snGradSchemes
-{
-    default            skewCorrected 1;
-}
+    // Predictor D at the start of a new time step using U and A
+    predictor yes;
 
-interpolationSchemes
-{
-    default            skewCorrected linear;
+    stabilisation
+    {
+        type        RhieChow;
+        scaleFactor 0.5;
+    }
 }
 
 // ************************************************************************* //
