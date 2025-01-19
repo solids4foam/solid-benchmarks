@@ -18,19 +18,18 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
-//solidModel     unsNonLinearGeometryUpdatedLagrangian;
 
-"nonLinearGeometryUpdatedLagrangianCoeffs|unsNonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianCoeffs"
+nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
+    // Maximum number of momentum correctors
+    nCorrectors     1000000;
 
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
+    // Solution tolerance for displacement
+    solutionTolerance 1e-06;
+
+    // Alternative solution tolerance for displacement
+    alternativeTolerance 1e-06;
 }
+
 
 // ************************************************************************* //

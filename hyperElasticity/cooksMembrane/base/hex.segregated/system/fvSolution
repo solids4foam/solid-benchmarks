@@ -12,25 +12,28 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
-//solidModel     unsNonLinearGeometryUpdatedLagrangian;
-
-"nonLinearGeometryUpdatedLagrangianCoeffs|unsNonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianCoeffs"
+solvers
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
+    "D|DD"
+    {
+        solver          PCG;
+        preconditioner  FDIC;
+        tolerance       1e-9;
+        relTol          0.9;
+    }
+}
 
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
+relaxationFactors
+{
+    fields
+    {
+        //D              0.7;
+    }
 }
 
 // ************************************************************************* //
