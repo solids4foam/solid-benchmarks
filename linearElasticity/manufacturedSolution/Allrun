@@ -25,7 +25,7 @@ configs=(
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=2
+END_MESH=5
 
 
 # Detect the CPU type: we append this to the case name
@@ -190,7 +190,8 @@ then
 
     # Extract columns and write to the output file
     {
-        for i in $(seq 1 $((${#MESH_SIZES[@]} - 1))); do
+        for i in $(seq 1 $((${#MESH_SIZES[@]})))
+        do
             # Extract columns 2 and 3 from each file
             F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
             F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
@@ -199,18 +200,18 @@ then
 
             if [[ i -eq 1 ]]
             then
-                echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 2 ]]
             then
-                echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 3 ]]
             then
-                echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 4 ]]
             then
-                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             else
-                echo -e "\t\t\t\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
         done
     } > "$OUTPUT"
@@ -223,4 +224,5 @@ cd ..
 
 echo; echo; echo "Done!"; echo
 echo "View the PDF files in ${RUN_DIR}"
+echo; echo "${date}"
 echo; echo
