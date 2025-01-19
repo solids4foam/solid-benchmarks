@@ -13,48 +13,11 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "system";
-    object      fvSchemes;
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-d2dt2Schemes
-{
-    default                 steadyState;
-}
-
-ddtSchemes
-{
-    default                 steadyState;
-}
-
-gradSchemes
-{
-    //default                extendedLeastSquares 0;
-    default                leastSquaresS4f;
-}
-
-divSchemes
-{
-    default                 none;
-    div(sigma)              Gauss linear;
-    div((impK*grad(D)))     Gauss linear;
-}
-
-laplacianSchemes
-{
-    //default                 Gauss linear corrected;
-    default                 Gauss linear skewCorrected;
-}
-
-snGradSchemes
-{
-    //default                 corrected;
-    default                 skewCorrected;
-}
-
-interpolationSchemes
-{
-    default                 linear;
-}
+solvers
+{}
 
 // ************************************************************************* //

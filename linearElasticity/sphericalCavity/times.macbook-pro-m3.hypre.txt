@@ -1,4 +1,0 @@
-# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)    L2-sigmaZZ    LInf-sigmaZZ
-1   0.29   112944   12410.4   185248
-2   2.2   391344   5651.66   113279
-3   24.25   2266272   2758.39   89605.8
