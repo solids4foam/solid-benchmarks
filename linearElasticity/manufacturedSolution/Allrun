@@ -10,13 +10,22 @@ configs=(
     "BASE=base/snes NAME=tet.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=poly.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=distHex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/snes NAME=hex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+    "BASE=base/segregated NAME=hex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.seg USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=poly.seg USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=distHex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1"
 )
+# SNES segregated approach
+#    "BASE=base/snes NAME=hex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=tet.seg.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=poly.seg.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=distHex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.seg.hypre"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
+# END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=6
+END_MESH=2
 
 
 # Detect the CPU type: we append this to the case name
@@ -166,6 +175,47 @@ then
         echo "Running gnuplot on $f"
         gnuplot "$f"
     done
+fi
+
+# Extract comparison of JFNK and segregated for the hex meshes
+if [[ -f hex.hypre.summary.txt && -f hex.seg.summary.txt ]]
+then
+    # Define input files
+    FILE1="hex.hypre.summary.txt"
+    FILE2="hex.seg.summary.txt"
+    OUTPUT="tableJFNKvsSeg.tex"
+
+    # Define mesh sizes for the rows in the table
+    MESH_SIZES=("125" "\$1\,000\$" "\$8\,000\$" "\$64\,000\$" "\$512\,000\$" "\$4\,096\,000\$")
+
+    # Extract columns and write to the output file
+    {
+        for i in $(seq 1 $((${#MESH_SIZES[@]} - 1))); do
+            # Extract columns 2 and 3 from each file
+            F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
+            F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
+            F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
+            F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
+
+            if [[ i -eq 1 ]]
+            then
+                echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            elif [[ i -eq 2 ]]
+            then
+                echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            elif [[ i -eq 3 ]]
+            then
+                echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            elif [[ i -eq 4 ]]
+            then
+                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            else
+                echo -e "\t\t\t\t& ${MESH_SIZES[i]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            fi
+        done
+    } > "$OUTPUT"
+
+    echo; echo "Table generated in $OUTPUT"
 fi
 
 # Exit the run directory
