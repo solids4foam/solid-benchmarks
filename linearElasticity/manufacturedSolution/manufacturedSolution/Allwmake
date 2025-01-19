@@ -35,7 +35,7 @@ then
     echo; echo "Please examine these logs for additional details"; echo
     exit 1
 else
-    echo "There were no build errors: enjoy solids4foam!"; echo
+    echo "There were no build errors: enjoy!"; echo
 fi
 echo
 
