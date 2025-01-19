@@ -1,6 +1,0 @@
-#!/bin/bash
-
-rm -rf coupledUnsLinearGeometryLinearElastic.[1-9] \
-       coupledUnsLinearGeometryLinearElastic.*.txt \
-       coupledUnsLinearGeometryLinearElastic.verticalDisplacement.txt \
-       coupledUnsLinearGeometryLinearElastic.verticalDisplacement.eps
