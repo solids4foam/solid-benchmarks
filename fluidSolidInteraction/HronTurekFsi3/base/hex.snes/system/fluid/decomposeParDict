@@ -12,27 +12,24 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
+numberOfSubdomains 4;
 
-nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
+method          simple;
+
+simpleCoeffs
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-
-    // Predict displacement at the start of a time-step
-    predictor yes;
+    n               (2 2 1);
+    delta           0.001;
 }
+
+distributed     no;
+
+roots
+(
+);
 
 // ************************************************************************* //
