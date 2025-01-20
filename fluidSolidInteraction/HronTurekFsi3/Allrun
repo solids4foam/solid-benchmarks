@@ -162,8 +162,8 @@ do
         amp_dy=$(echo "$amp_dy * 1000" | bc)
 
         # Lookup the number of cells
-        nCellsSolid=(checkMesh -region solid -time 0 | \grep "cells:" | awk '{print $2}')
-        nCellsFluid=(checkMesh -region fluid -time 0 | \grep "cells:" | awk '{print $2}')
+        nCellsSolid=$(checkMesh -region solid -time 0 | \grep "cells:" | awk '{print $2}')
+        nCellsFluid=$(checkMesh -region fluid -time 0 | \grep "cells:" | awk '{print $2}')
 
         # Output LaTeX table row
         row="$i (\$${nCellsFluid}$ + \$${nCellsSolid}$)  & \$$(printf "%.2f" $mean_dx) \pm $(printf "%.2f" $amp_dx) \,[ $(printf "%.2f" $freq_dx) ]\$ & \$$(printf "%.2f" $mean_dy) \pm $(printf "%.2f" $amp_dy) \,[ $(printf "%.2f" $freq_dy) ]\$ \\\\"
