@@ -15,7 +15,7 @@ configs=(
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
 START_MESH=1
-END_MESH=3
+END_MESH=6
 
 
 # Detect the CPU type: we append this to the case name
@@ -179,6 +179,7 @@ then
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
+            echo -e "\hline"
         done
     } > "$OUTPUT"
 

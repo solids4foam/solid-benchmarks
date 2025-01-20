@@ -25,7 +25,7 @@ configs=(
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=5
+END_MESH=6
 
 
 # Detect the CPU type: we append this to the case name
@@ -134,16 +134,16 @@ do
         CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
 
         # Extract the L2 (average) error for displacement
-        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
         # Extract the LInfinity (max) error for displacement
-        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
         # Extract the L2 (average) error for mag(sigma)
-        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
         # Extract the LInfinity (max) error for mag(sigma)
-        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
         # Write data to file
         echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
@@ -213,6 +213,7 @@ then
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
+            echo -e "\hline"
         done
     } > "$OUTPUT"
 
