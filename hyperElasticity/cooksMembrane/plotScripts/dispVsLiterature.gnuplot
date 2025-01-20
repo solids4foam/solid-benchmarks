@@ -34,7 +34,7 @@ file_A = "abaqus.dat"
 
 # Assume the mesh spacing is being halved for each succesive mesh
 plot \
-    file u (dx/(2**($0))):($4*1000) w lp pt 6 ps 1.2 lw 1.2 lc "red" t "Present work",\
-    file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 1.2 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
-    file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 1.2 lw 1.2 lc "black" t "Pelteret and McBride (2016) - Q2", \
-    file_A u 2:4 w lp pt 4 ps 1.2 lw 1.2 lc "purple" t "Abaqus (CPE4H)"
+    file u (dx/(2**($0))):($4*1000) w lp pt 6 ps 1 lw 1.2 lc "red" t "Present work",\
+    file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 1 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
+    file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 1 lw 1.2 lc "black" t "Pelteret and McBride (2016) - Q2", \
+    file_A u 2:4 w lp pt 4 ps 1 lw 1.2 lc "purple" t "Abaqus (CPE4H)"
