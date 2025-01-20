@@ -18,16 +18,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solvers
-{
-    D
-    {
-        solver          PCG;
-        preconditioner  FDIC;
-        tolerance       1e-8;
-        relTol          0.1;
-        maxIter         50;
-    }
-}
+{}
 
 relaxationFactors
 {}

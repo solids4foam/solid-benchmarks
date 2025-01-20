@@ -12,43 +12,22 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fvSchemes;
+    object      mechanicalProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-d2dt2Schemes
-{
-    default            steadyState; //backward;
-}
+planeStress     no;
 
-ddtSchemes
-{
-    default            steadyState; //backward;
-}
-
-gradSchemes
-{
-    default            pointCellsLeastSquares;
-}
-
-divSchemes
-{
-    default            Gauss linear;
-}
-
-laplacianSchemes
-{
-    default            Gauss linear skewCorrected 1;
-}
-
-snGradSchemes
-{
-    default            skewCorrected 1;
-}
-
-interpolationSchemes
-{
-    default            skewCorrected linear;
-}
+mechanical
+(
+    heartTissue
+    {
+        //type            StVenantKirchhoffElastic;
+        type            neoHookeanElastic;
+        rho             rho [1 -3 0 0 0 0 0] 1000;
+        E               E [1 -1 -2 0 0 0 0] 15.293e6;
+        nu              nu [0 0 0 0 0 0 0] 0.3;
+    }
+);
 
 // ************************************************************************* //

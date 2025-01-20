@@ -19,53 +19,37 @@ FoamFile
 
 d2dt2Schemes
 {
-    //default                 steadyState;
-    //default                 Euler;
     default                 backward;
 }
 
 ddtSchemes
 {
-    //default                 steadyState;
-    //default                 Euler;
     default                 backward;
 }
 
 gradSchemes
 {
-    //default                pointCellsLeastSquares;
-    // default                Gauss linear;
-    default                 none;
-    grad(D).segregated      extendedLeastSquares 0;
-    grad(D)                 leastSquaresS4f;
+    default                 leastSquaresS4f;
 }
 
 divSchemes
 {
-    default                 none;
-    div(sigma)              Gauss linear;
-    div((impK*grad(D)))     Gauss linear;
+    default                 Gauss linear;
 }
 
 laplacianSchemes
 {
-    default                 none;
-    laplacian(DD,D)         Gauss linear corrected;
-    // laplacian(DD,D)         Gauss linear skewCorrected;
+    default                 Gauss linear corrected;
 }
 
 snGradSchemes
 {
-    // default                 skewCorrected;
     default                 corrected;
 }
 
 interpolationSchemes
 {
     default                 linear;
-    // interpolate(impK)       linear;
-    // interpolate(grad(D))    skewCorrected linear;
-    // interpolate(D)          skewCorrected linear;
 }
 
 // ************************************************************************* //
