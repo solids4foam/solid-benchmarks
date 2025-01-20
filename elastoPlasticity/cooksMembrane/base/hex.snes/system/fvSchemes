@@ -20,14 +20,10 @@ FoamFile
 d2dt2Schemes
 {
     default                 steadyState;
-    //default                 Euler;
-    //default                 backward;
 }
 
 ddtSchemes
 {
-    //default                 steadyState;
-    //default                 Euler;
     default                 backward;
 }
 

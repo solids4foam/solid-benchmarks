@@ -18,53 +18,22 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 //solidModel     nonLinearGeometryUpdatedLagrangian;
-// solidModel     nonLinearGeometryTotalLagrangian;
 solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
-//solidModel     unsNonLinearGeometryUpdatedLagrangian;
 
-"nonLinearGeometryUpdatedLagrangianCoeffs|unsNonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianCoeffs"
+"nonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
     // Solution algorithm
     //solutionAlgorithm implicitSegregated;
     solutionAlgorithm PETScSNES;
     //solutionAlgorithm explicit;
 
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
-
     // PETSc options file used by PETScSNES
     optionsFile petscOptions.lu;
     //optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
 
-    // Optional: continue on PETSc SNES error
-    // Useful for debugging
-    //stopOnPetscError no;
-
     // Predictor D at the start of a new time step using U and A
     predictor yes;
-
-    // Maximum number of momentum correctors
-    //nCorrectors     10;
-
-    // Solution tolerance for displacement
-    //solutionTolerance 1e-3;
-    // Alternative solution tolerance for displacement
-    //alternativeTolerance 1e-3;
-
-    // Material law solution tolerance
-    //materialTolerance 1e-05;
-
-    // Write frequency for the residuals
-    //infoFrequency   10;
-
-    // stabilisation
-    // {
-    //     type        RhieChow;
-    //     //type        alpha;
-    //     scaleFactor 0.01;
-    // }
 }
 
 // ************************************************************************* //

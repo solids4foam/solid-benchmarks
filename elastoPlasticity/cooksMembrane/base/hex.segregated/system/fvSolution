@@ -12,43 +12,31 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      controlDict;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     solids4Foam;
-
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         30;
-
-deltaT          1;
-
-writeControl    runTime;
-
-writeInterval   1;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+solvers
 {
-   pointDisp
-   {
-       type    solidPointDisplacement;
-       point   (0.048 0.060 0);
-   }
+    "D|DD|sigmaHyd"
+    {
+        solver          PCG;
+        preconditioner  FDIC;
+        tolerance       1e-09;
+        relTol          0.9;
+    }
+}
+
+relaxationFactors
+{
+    equations
+    {}
+
+    fields
+    {
+        //"D|DD"       0.7;
+    }
 }
 
 // ************************************************************************* //

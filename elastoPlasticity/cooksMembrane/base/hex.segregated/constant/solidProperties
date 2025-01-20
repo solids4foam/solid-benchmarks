@@ -12,43 +12,24 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      controlDict;
+    location    "constant";
+    object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     solids4Foam;
+// solidModel     nonLinearGeometryTotalLagrangian;
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
-startFrom       startTime;
-
-startTime       0;
-
-stopAt          endTime;
-
-endTime         30;
-
-deltaT          1;
-
-writeControl    runTime;
-
-writeInterval   1;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+"nonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
-   pointDisp
-   {
-       type    solidPointDisplacement;
-       point   (0.048 0.060 0);
-   }
+    // Maximum number of momentum correctors
+    nCorrectors             100000;
+
+    // Solution tolerance for displacement
+    solutionTolerance       1e-06;
+
+    // Alternative solution tolerance for displacement
+    alternativeTolerance    1e-06;
 }
 
 // ************************************************************************* //
