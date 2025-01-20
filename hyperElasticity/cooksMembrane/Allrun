@@ -15,7 +15,7 @@ configs=(
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 8
 START_MESH=1
-END_MESH=4
+END_MESH=8
 
 
 # Detect the CPU type: we append this to the case name
