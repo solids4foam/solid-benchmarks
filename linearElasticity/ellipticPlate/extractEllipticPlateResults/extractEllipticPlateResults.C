@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     // Define points on the line r = 2.1, z = 0.3 m
     // We will uniformly sample the angle (theta) from 0 (x symmetry plane) to
     // pi/2 (y symmetry plane)
-    const label NUM_SAMPLES = 20;
+    const label NUM_SAMPLES = 40;
     scalarField theta(NUM_SAMPLES, 0);
     const scalar thetaMax = 0.5*constant::mathematical::pi;
     const scalar thetaMin = 0;

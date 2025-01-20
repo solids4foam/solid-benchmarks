@@ -18,30 +18,6 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solvers
-{
-    // Segregated solver
-    "D|DD"
-    {
-        tolerance       1e-8;
-        relTol          0.99;
-        maxIter         50;
-
-        solver          PCG;
-        preconditioner  FDIC;
-    }
-}
-
-relaxationFactors
-{
-    equations
-    {
-        //D           0.9999;
-    }
-
-    fields
-    {
-        //D              0.9;
-    }
-}
+{}
 
 // ************************************************************************* //

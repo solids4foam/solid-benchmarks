@@ -1,6 +1,0 @@
-# Mesh    Time (in seconds)    Max Memory (in kB, if 'time' was used)
-1   0.04   73328
-2   0.06   81664
-3   0.52   196048
-4   8.19   1523248
-5   Exceeded the available memory of >16 GB
