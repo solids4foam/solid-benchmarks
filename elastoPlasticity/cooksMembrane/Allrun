@@ -162,13 +162,13 @@ then
 
             if [[ i -eq 1 ]]
             then
-                echo -e "\t\\\textbf{Membrane ii}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\\textbf{Membrane iii}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 2 ]]
             then
-                echo -e "\t\\emph{2-D static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{2-D, static,}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 3 ]]
             then
-                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{hyperelastoplastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
