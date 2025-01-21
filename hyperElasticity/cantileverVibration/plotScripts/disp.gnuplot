@@ -36,4 +36,4 @@ plot \
     "hex.hypre.2/postProcessing/0/solidPointDisplacement_pointDisp.dat" u 1:($5) every 10 w lp pt 6 ps 0.4 lc "cyan" lw 1 t "{/Symbol \D}x = 16.7 mm", \
     "hex.hypre.3/postProcessing/0/solidPointDisplacement_pointDisp.dat" u 1:($5) every 10 w lp pt 6 ps 0.2 lc "green" lw 1 t "{/Symbol \D}x = 8.3 mm", \
     "hex.hypre.4/postProcessing/0/solidPointDisplacement_pointDisp.dat" u 1:($5) every 10 w lp pt 6 ps 0.1 lc "red" lw 1 t "{/Symbol \D}x = 4.2 mm", \
-    "cantilever_abaqus_80percent.txt" u 1:2 w l t "Abaqus (C3D8)"
+    "cantilever_abaqus_50percent.txt" u 1:2 w l t "Abaqus (C3D8)"
