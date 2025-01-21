@@ -42,7 +42,7 @@ fluidSolidInterface    IQNILS;
     relaxationFactor     0.05;
 
     // Tolerance for the FSI loop within each time-step
-    outerCorrTolerance   1e-3;
+    outerCorrTolerance   1e-4;
 
     // Maximum number of outer FSI loop correctors within each time-step
     nOuterCorr           30;

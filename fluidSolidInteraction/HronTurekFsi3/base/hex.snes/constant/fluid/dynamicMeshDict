@@ -20,6 +20,6 @@ dynamicFvMesh dynamicMotionSolverFvMesh;
 
 "solver|motionSolver" velocityLaplacian;
 
-diffusivity quadratic inverseDistance 2(plate cylinder);
+diffusivity quadratic inverseDistance (plate cylinder top bottom);
 
 // ************************************************************************* //
