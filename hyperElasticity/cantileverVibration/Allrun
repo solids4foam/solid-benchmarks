@@ -6,7 +6,7 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/hex.snes NAME=hex.hypre PETSC_FILE=petscOptions.hypre"
+    "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
     "BASE=base/hex.segregated NAME=hex.seg"
 )
 # SNES segregated approach
@@ -141,10 +141,10 @@ then
 fi
 
 # Extract comparison of JFNK and segregated for the hex meshes
-if [[ -f hex.hypre.summary.txt && -f hex.seg.summary.txt ]]
+if [[ -f hex.lu.summary.txt && -f hex.seg.summary.txt ]]
 then
     # Define input files
-    FILE1="hex.hypre.summary.txt"
+    FILE1="hex.lu.summary.txt"
     FILE2="hex.seg.summary.txt"
     OUTPUT="tableJFNKvsSeg.tex"
 
