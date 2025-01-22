@@ -24,16 +24,16 @@
 # Preconditioner - LU
 # Good for small/medium cases but will require large amounts of memory for
 # larger models
--pc_type bjacobi
--sub_pc_type lu
+#-pc_type bjacobi
+#-sub_pc_type lu
 
 # Preconditioner - ILU
 # Less expensive than LU but not as good
 # Increasing the levels (fill-in) improves the preconditioning but is more
 # expensive
-#-pc_type asm
-#-sub_pc_type ilu
-#-sub_pc_factor_levels 1
+-pc_type asm
+-sub_pc_type ilu
+-sub_pc_factor_levels 1
 
 # Preconditioner - multigrid
 # Should perform better than LU for larger cases
