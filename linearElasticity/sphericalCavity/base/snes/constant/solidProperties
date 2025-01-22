@@ -31,12 +31,6 @@ linearGeometryTotalDisplacementCoeffs
     optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
     //optionsFile petscOptions.seg.hypre;
-
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
 }
 
 // ************************************************************************* //
