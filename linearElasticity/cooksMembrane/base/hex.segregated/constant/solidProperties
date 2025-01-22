@@ -23,12 +23,6 @@ linearGeometryTotalDisplacementCoeffs
 {
     // Maximum number of momentum correctors
     nCorrectors     10000000;
-
-    // Solution tolerance for displacement
-    solutionTolerance 1e-06;
-
-    // Alternative solution tolerance for displacement
-    alternativeTolerance 1e-06;
 }
 
 // ************************************************************************* //
