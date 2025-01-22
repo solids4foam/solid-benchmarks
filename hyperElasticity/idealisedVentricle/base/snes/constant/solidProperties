@@ -27,16 +27,8 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     solutionAlgorithm PETScSNES;
     //solutionAlgorithm explicit;
 
-    // Damping is useful (and often required) for stabilising explicit
-    // simulations
-    //dampingCoeff    [ 0 0 -1 0 0 0 0 ] 1e4;
-
     // PETSc options file used by PETScSNES
     optionsFile petscOptions.hypre;
-
-    // Optional: continue on PETSc SNES error
-    // Useful for debugging
-    //stopOnPetscError no;
 
     // Predictor D at the start of a new time step using U and A
     predictor yes;
