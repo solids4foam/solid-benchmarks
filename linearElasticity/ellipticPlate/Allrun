@@ -153,7 +153,7 @@ then
     # Define input files
     FILE1="hex.hypre.summary.txt"
     FILE2="hex.seg.summary.txt"
-    OUTPUT="tableJFNKvsSeg.tex"
+    OUTPUT="tableJFNKvsSeg_ellipticPlate.tex"
 
     # Define mesh sizes for the rows in the table
     MESH_SIZES=("\$45\$" "\$472\$" "\$4\,140\$" "\$34\,968\$" "\$287\,280\$" "\$2\,438\,242\$")
@@ -179,9 +179,10 @@ then
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
-            echo -e "\hline"
         done
     } > "$OUTPUT"
+
+    echo -e "\hline" >> "$OUTPUT"
 
     echo; echo "Table generated in $OUTPUT"
 fi

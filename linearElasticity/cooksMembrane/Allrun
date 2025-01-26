@@ -146,7 +146,7 @@ then
     # Define input files
     FILE1="hex.lu.summary.txt"
     FILE2="hex.seg.summary.txt"
-    OUTPUT="tableJFNKvsSeg.tex"
+    OUTPUT="tableJFNKvsSeg_membranei.tex"
 
     # Define mesh sizes for the rows in the table
     MESH_SIZES=("9" "36" "144" "576" "\$2\,304\$" "\$9\,216\$" "\$36\,864\$" "\$147\,456\$")
@@ -172,9 +172,10 @@ then
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
-            echo -e "\hline"
         done
     } > "$OUTPUT"
+
+    echo -e "\hline" >> "$OUTPUT"
 
     echo; echo "Table generated in $OUTPUT"
 fi
