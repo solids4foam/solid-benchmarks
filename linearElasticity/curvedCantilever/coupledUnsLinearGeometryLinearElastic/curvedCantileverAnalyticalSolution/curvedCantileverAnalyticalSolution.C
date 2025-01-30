@@ -47,9 +47,9 @@ Foam::symmTensor Foam::curvedCantileverAnalyticalSolution::curvedCantileverStres
 )
 {
     tensor sigma = tensor::zero;
-    
+
     const scalar r = Foam::sqrt(Foam::sqr(C.x()) + Foam::sqr(C.y()));
-    
+
     if (r < SMALL)
     {
         FatalErrorIn("Foam::symmTensor Foam::"
@@ -59,43 +59,43 @@ Foam::symmTensor Foam::curvedCantileverAnalyticalSolution::curvedCantileverStres
             << "The beam's center of curvature should be centered at the origin"
             << abort(FatalError);
     }
-       
+
     const scalar theta = Foam::atan2(C.y(), C.x());
-    
+
     const coordinateSystem cs("polarCS", C, vector(0, 0, 1), C/mag(C));
 
     const scalar& a = rInner_;
     const scalar& b = rOuter_;
-    
-    const scalar N = Foam::sqr(a) - Foam::sqr(b) 
+
+    const scalar N = Foam::sqr(a) - Foam::sqr(b)
         + (Foam::sqr(a) + Foam::sqr(b))*Foam::log(b/a);
-        
+
     sigma.xx() =
         - (force_ / N) * Foam::sin(theta)
       * (
-            r 
+            r
          + ((Foam::sqr(a)*Foam::sqr(b))/Foam::pow(r,3))
          - ((Foam::sqr(a)+Foam::sqr(b))/r)
         );
-        
+
     sigma.yy() =
         - (force_ / N) * Foam::sin(theta)
       * (
-            3*r 
+            3*r
          - ((Foam::sqr(a)*Foam::sqr(b))/Foam::pow(r,3))
          - ((Foam::sqr(a)+Foam::sqr(b))/r)
         );
-        
+
     sigma.xy() =
         (force_ / N) * Foam::cos(theta)
       * (
-            r 
+            r
          + ((Foam::sqr(a)*Foam::sqr(b))/Foam::pow(r,3))
          - ((Foam::sqr(a)+Foam::sqr(b))/r)
         );
-        
+
     sigma.yx() = sigma.xy();
-    
+
     // Transformation to Cartesian coordinate system
 #ifdef OPENFOAMFOUNDATION
     sigma = ((cs.R().R() & sigma) & cs.R().R().T());
@@ -172,12 +172,12 @@ bool Foam::curvedCantileverAnalyticalSolution::writeData()
             }
         }
     }
-   
-//    This part is not useful as an analytical solution differs from the 
-//    numerical solution at the beam fixed end. To match the analytical and 
+
+//    This part is not useful as an analytical solution differs from the
+//    numerical solution at the beam fixed end. To match the analytical and
 //    numerical solution at this location, the fixed end should be replaced with
 //    the corresponding moment and force.
-//    
+//
 //    if (mesh.foundObject<volSymmTensorField>("sigma"))
 //    {
 //        const volSymmTensorField& sigma =
@@ -233,10 +233,10 @@ Foam::curvedCantileverAnalyticalSolution::curvedCantileverAnalyticalSolution
     E_(readScalar(dict.lookup("E"))),
     nu_(readScalar(dict.lookup("nu")))
 {
-    // Young's modulus and Poisson's factor are excess, but they are left 
+    // Young's modulus and Poisson's factor are excess, but they are left
     // because they will be needed if one wants to add an analytical
     // displacement field
-    
+
     Info<< "Creating " << this->name() << " function object" << endl;
 
     if (rInner_ >= rOuter_)

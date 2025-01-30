@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
         sampleLine[pI] =
             vector(r*Foam::cos(theta[pI]), r*Foam::sin(theta[pI]), SMALL);
     }
-    Info<< nl << "sampleLine = " << sampleLine << endl; 
+    Info<< nl << "sampleLine = " << sampleLine << endl;
 
     // Find the cells containing the sampleLine points
     meshSearch searchEngine(mesh);

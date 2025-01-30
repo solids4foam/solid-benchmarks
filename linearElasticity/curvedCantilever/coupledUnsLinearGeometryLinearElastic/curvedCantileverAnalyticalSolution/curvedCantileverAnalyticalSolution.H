@@ -19,10 +19,10 @@ Class
     curvedCantileverAnalyticalSolution
 
 Description
-    FunctionObject that generates the analytical solution for a curved 
+    FunctionObject that generates the analytical solution for a curved
     cantilever beam with end loading
-    
-    The solution is taken from 
+
+    The solution is taken from
         Sadd MH. Elasticity: Theory, Applications, and Numerics. Elsevier 2009.
 
     The analytical solution requires the following inputs:
@@ -76,7 +76,7 @@ class curvedCantileverAnalyticalSolution
 
         //- Outer beam radius
         const scalar rOuter_;
-        
+
         //- Beam end traction
         const scalar force_;
 
@@ -88,7 +88,7 @@ class curvedCantileverAnalyticalSolution
 
 
     // Private Member Functions
-    
+
         //- Calculate stress tensor for given point
         symmTensor curvedCantileverStress(const vector& C);
 

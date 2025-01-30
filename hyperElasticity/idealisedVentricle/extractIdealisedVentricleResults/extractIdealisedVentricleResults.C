@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
         ),
         pMesh
     );
-    
+
     // Calculate the deformed mesh points
     const pointField deformedPoints(mesh.points() + pointD);
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
     {
         midLine[pI] = vector(rs*Foam::sin(u[pI]), 0, rl*Foam::cos(u[pI]));
     }
-    // Info<< nl << "midLine (undeformed) = " << midLine << endl; 
+    // Info<< nl << "midLine (undeformed) = " << midLine << endl;
 
     // Find the cells containing the midLine points
     meshSearch searchEngine(mesh);

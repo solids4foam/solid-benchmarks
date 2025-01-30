@@ -49,54 +49,54 @@ Foam::BoussinesqProblemAnalyticalSolution::BoussinesqProblemStress
 {
     //Johnson, K., Contact Mechanics; page 51
     symmTensor sigma = symmTensor::zero;
-    
+
     const scalar& nu = nu_;
     const scalar& normalForce = force_.z();
-       
-    const scalar c = -normalForce/(mathematicalConstant::pi*2);    
-    
+
+    const scalar c = -normalForce/(mathematicalConstant::pi*2);
+
     const scalar& X = C.x();
     const scalar& Y = C.y();
     const scalar& Z = -C.z();
-    const scalar R = 
+    const scalar R =
         Foam::sqrt(Foam::sqr(X) + Foam::sqr(Y) + Foam::sqr(Z));
-    const scalar RHO = 
+    const scalar RHO =
         Foam::sqrt(Foam::sqr(X) + Foam::sqr(Y));
 
-    sigma.xx() = 
+    sigma.xx() =
         c
-      * (   
+      * (
             ((1-2*nu)/Foam::sqr(RHO))
           * (
-               (1-Z/R)*(Foam::sqr(X)-Foam::sqr(Y))/Foam::sqr(RHO) 
+               (1-Z/R)*(Foam::sqr(X)-Foam::sqr(Y))/Foam::sqr(RHO)
              + (Z*Foam::sqr(Y))/Foam::pow(R,3)
             )
-          - (3*Z*Foam::sqr(X))/Foam::pow(R,5) 
-        ); 
-    
-    sigma.yy() = 
+          - (3*Z*Foam::sqr(X))/Foam::pow(R,5)
+        );
+
+    sigma.yy() =
         c
-      * (   
+      * (
             ((1-2*nu)/Foam::sqr(RHO))
           * (
-               (1-Z/R)*(Foam::sqr(Y)-Foam::sqr(X))/Foam::sqr(RHO) 
+               (1-Z/R)*(Foam::sqr(Y)-Foam::sqr(X))/Foam::sqr(RHO)
              + (Z*Foam::sqr(X))/Foam::pow(R,3)
             )
-          - (3*Z*Foam::sqr(Y))/Foam::pow(R,5) 
-        ); 
-    
+          - (3*Z*Foam::sqr(Y))/Foam::pow(R,5)
+        );
+
     sigma.zz() = -3 * c * Foam::pow(Z,3) / Foam::pow(R,5);
-    
-    sigma.xy() = 
+
+    sigma.xy() =
         c
-      * (   
+      * (
             ((1-2*nu)/Foam::sqr(RHO))
           * (
                (1-Z/R)*(X*Y)/Foam::sqr(RHO) - (X*Y*Z)/Foam::pow(R,3)
             )
-          - (3*X*Y*Z)/Foam::pow(R,5) 
-        ); 
-    
+          - (3*X*Y*Z)/Foam::pow(R,5)
+        );
+
     sigma.yz() = 3 * c * Y * Foam::sqr(Z) / Foam::pow(R,5);
 
     sigma.xz() = 3 * c * X * Foam::sqr(Z) / Foam::pow(R,5);
@@ -104,7 +104,7 @@ Foam::BoussinesqProblemAnalyticalSolution::BoussinesqProblemStress
     return sigma;
 }
 
-Foam::vector 
+Foam::vector
 Foam::BoussinesqProblemAnalyticalSolution::BoussinesqProblemDisplacement
 (
     const vector& C
@@ -112,23 +112,23 @@ Foam::BoussinesqProblemAnalyticalSolution::BoussinesqProblemDisplacement
 {
     //Johnson, K., Contact Mechanics; page 51
     vector disp = vector::zero;
-    
+
     const scalar& E = E_;
     const scalar& nu = nu_;
     const scalar& normalForce = force_.z();
 
     const scalar G = E/(2.0*(1.0+nu));
-    const scalar c = -normalForce/(mathematicalConstant::pi*4*G);    
-    
+    const scalar c = -normalForce/(mathematicalConstant::pi*4*G);
+
     const scalar& X = C.x();
     const scalar& Y = C.y();
     const scalar& Z = -C.z();
     const scalar R = Foam::sqrt(Foam::sqr(X) + Foam::sqr(Y) + Foam::sqr(Z));
-    
+
     disp.x() = c * (X*Z/Foam::pow(R,3) - (1-2*nu)*(X/(R*(R+Z))));
     disp.y() = c * (Y*Z/Foam::pow(R,3) - (1-2*nu)*(Y/(R*(R+Z))));
     disp.z() = -c * (Foam::sqr(Z)/Foam::pow(R,3) + ((2*(1-nu))/R));
-    
+
     return disp;
 }
 

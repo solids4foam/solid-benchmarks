@@ -91,13 +91,13 @@ int main(int argc, char *argv[])
 
     // Calculate the Cartesian coordinates of the points
     vectorField sampleLine(theta.size(), vector::zero);
-    const scalar r = 2.1; 
+    const scalar r = 2.1;
     forAll(sampleLine, pI)
     {
         sampleLine[pI] =
             vector(r*Foam::cos(theta[pI]), r*Foam::sin(theta[pI]), 0.3);
     }
-    Info<< nl << "sampleLine = " << sampleLine << endl; 
+    Info<< nl << "sampleLine = " << sampleLine << endl;
 
     // Find the cells containing the sampleLine points
     meshSearch searchEngine(mesh);

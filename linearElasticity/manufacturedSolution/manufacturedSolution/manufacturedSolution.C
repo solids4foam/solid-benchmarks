@@ -162,7 +162,7 @@ Foam::manufacturedSolution::manufacturedSolution
     E_(readScalar(dict.lookup("E"))),
     nu_(readScalar(dict.lookup("nu"))),
     mu_(E_/(2.0*(1.0 + nu_))),
-    lambda_((E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_)))    
+    lambda_((E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_)))
 {
     if (E_ < SMALL || nu_ < SMALL)
     {

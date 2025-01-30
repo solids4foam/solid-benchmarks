@@ -1,10 +1,4 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | foam-extend: Open Source CFD
-   \\    /   O peration     | Version:     3.2
-    \\  /    A nd           | Web:         http://www.foam-extend.org
-     \\/     M anipulation  | For copyright notice see file Copyright
--------------------------------------------------------------------------------
 License
     This file is part of solids4foam.
 
@@ -68,7 +62,7 @@ concentratedForceFvPatchVectorField
 {
     fvPatchVectorField::operator=(patchInternalField());
     gradient() = vector::zero;
-    
+
     // Check if force is time-varying
     if (dict.found("forceSeries") && dict.found("force"))
     {
@@ -89,12 +83,12 @@ concentratedForceFvPatchVectorField
     else
     {
         force_ = dict.lookup("force");
-    }   
-    
+    }
+
     // Search for the closest face to forceLocation
-    // During simulation, force is always acting on the same face! 
+    // During simulation, force is always acting on the same face!
     scalar minDist = GREAT;
-    
+
     forAll(patch().Cf(), faceI)
     {
         scalar distance = mag(patch().Cf()[faceI] - forceLocation_);
@@ -190,7 +184,7 @@ void concentratedForceFvPatchVectorField::updateCoeffs()
 
     // Get current force
     vector curForce = force_;
-    
+
     if (forceSeries_.size())
     {
         curForce = forceSeries_(db().time().timeOutputValue());
@@ -207,7 +201,7 @@ void concentratedForceFvPatchVectorField::updateCoeffs()
 void concentratedForceFvPatchVectorField::write(Ostream& os) const
 {
     solidTractionFvPatchVectorField::write(os);
-    
+
     if (forceSeries_.size())
     {
         os.writeKeyword("forceSeries") << nl;
@@ -220,17 +214,17 @@ void concentratedForceFvPatchVectorField::write(Ostream& os) const
 #ifdef OPENFOAMFOUNDATION
         writeEntry(os, "force", force_);
 #else
-        os.writeKeyword("force") 
-            << force_ 
+        os.writeKeyword("force")
+            << force_
             << token::END_STATEMENT << nl;;
 #endif
     }
-    
+
 #ifdef OPENFOAMFOUNDATION
         writeEntry(os, "forceLocation", forceLocation_);
 #else
         os.writeKeyword("forceLocation")
-            << forceLocation_ 
+            << forceLocation_
             << token::END_STATEMENT << nl;;
 #endif
 }

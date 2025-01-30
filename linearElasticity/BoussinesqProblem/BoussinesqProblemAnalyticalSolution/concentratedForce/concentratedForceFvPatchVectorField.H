@@ -1,10 +1,4 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | foam-extend: Open Source CFD
-   \\    /   O peration     | Version:     3.2
-    \\  /    A nd           | Web:         http://www.foam-extend.org
-     \\/     M anipulation  | For copyright notice see file Copyright
--------------------------------------------------------------------------------
 License
     This file is part of solids4foam.
 
@@ -25,7 +19,7 @@ Class
     concentratedForceFvPatchVectorField
 
 Description
-    solidTraction boundary condition for concentrated force on the specific 
+    solidTraction boundary condition for concentrated force on the specific
     location on the traction-free patch. Force vector can be time-varying.
 
     Note:
@@ -69,13 +63,13 @@ class concentratedForceFvPatchVectorField
 
         //- Constant force location
         vector forceLocation_;
-       
+
         //- Force face ID
         label faceID_;
-        
+
         //- Time-varying force vector
         interpolationTable<vector> forceSeries_;
-        
+
 public:
 
     //- Runtime type information

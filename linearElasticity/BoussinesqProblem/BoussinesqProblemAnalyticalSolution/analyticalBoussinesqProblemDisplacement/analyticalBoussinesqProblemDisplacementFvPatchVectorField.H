@@ -22,14 +22,14 @@ Description
     Displacement field for the problem of concetrated force on elastic
     half-space (Boussinesq problem).
 
-    The solution is taken from 
+    The solution is taken from
         Johnson, K., Contact Mechanics, Cambridge University, 1985.
 
     The analytical solution requires the following inputs:
         - force : Applied concetrated force
         - E : Young's modulus
         - nu : Poisson's ratio
-        
+
 SourceFiles
     analyticalBoussinesqProblemDisplacementFvPatchVectorField.C
 
@@ -57,10 +57,10 @@ class analyticalBoussinesqProblemDisplacementFvPatchVectorField
     public fixedDisplacementFvPatchVectorField
 {
     // Private Data
-    
+
         // Young's modulus
         const scalar E_;
-        
+
         // Poisson's ratio
         const scalar nu_;
 

@@ -21,8 +21,8 @@ Class
 Description
     FunctionObject that generates the analytical solution for elastic
     half-space loaded with concetrated force
-    
-    The solution is taken from 
+
+    The solution is taken from
         Johnson, K., Contact Mechanics, Cambridge University, 1985.
 
     The analytical solution requires the following inputs:
@@ -66,7 +66,7 @@ class BoussinesqProblemAnalyticalSolution
 
         //- Reference to main object registry
         const Time& time_;
-       
+
         //- Beam end traction
         const vector force_;
 
@@ -78,10 +78,10 @@ class BoussinesqProblemAnalyticalSolution
 
 
     // Private Member Functions
-    
+
         //- Calculate stress tensor for given point
         symmTensor BoussinesqProblemStress(const vector& C);
-        
+
         //- Calculate displacement vector for given point
         vector BoussinesqProblemDisplacement(const vector& C);
 
