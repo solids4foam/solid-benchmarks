@@ -113,6 +113,13 @@ do
         # Record the time
         CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
 
+        # Set clocktime to "-" if the solver failed
+        # Otherwise clocktime would be the time after the latest successful time step
+        if grep -q "FOAM aborting" log.solids4Foam
+        then
+            CLOCK_TIME="-"
+        fi
+
         # Extract the reference point vertical displacement
         DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
 
@@ -146,7 +153,7 @@ then
     # Define input files
     FILE1="hex.lu.summary.txt"
     FILE2="hex.seg.summary.txt"
-    OUTPUT="tableJFNKvsSeg.tex"
+    OUTPUT="tableJFNKvsSeg_membraneiii.tex"
 
     # Define mesh sizes for the rows in the table
     MESH_SIZES=("9" "36" "144" "576" "\$2\,304\$" "\$9\,216\$" "\$36\,864\$" "\$147\,456\$")
@@ -160,6 +167,10 @@ then
             F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
             F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
 
+            # Replace "-" with "$\dag$"
+            [[ "$F1C2" == "-" ]] && F1C2="\$\dag\$"
+            [[ "$F2C2" == "-" ]] && F2C2="\$\dag\$"
+
             if [[ i -eq 1 ]]
             then
                 echo -e "\t\\\textbf{Membrane iii}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
@@ -172,9 +183,10 @@ then
             else
                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             fi
-            echo -e "\hline"
         done
     } > "$OUTPUT"
+
+    echo -e "\hline" >> "$OUTPUT"
 
     echo; echo "Table generated in $OUTPUT"
 fi

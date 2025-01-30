@@ -31,6 +31,8 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     optionsFile petscOptions.lu;
     //optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
+
+    predictor yes;
 }
 
 // ************************************************************************* //

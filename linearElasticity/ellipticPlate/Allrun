@@ -169,10 +169,10 @@ then
 
             if [[ i -eq 1 ]]
             then
-                echo -e "\t\\\textbf{Membrane i}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\\textbf{Elliptic Plate}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 2 ]]
             then
-                echo -e "\t\\emph{2-D static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+                echo -e "\t\\emph{3-D static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
             elif [[ i -eq 3 ]]
             then
                 echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"

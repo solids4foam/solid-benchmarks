@@ -22,6 +22,9 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
 "nonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
+    sTol 0;
+    predictor yes;
+
     // Maximum number of momentum correctors
     nCorrectors             100000;
 }

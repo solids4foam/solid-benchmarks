@@ -146,7 +146,7 @@ then
     # Define input files
     FILE1="hex.lu.summary.txt"
     FILE2="hex.seg.summary.txt"
-    OUTPUT="tableJFNKvsSeg_membranei.tex"
+    OUTPUT="tableJFNKvsSeg_membraneii.tex"
 
     # Define mesh sizes for the rows in the table
     MESH_SIZES=("9" "36" "144" "576" "\$2\,304\$" "\$9\,216\$" "\$36\,864\$" "\$147\,456\$")

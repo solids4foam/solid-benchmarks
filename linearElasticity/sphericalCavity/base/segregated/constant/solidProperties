@@ -21,6 +21,8 @@ solidModel     linearGeometryTotalDisplacement;
 
 "linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
 {
+    sTol 0;
+
     // Solution algorithm
     solutionAlgorithm implicitSegregated;
     //solutionAlgorithm PETScSNES;

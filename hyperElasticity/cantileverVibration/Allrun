@@ -113,6 +113,13 @@ do
         # Record the time
         CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
 
+        # Set clocktime to "-" if the solver failed
+        # Otherwise clocktime would be the time after the latest successful time step
+        if grep -q "FOAM aborting" log.solids4Foam
+        then
+            CLOCK_TIME="-"
+        fi
+
         # Extract the reference point vertical displacement
         DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
 
@@ -159,6 +166,10 @@ then
             F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
             F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
             F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
+
+            # Replace "-" with "$\dag$"
+            [[ "$F1C2" == "-" ]] && F1C2="\$\dag\$"
+            [[ "$F2C2" == "-" ]] && F2C2="\$\dag\$"
 
             if [[ i -eq 1 ]]
             then

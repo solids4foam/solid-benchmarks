@@ -25,6 +25,10 @@ solidModel     linearGeometryTotalDisplacement;
     solutionAlgorithm implicitSegregated;
     //solutionAlgorithm PETScSNES;
     //solutionAlgorithm explicit;
+
+    // Solution tolerance
+    // Force convergence by the drop in the equation residual instead
+    sTol 0;
 }
 
 // ************************************************************************* //

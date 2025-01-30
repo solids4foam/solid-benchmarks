@@ -23,7 +23,7 @@ solvers
     {
         solver          PCG;
         preconditioner  FDIC;
-        tolerance       1e-09;
+        tolerance       1e-15;
         relTol          0.9;
     }
 }

@@ -22,6 +22,12 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
 "nonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
+    sTol 0;
+    predictor yes;
+
+    //dampingCoeff [0 0 -1 0 0 0 0] 1e4;
+    //dampingCoeffImplicit [0 0 -1 0 0 0 0] 1e4;
+
     // Solution algorithm
     //solutionAlgorithm implicitSegregated;
     solutionAlgorithm PETScSNES;
@@ -31,9 +37,6 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
     optionsFile petscOptions.lu;
     //optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
-
-    // Predictor D at the start of a new time step using U and A
-    predictor yes;
 }
 
 // ************************************************************************* //
