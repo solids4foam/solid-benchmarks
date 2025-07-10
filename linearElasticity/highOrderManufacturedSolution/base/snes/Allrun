@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Use structural type of mesh
+USE_STRUCTURAL_MESH=0
+
+# Use tet or hex volumes
+USE_TET=1
+
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Create the mesh
+if command -v gmsh &>/dev/null
+then
+    if [ "$USE_STRUCTURAL_MESH" -eq 1 ]
+    then
+        if [ "$USE_TET" -eq 1 ]
+	then
+	    cp gmsh/cube-tet-structured.geo gmsh/cube.geo
+	else
+	    cp gmsh/cube-hex-structured.geo gmsh/cube.geo
+	fi
+    else
+	cp gmsh/cube-tet-unstructured.geo gmsh/cube.geo
+    fi
+    solids4Foam::runApplication gmsh -3 -format msh2 gmsh/cube.geo
+    solids4Foam::runApplication gmshToFoam gmsh/cube.msh
+    rm -rf gmsh/cube.geo gmsh/cube.msh
+    solids4Foam::runApplication changeDictionary
+else
+    echo "gmsh mesher not found!"
+    exit 1
+fi
+
+# Run solver
+#solids4Foam::runApplication solids4Foam
+echo "Running solids4Foam"
+mpirun -np 1 solids4Foam &> log.solids4Foam

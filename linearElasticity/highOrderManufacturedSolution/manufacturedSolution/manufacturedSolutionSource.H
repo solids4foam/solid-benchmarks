@@ -35,7 +35,8 @@ Usage
         fields           (D);
 
         // Mandatory/Optional (inherited) entries
-        ...
+        E   2e11;
+	nu  0.3;
     }
     \endverbatim
 
@@ -43,6 +44,7 @@ SourceFiles
     manufacturedSolutionSource.C
 
 Author
+    Ivan Batistic, UCD.
     Philip Cardiff, UCD. All rights reserved.
 
 \*---------------------------------------------------------------------------*/
