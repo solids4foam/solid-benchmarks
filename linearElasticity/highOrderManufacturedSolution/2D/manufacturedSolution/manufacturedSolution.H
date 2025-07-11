@@ -27,12 +27,10 @@ Description
     D =
         vector
         (
-            ax*sin(4*pi*x)*sin(2*pi*y)*sin(pi*z),
-            ay*sin(4*pi*x)*sin(2*pi*y)*sin(pi*z),
-            az*sin(4*pi*x)*sin(2*pi*y)*sin(pi*z)
+            e^(x^2)*sin(y),
+            ln(3+y)*cos(x) + sin(y),
+            0
         )
-
-    where ax, ay, and az are user provided scalar parameters.
 
     Linear elasticity is assumed for calculating the stress and momentum
     equation source term, hence the Young's modulus (E) and Poisson's
@@ -41,6 +39,8 @@ Description
 Author
     Philip Cardiff, UCD.
     Federico Mazzanti, UCD.
+    Ivan Batistic, UCD.
+    Pablo Castrillo, UCD.
 
 SourceFiles
     manufacturedSolution.C
@@ -71,11 +71,6 @@ class manufacturedSolution
 
         //- Const reference to the mesh (need for the body forces field)
         const fvMesh& mesh_;
-
-        //- User parameters
-        const scalar ax_;
-        const scalar ay_;
-        const scalar az_;
 
         //- Young's modulus
         const scalar E_;
@@ -117,9 +112,6 @@ public:
         manufacturedSolution
         (
             const fvMesh& mesh,
-            const scalar ax,
-            const scalar ay,
-            const scalar az,
             const scalar E,
             const scalar nu
         );

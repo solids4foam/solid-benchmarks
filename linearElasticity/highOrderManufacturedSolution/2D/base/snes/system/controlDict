@@ -17,7 +17,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs            ("libhighOrderManufacturedSolution.so");
+libs            ("libhighOrderManufacturedSolution2D.so");
 
 application     solids4Foam;
 
@@ -55,7 +55,7 @@ functions
         E    1;
         nu   0.3;
         cellDisplacement yes;
-	cellStress no;
+	cellStress yes;
     }
 }
 

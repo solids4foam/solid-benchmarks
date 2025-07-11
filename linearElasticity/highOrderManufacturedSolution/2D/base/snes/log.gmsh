@@ -1,0 +1,37 @@
+Info    : Running 'gmsh -3 -format msh2 gmsh/cube.geo' [Gmsh 4.13.1, 1 node, max. 1 thread]
+Info    : Started on Fri Jul 11 11:44:32 2025
+Info    : Reading 'gmsh/cube.geo'...
+Info    : Reading 'gmsh/meshSpacing.geo'...
+Info    : Done reading 'gmsh/meshSpacing.geo'
+Info    : Done reading 'gmsh/cube.geo'
+Info    : Meshing 1D...
+Info    : [  0%] Meshing curve 1 (Line)
+Info    : [ 10%] Meshing curve 2 (Line)
+Info    : [ 20%] Meshing curve 3 (Line)
+Info    : [ 30%] Meshing curve 4 (Line)
+Info    : [ 40%] Meshing curve 8 (Extruded)
+Info    : [ 50%] Meshing curve 9 (Extruded)
+Info    : [ 60%] Meshing curve 10 (Extruded)
+Info    : [ 60%] Meshing curve 11 (Extruded)
+Info    : [ 70%] Meshing curve 13 (Extruded)
+Info    : [ 80%] Meshing curve 14 (Extruded)
+Info    : [ 90%] Meshing curve 18 (Extruded)
+Info    : [100%] Meshing curve 22 (Extruded)
+Info    : Done meshing 1D (Wall 0.00035525s, CPU 0.000129s)
+Info    : Meshing 2D...
+Info    : [  0%] Meshing surface 6 (Plane, Delaunay)
+Info    : [ 20%] Meshing surface 15 (Extruded)
+Info    : [ 40%] Meshing surface 19 (Extruded)
+Info    : [ 60%] Meshing surface 23 (Extruded)
+Info    : [ 70%] Meshing surface 27 (Extruded)
+Info    : [ 90%] Meshing surface 28 (Extruded)
+Info    : Done meshing 2D (Wall 0.134783s, CPU 0.131193s)
+Info    : Meshing 3D...
+Info    : Meshing volume 1 (Extruded)
+Info    : Done meshing 3D (Wall 0.113687s, CPU 0.11054s)
+Info    : Optimizing mesh...
+Info    : Done optimizing mesh (Wall 0.000169167s, CPU 0.000169s)
+Info    : 26928 nodes 80790 elements
+Info    : Writing 'gmsh/cube.msh'...
+Info    : Done writing 'gmsh/cube.msh'
+Info    : Stopped on Fri Jul 11 11:44:32 2025 (From start: Wall 0.308891s, CPU 0.33842s)

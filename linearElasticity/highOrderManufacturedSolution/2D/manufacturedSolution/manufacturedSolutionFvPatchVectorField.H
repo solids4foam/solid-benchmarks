@@ -19,7 +19,7 @@ Class
     Foam::manufacturedSolutionFvPatchVectorField
 
 Description
-    Appliies a displacement field from a manufactured solution as a fixed value
+    Applies a displacement field from a manufactured solution as a fixed value
     condition.
 
     The manufactured solution comes from the manufacturedSolution class.

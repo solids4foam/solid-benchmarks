@@ -1,0 +1,96 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : solids4Foam
+Date   : Jul 11 2025
+Time   : 11:44:33
+Host   : Ivans-MacBook-Pro.local
+PID    : 63389
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/linearElasticity/highOrderManufacturedSolution/2D/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+/*---------------------------------------------------------------------------*\
+|    For further information on the solids4Foam toolbox implementations,      |
+|    please see the following publications:                                   |
+|                                                                             |
+|    P. Cardiff, A Karac, P. De Jaeger, H. Jasak, J. Nagy, A. Ivankovic,      |
+|    Z. Tukovic: An open-source finite volume toolbox for solid mechanics and |
+|    fluid-solid interaction simulations. arXiv:1808.10736v2, 2018, available |
+|    at https://arxiv.org/abs/1808.10736.                                     |
+|                                                                             |
+|    Z. Tukovic, A. Karac, P. Cardiff, H. Jasak, A. Ivankovic: OpenFOAM       |
+|    finite volume solver for fluid-solid interaction.  Transactions of       |
+|    Famena, 42 (3), pp. 1-31, 2018, 10.21278/TOF.42301.                      |
+\*---------------------------------------------------------------------------*/
+
+Selecting physicsModel solidModel
+Selecting solidModel linearGeometryTotalDisplacement
+Selecting dynamicFvMesh staticFvMesh
+Creating fixedDisplacement boundary condition
+Creating finite volume options from "constant/fvOptions"
+
+Selecting finite volume options type manufacturedSolutionSource
+    Source: momentumSource
+    under-relaxation method: fixed
+Creating the mechanicalModel
+Selecting mechanical law linearElastic
+solvePressure = false
+Creating mms function object
+Time = 1
+
+Solving the momentum equation for D using PETSc SNES
+  0 SNES Function norm 8.305576309074e+00
+    Linear solve converged due to CONVERGED_RTOL iterations 28
+  1 SNES Function norm 2.618796123915e-04
+    Linear solve converged due to CONVERGED_RTOL iterations 40
+  2 SNES Function norm 2.353157764369e-09
+  Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 2
+Max epsilonEq = 3.49341
+Max sigmaEq (von Mises stress) = 4.03086
+ExecutionTime = 0.5 s  ClockTime = 1 s
+
+Writing analyticalStress
+
+Writing analyticalDisplacement
+
+Writing DDifference field
+    Displacement error norms: mean L1, mean L2, LInf: 
+    Magnitude: 0.22853 0.276615 0.538967
+    0 0.221278 0.270311 0.533537
+    1 0.0474584 0.0587152 0.11965
+    2 0 0 0
+Writing sigmaDifference field
+    Stress error norms: mean L1, mean L2, LInf: 
+    Magnitude: 2.91259 2.95716 6.18775
+    0 1.68906 1.80763 5.40811
+    1 0.454868 0.523472 1.74661
+    2 3.95282e-19 5.40454e-19 9.97352e-18
+    3 1.91429 1.9283 2.62904
+    4 2.71432e-19 3.89584e-19 7.17083e-18
+    5 1.081 1.10039 2.26716
+The momentum equation converged in all time-steps
+
+
+End
+
+--> FOAM Warning : 
+    From virtual Foam::foamPetscSnesHelper::~foamPetscSnesHelper()
+    in file solidModels/solidModel/foamPetscSnesHelper/foamPetscSnesHelper.C at line 569
+    Find a neat solution to finalise PETSc only once
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 445
+    Finalizing MPI, but was initialized elsewhere

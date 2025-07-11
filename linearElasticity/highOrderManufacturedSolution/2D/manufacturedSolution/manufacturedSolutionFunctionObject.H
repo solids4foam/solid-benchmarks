@@ -25,6 +25,7 @@ Description
 Author
     Philip Cardiff, UCD.
     Federico Mazzanti, UCD.
+    Ivan Batistic, UCD.
 
 SourceFiles
     manufacturedSolutionFunctionObject.C
@@ -71,13 +72,13 @@ class manufacturedSolutionFunctionObject
         const Switch cellDisplacement_;
 
         //- Calculate point displacement fields
-        const Switch pointDisplacement_;
+        //const Switch pointDisplacement_;
 
         //- Calculate cell stress fields
         const Switch cellStress_;
 
         //- Calculate point stress fields
-        const Switch pointStress_;
+        //const Switch pointStress_;
 
 
     // Private Member Functions

@@ -1,0 +1,75 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : gmshToFoam gmsh/cube.msh
+Date   : Jul 11 2025
+Time   : 11:44:33
+Host   : Ivans-MacBook-Pro.local
+PID    : 63383
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/linearElasticity/highOrderManufacturedSolution/2D/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+--> FOAM Warning : 
+    From void *Foam::dlLibraryTable::openLibrary(const fileName &, bool)
+    in file db/dynamicLibrary/dlLibraryTable/dlLibraryTable.C at line 188
+    Could not load "libhighOrderManufacturedSolution2D.so"
+dlopen(libhighOrderManufacturedSolution2D.dylib, 0x0009): tried: '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/sys-openmpi/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/libhighOrderManufacturedSolution2D.dylib' (no such file), '/opt/homebrew/Cellar/open-mpi/5.0.7/lib/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/dummy/libhighOrderManufacturedSolution2D.dylib' (no such file), 'libhighOrderManufacturedSolution2D.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OSlibhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/sys-openmpi/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/dummy/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/sys-openmpi/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/libhighOrderManufacturedSolution2D.dylib' (no such file), '/Volumes/OpenFOAM/OpenFOAM-v2312/platforms/darwin64ClangDPInt32Opt/lib/dummy/libhighOrderManufacturedSolution2D.dylib' (no such file), '/usr/lib/libhighOrderManufacturedSolution2D.dylib' (no such file, not in dyld cache), 'libhighOrderManufacturedSolution2D.dylib' (no such file)
+Starting to read mesh format at line 2
+Read format version 2.2  ascii 0
+
+Starting to read physical names at line 5
+Physical names:3
+    Surface 2	frontAndBack
+    Surface 3	sides
+    Volume 1	internal
+
+Starting to read points at line 11
+Vertices to be read: 26928
+Vertices read:26928
+
+Starting to read cells at line 26942
+Cells to be read: 79978
+
+Mapping region 2 to Foam patch 0
+Mapping region 3 to Foam patch 1
+Mapping region 1 to Foam cellZone 0
+Cells:
+    total:26526
+    hex  :0
+    prism:26526
+    pyr  :0
+    tet  :0
+
+CellZones:
+Zone	Size
+    0	26526
+
+Patch 0 gets name frontAndBack
+Patch 1 gets name sides
+
+--> FOAM Warning : 
+    From Foam::polyMesh::polyMesh(const IOobject &, pointField &&, const cellShapeList &, const faceListList &, const wordList &, const wordList &, const word &, const word &, const wordList &, const bool)
+    in file meshes/polyMesh/polyMeshFromShapeMesh.C at line 640
+    Found 53452 undefined faces in mesh; adding to default patch defaultFaces
+Finding faces of patch 0
+Finding faces of patch 1
+
+FaceZones:
+Zone	Size
+
+Writing zone 0 to cellZone internal and cellSet
+End
+
