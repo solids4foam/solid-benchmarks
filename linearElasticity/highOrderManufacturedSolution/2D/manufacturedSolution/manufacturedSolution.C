@@ -74,8 +74,8 @@ void Foam::manufacturedSolution::calcBodyForces() const
 		-(lambda_ + mu_) *
 	        (
 		    2*Foam::exp(Foam::sqr(x))*Foam::sin(y)
-		  - Foam::sin(x)/(y+3)
-	          + 4*Foam::sqr(x)*Foam::exp(Foam::sqr(x))*Foam::sin(y)
+		  - Foam::sin(x)/(y+3.0)
+		    + 4*Foam::sqr(x)*Foam::exp(Foam::sqr(x))*Foam::sin(y)
 		)
 	        - mu_*Foam::exp(Foam::sqr(x))*Foam::sin(y)*(4*Foam::sqr(x) + 1.0);
 
@@ -84,17 +84,19 @@ void Foam::manufacturedSolution::calcBodyForces() const
                 mu_ *
 		(
 		    Foam::sin(y)
-		  + Foam::cos(x)/Foam::sqr(y+3)
-		  + Foam::log(y+3)*Foam::cos(x)
+		  + Foam::cos(x)/Foam::sqr(y+3.0)
+		  + Foam::log(y+3.0)*Foam::cos(x)
 		)
 		+ (lambda_ + mu_) *
 		(
 		    Foam::sin(y)
-		  + Foam::cos(x))/Foam::sqr(y+3)
-		  - 2*x*Foam::exp(Foam::sqr(x)*Foam::cos(y)
+		  + Foam::cos(x)/Foam::sqr(y+3.0)
+		  - 2*x*Foam::exp(Foam::sqr(x))*Foam::cos(y)
 		 );
 
             bodyForcesI[cellI][vector::Z] = 0.0;
+
+	    bodyForcesI[cellI] *= -1;
         }
     }
 
