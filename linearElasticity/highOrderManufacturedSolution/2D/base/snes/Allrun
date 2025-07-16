@@ -7,7 +7,7 @@
 source solids4FoamScripts.sh
 
 # Use structural type of mesh
-USE_STRUCTURAL_MESH=0
+USE_STRUCTURAL_MESH=1
 
 # Use tet or hex volumes
 USE_TET=1

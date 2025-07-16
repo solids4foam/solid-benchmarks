@@ -1,7 +1,7 @@
 // Gmsh .geo file to create a mesh of a cube LxLxd
 
 // Mesh spacing parameters
-Include "meshSpacing.geo";
+Include "meshSpacing/meshSpacing.geo";
 
 // Cube edge lenght
 L = 1;
