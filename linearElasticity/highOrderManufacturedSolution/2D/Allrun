@@ -1,36 +1,38 @@
 #!/bin/bash
 
-
-DODAJ DA MORA ZAKOMPAJLIRAT KOD!
-
-
-
 # Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+# Working only with .com version
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Compile the manucafturedSolution library
+(cd  manufacturedSolution && ./Allwmake -j -s)
+
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/snes NAME=hex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/snes NAME=tet.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/snes NAME=poly.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/snes NAME=distHex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/segregated NAME=hex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.seg USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=poly.seg USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=distHex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1"
+    "BASE=base/snes NAME=tet.unstruct_v2.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    "BASE=base/snes NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    "BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    "BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    "BASE=base/segregated NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
 )
+
 # SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=tet.seg.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=poly.seg.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=distHex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=hex.struct.hypre-snes-seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=tet.struct.hypre-snes-seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
+#    "BASE=base/snes NAME=tet.unstruct.hypre-snes-seg GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=6
+END_MESH=32
 
 
 # Detect the CPU type: we append this to the case name
@@ -68,7 +70,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem CellsNumber D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
@@ -80,29 +82,18 @@ do
         cp -r "../${BASE}" "${CASE}"
         cd "$CASE"
 
-        # Mesh generation logic
-        if [ "$USE_GMSH" -eq 1 ]
-        then
-            # GMSH-specific operations
-            cp "gmsh/meshSpacing$i.geo" "gmsh/meshSpacing.geo"
-            solids4Foam::runApplication gmsh -3 -format msh2 gmsh/cube.geo
-            solids4Foam::runApplication gmshToFoam gmsh/cube.msh
-            solids4Foam::runApplication createPatch -overwrite
-            if [ "$USE_DUALMESH" -eq 1 ]; then
-                solids4Foam::runApplication polyDualMesh 30 -overwrite
-                solids4Foam::runApplication combinePatchFaces 45 -overwrite
-            fi
-        else
-            # blockMesh-specific operations
-            cp "system/blockMeshDict.$i" "system/blockMeshDict"
-            solids4Foam::runApplication blockMesh
-        fi
+        # GMSH Mesh generation
+        cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+        solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+        solids4Foam::runApplication changeDictionary
 
         # Optional mesh distortion
         if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
         then
             solids4Foam::runApplication perturbMeshPoints
         fi
+        solids4Foam::runApplication checkMesh
 
         # Update the PETSc options file
         if [ -n "${PETSC_FILE}" ]; then
@@ -138,20 +129,23 @@ do
         # Record the time
         CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
 
+	# Number of cells
+	CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+
         # Extract the L2 (average) error for displacement
-        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
         # Extract the LInfinity (max) error for displacement
-        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
 
         # Extract the L2 (average) error for mag(sigma)
-        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
         # Extract the LInfinity (max) error for mag(sigma)
-        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
 
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $CELLS $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
 
         cd ..
     done
@@ -160,11 +154,11 @@ do
     echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
 
     # Calculate the order of accuracy from the summary file
-    ORDER="${NAME}.orderOfAccuracy.txt"
-    echo; echo "Creating ${ORDER} file"
-    echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress" > "${ORDER}"
-    awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7}' "${SUMMARY}" >> "${ORDER}"
-    cat "${ORDER}"
+    #ORDER="${NAME}.orderOfAccuracy.txt"
+    #echo; echo "Creating ${ORDER} file"
+    #echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress" > "${ORDER}"
+    #awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7}' "${SUMMARY}" >> "${ORDER}"
+    #cat "${ORDER}"
 done
 
 # Create plots if gnuplot in installed
@@ -183,51 +177,51 @@ then
 fi
 
 # Extract comparison of JFNK and segregated for the hex meshes
-if [[ -f hex.hypre.summary.txt && -f hex.seg.summary.txt ]]
-then
-    # Define input files
-    FILE1="hex.hypre.summary.txt"
-    FILE2="hex.seg.summary.txt"
-    OUTPUT="tableJFNKvsSeg_mms.tex"
+# if [[ -f hex.hypre.summary.txt && -f hex.seg.summary.txt ]]
+# then
+#     # Define input files
+#     FILE1="hex.hypre.summary.txt"
+#     FILE2="hex.seg.summary.txt"
+#     OUTPUT="tableJFNKvsSeg_mms.tex"
 
-    # Define mesh sizes for the rows in the table
-    MESH_SIZES=("125" "\$1\,000\$" "\$8\,000\$" "\$64\,000\$" "\$512\,000\$" "\$4\,096\,000\$")
+#     # Define mesh sizes for the rows in the table
+#     MESH_SIZES=("125" "\$1\,000\$" "\$8\,000\$" "\$64\,000\$" "\$512\,000\$" "\$4\,096\,000\$")
 
-    # Extract columns and write to the output file
-    {
-        for i in $(seq 1 $((${#MESH_SIZES[@]})))
-        do
-            # Extract columns 2 and 3 from each file
-            F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
-            F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
-            F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
-            F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
+#     # Extract columns and write to the output file
+#     {
+#         for i in $(seq 1 $((${#MESH_SIZES[@]})))
+#         do
+#             # Extract columns 2 and 3 from each file
+#             F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
+#             F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
+#             F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
+#             F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
 
-            if [[ i -eq 1 ]]
-            then
-                echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-            elif [[ i -eq 2 ]]
-            then
-                echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-            elif [[ i -eq 3 ]]
-            then
-                echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-            elif [[ i -eq 4 ]]
-            then
-                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-            else
-                echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-            fi
-        done
-    } > "$OUTPUT"
+#             if [[ i -eq 1 ]]
+#             then
+#                 echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+#             elif [[ i -eq 2 ]]
+#             then
+#                 echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+#             elif [[ i -eq 3 ]]
+#             then
+#                 echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+#             elif [[ i -eq 4 ]]
+#             then
+#                 echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+#             else
+#                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+#             fi
+#         done
+#     } > "$OUTPUT"
 
-    echo -e "\hline" >> "$OUTPUT"
+#     echo -e "\hline" >> "$OUTPUT"
 
-    echo; echo "Table generated in $OUTPUT"
-fi
+#     echo; echo "Table generated in $OUTPUT"
+# fi
 
-# Exit the run directory
-cd ..
+# # Exit the run directory
+# cd ..
 
 echo; echo; echo "Done!"; echo
 echo "View the PDF files in ${RUN_DIR}"

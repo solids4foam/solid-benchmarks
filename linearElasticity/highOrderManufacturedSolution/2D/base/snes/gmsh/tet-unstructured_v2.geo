@@ -3,11 +3,11 @@
 // Mesh spacing parameters
 Include "meshSpacing/meshSpacing.geo";
 
-// Cube edge lenght
-L = 1;
+// Define parameters
+L  = 1;
 
 // Depth (out of plane)
-d = 0.1;
+hz = 0.1;
 
 // Points
 Point(1) = {0, 0, 0, dx};
@@ -22,24 +22,17 @@ Line(3) = {3, 4};
 Line(4) = {4, 1};
 
 // Surface
-Line Loop(6) = {4, 1, 2, 3};
-Plane Surface(6) = {6};
-
-// Force mapped meshing (triangles)
-//Transfinite Surface {6};
-Mesh.Algorithm = 5;
-
-// Optional: combine triangles into quadrilaterals
-//Recombine Surface {6};
+Line Loop(10) = {1, 2, 3, 4};
+Plane Surface(11) = {10};
 
 // Create volume by extrusion
-Physical Volume("internal") = {1};
-Extrude {0, 0, d} {
- Surface{6};
+out[] = Extrude {0, 0, hz} {
+ Surface{11};
  Layers{1};
  Recombine;
-}
+};
 
 // Boundary patches
-Physical Surface("frontAndBack") = {28, 6};
-Physical Surface("sides") = {27, 19, 15, 23};
+Physical Surface("frontAndBack") = {out[0], 11};
+Physical Surface("sides") = {out[2],out[3],out[4],out[5]};
+Physical Volume("internal") = {out[1]};

@@ -10,7 +10,7 @@ source solids4FoamScripts.sh
 USE_STRUCTURAL_MESH=1
 
 # Use tet or hex volumes
-USE_TET=1
+USE_TET=0
 
 solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
@@ -22,16 +22,16 @@ then
     then
         if [ "$USE_TET" -eq 1 ]
 	then
-	    cp gmsh/cube-tet-structured.geo gmsh/cube.geo
+	    cp gmsh/tet-structured.geo gmsh/mesh.geo
 	else
-	    cp gmsh/cube-hex-structured.geo gmsh/cube.geo
+	    cp gmsh/hex-structured.geo gmsh/mesh.geo
 	fi
     else
-	cp gmsh/cube-tet-unstructured.geo gmsh/cube.geo
+	cp gmsh/tet-unstructured.geo gmsh/mesh.geo
     fi
-    solids4Foam::runApplication gmsh -3 -format msh2 gmsh/cube.geo
-    solids4Foam::runApplication gmshToFoam gmsh/cube.msh
-    rm -rf gmsh/cube.geo gmsh/cube.msh
+    solids4Foam::runApplication gmsh -3 -format msh2 gmsh/mesh.geo
+    solids4Foam::runApplication gmshToFoam gmsh/mesh.msh
+    rm -rf gmsh/mesh.geo gmsh/mesh.msh
     solids4Foam::runApplication changeDictionary
 else
     echo "gmsh mesher not found!"
