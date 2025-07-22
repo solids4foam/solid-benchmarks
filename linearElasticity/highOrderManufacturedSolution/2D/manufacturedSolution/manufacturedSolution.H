@@ -55,6 +55,8 @@ SourceFiles
 #include "vector.H"
 #include "fvMesh.H"
 #include "volFields.H"
+#include "triQuadrature.H"
+#include "surfaceFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -82,6 +84,12 @@ class manufacturedSolution
         const scalar mu_;
         const scalar lambda_;
 
+        //- High order volume integration for body force calculation
+        const Switch highOrderIntegration_;
+
+        //- Solid properties dictionary
+        mutable IOdictionary solidProperties_;
+
         //- Body forces
         mutable autoPtr<volVectorField> bodyForcesPtr_;
 
@@ -89,6 +97,20 @@ class manufacturedSolution
 
         //- Calculate the body forces field
         void calcBodyForces() const;
+
+        //- Return reference to solid properties dictionary
+        const dictionary& solidProperties() const
+        {
+            return solidProperties_;
+        }
+
+        //- Return reference to solidModelCoeffs dictionary
+        const dictionary& solidModelDict() const
+        {
+	    const word t = word(solidProperties().lookup("solidModel"));
+
+	    return solidProperties().subDict(t + "Coeffs");
+        }
 
         //- Disallow default bitwise copy construct
         manufacturedSolution
@@ -113,7 +135,8 @@ public:
         (
             const fvMesh& mesh,
             const scalar E,
-            const scalar nu
+            const scalar nu,
+	    const Switch highOrderIntegration = false
         );
 
         //- Construct from mesh and dictionary
@@ -129,6 +152,9 @@ public:
 
 
     // Member Functions
+
+        //- Calculate the body force at the given point
+        vector calculateBodyForce(const vector& point) const;
 
         //- Calculate the stress at the given point
         symmTensor calculateStress(const vector& point);

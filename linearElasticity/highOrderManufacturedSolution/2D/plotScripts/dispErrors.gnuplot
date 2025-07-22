@@ -35,8 +35,8 @@ plot \
     "tet.struct.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6*1e-3) w lp pt 8 lc "red" t "L_∞ - Tet-struct", \
     "tet.unstruct_v1.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($5*1e-3) w lp pt 9 lc "orange" t "L_2 - Tet-unstruct-v1", \
     "tet.unstruct_v1.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6*1e-3) w lp pt 8 lc "orange" t "L_∞ - Tet-unstruct-v1", \
-    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($5*1e-3) w lp pt 9 lc "yellow" t "L_2 - Tet-unstruct-v2", \
-    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6*1e-3) w lp pt 8 lc "yellow" t "L_∞ - Tet-unstruct-v2", \
+    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($5*1e-3) w lp pt 9 lc "blue" t "L_2 - Tet-unstruct-v2", \
+    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6*1e-3) w lp pt 8 lc "blue" t "L_∞ - Tet-unstruct-v2", \
     (3e-9 * x**2) w l lw 2 lc "black" notitle
 
 
