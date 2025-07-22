@@ -164,14 +164,13 @@ Foam::symmTensor Foam::manufacturedSolution::calculateStress
     // Lambda parameter
     const scalar lambda = (E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_));
 
-    sigma.xx() =
-        lambda*Foam::sin(2*point.y())*Foam::sin(point.z())*0.0;
+    sigma.xx() = lambda*(Foam::cos(point.y()) + Foam::cos(point.x())/(point.y() + 3.0) + 2.0*point.x()*Foam::exp(Foam::sqr(point.x()))*Foam::sin(point.y())) + 4.0*mu*point.x()*Foam::exp(Foam::sqr(point.x()))*Foam::sin(point.y());
 
-    sigma.yy() = mu* 0.0;
+    sigma.yy() = lambda*(Foam::cos(point.y()) + Foam::cos(point.x())/(point.y() + 3.0) + 2.0*point.x()*Foam::exp(Foam::sqr(point.x()))*Foam::sin(point.y())) + 2.0*mu*(Foam::cos(point.y()) + Foam::cos(point.x())/(point.y() + 3.0));
 
-    sigma.zz() = lambda*0.0;
+    sigma.zz() = lambda*(Foam::cos(point.y()) + Foam::cos(point.x())/(point.y() + 3.0) + 2.0*point.x()*Foam::exp(Foam::sqr(point.x()))*Foam::sin(point.y()));
 
-    sigma.xy() = 0.0;
+    sigma.xy() = 2.0*mu*((Foam::exp(Foam::sqr(point.x()))*Foam::cos(point.y()))/2.0 - (Foam::log(point.y() + 3.0)*Foam::sin(point.x()))/2.0);
 
     // sigma.yx() = sigma.xy();
 
@@ -194,10 +193,10 @@ Foam::symmTensor Foam::manufacturedSolution::calculateStrain
 {
     symmTensor epsilon = symmTensor::zero;
 
-    epsilon.xx() = 0.0;
-    epsilon.yy() = 0.0;
+    epsilon.xx() = 2.0*point.x()*Foam::exp(Foam::sqr(point.x()))*Foam::sin(point.y());
+    epsilon.yy() = Foam::cos(point.y()) + Foam::cos(point.x())/(point.y()+3.0);
     epsilon.zz() = 0.0;
-    epsilon.xy() = 0.0;
+    epsilon.xy() = Foam::exp(Foam::sqr(point.x()))*Foam::cos(point.y())/2.0 - Foam::log(point.y()+3.0)*Foam::sin(point.x())/2.0;
     // epsilon.yx() = epsilon.xy();
     epsilon.yz() = 0.0;
     // epsilon.zy() = epsilon.yz();
