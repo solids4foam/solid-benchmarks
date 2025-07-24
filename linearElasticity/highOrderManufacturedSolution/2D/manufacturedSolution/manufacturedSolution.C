@@ -72,8 +72,9 @@ void Foam::manufacturedSolution::calcBodyForces() const
 	}
 
 	// Get interpolation order
-	const label N =
-	    readInt(solidModelDict().subDict("highOrderCoeffs").lookup("N"));
+	const dictionary& hoDict = solidModelDict().subDict("highOrderCoeffs");
+
+	const label N = readInt(hoDict.subDict("LRECoeffs").lookup("N"));
 
 	const fvMesh& mesh = mesh_;
 	const pointField& pts = mesh.points();
@@ -90,13 +91,24 @@ void Foam::manufacturedSolution::calcBodyForces() const
 	    forAll(c, i)
 	    {
 		label faceIndex = c[i];
-		const vector& normal = Sn[faceIndex];
 
-		if ((normal & vector(0, 0, 1)) > 0.999)
+		if (faceIndex > mesh.nInternalFaces())
 		{
-		    faceI = faceIndex;
-		    break;
+		    const label patchID =
+			mesh.boundaryMesh().whichPatch(faceIndex);
+
+		    if (mesh.boundaryMesh()[patchID].type() == "empty")
+		    {
+			faceI = faceIndex;
+			break;
+		    }
 		}
+	    }
+	    if (faceI == -1)
+	    {
+		FatalErrorInFunction
+		    << "Inavalid face index, something went wrong!"
+		    << exit(FatalError);
 	    }
 
 	    const scalar& faceArea = mag(mesh.faceAreas()[faceI]);
@@ -106,16 +118,22 @@ void Foam::manufacturedSolution::calcBodyForces() const
 	    // Have face triangulate itself (results in faceList)
 	    faceList triFaces(nTri);
 	    label nTmp = 0;
-	    f.triangles(mesh.points(), nTmp, triFaces);
+
+	    f.triangles(pts, nTmp, triFaces);
 
 	    // Loop over face triangles
 	    forAll(triFaces, triFaceI)
 	    {
 	        const face& triF = triFaces[triFaceI];
 
+		// Triangle points, forcing z=0 becouse we can have face on
+		// poitive or negative empty direction
+		const point a = point(pts[triF[0]].x(), pts[triF[0]].y(), 0.0);
+		const point b = point(pts[triF[1]].x(), pts[triF[1]].y(), 0.0);
+		const point c = point(pts[triF[2]].x(), pts[triF[2]].y(), 0.0);
+
 		// Construct triPoints (triangle)
-		const triPoints triangle =
-		    triPoints(pts[triF[0]], pts[triF[1]], pts[triF[2]]);
+		const triPoints triangle = triPoints(a, b, c);
 
 		const scalar triArea = triangle.mag();
 
@@ -130,11 +148,11 @@ void Foam::manufacturedSolution::calcBodyForces() const
 		// cell body force vector
 		forAll(triangleQP, i)
 		{
-		     const vector& location = triangleQP[i];
+		     const vector& quadPoint = triangleQP[i];
 		     const scalar& weight = triangleQPweights[i];
-		     const vector bodyForce = calculateBodyForce(location);
+		     const vector bodyForce = calculateBodyForce(quadPoint);
 
-		     bodyForcesI[cellI] += scaleW * weight * bodyForce;
+		     bodyForcesI[cellI] -= scaleW * weight * bodyForce;
 		}
 	    }
 	}

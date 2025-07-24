@@ -17,10 +17,19 @@ configs=(
     "BASE=base/snes NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/segregated NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=3"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=4"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=4"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=5"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=4"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=5"
 )
 
 # SNES segregated approach
@@ -51,7 +60,7 @@ fi
 
 
 # Create timestamped working directory for this run
-DATE=$(date +%Y%m%d_%H%M%S)
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
 RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
@@ -99,6 +108,16 @@ do
         if [ -n "${PETSC_FILE}" ]; then
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
+
+	# Update the order in the LRECoeffs
+	if [ -n "${N}" ]; then
+            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+	fi
+
+	# Update number of layers in the LRECoeffs
+	if [ -n "${NLAYERS}" ]; then
+            sed -i "/^\s*nLayers /s|^.*|            nLayers ${NLAYERS};|" constant/solidProperties
+	fi
 
         # Run the solver
         # If "gtime" is available (could be called "time" on Linux), use it to
@@ -166,7 +185,6 @@ if command -v gnuplot &>/dev/null
 then
     # Copy gnuplot scripts
     cp ../plotScripts/*gnuplot .
-    cp ../plotScripts/orderOfAccuracySlopes*.dat .
 
     # Run all scripts
     for f in *gnuplot
