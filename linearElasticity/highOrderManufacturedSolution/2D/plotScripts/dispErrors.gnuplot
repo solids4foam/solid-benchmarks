@@ -6,7 +6,7 @@ set datafile separator " "
 
 set grid
 set xrange [5:1000]
-set yrange [1e-7:1e-3]
+set yrange [1e-10:1e-3]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
