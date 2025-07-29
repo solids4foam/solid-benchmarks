@@ -76,6 +76,9 @@ void Foam::manufacturedSolution::calcBodyForces() const
 
 	const label N = readInt(hoDict.subDict("LRECoeffs").lookup("N"));
 
+	Info<<"Body force is integrated exactly for polynomials of order: "
+	    << N << endl;
+
 	const fvMesh& mesh = mesh_;
 	const pointField& pts = mesh.points();
 	const faceList& faces = mesh.faces();
@@ -152,7 +155,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
 		     const scalar& weight = triangleQPweights[i];
 		     const vector bodyForce = calculateBodyForce(quadPoint);
 
-		     bodyForcesI[cellI] -= scaleW * weight * bodyForce;
+		     bodyForcesI[cellI] += scaleW * weight * bodyForce;
 		}
 	    }
 	}
@@ -379,9 +382,7 @@ Foam::vector Foam::manufacturedSolution::calculateBodyForce
 
     bodyForce[vector::Z] = 0.0;
 
-    bodyForce *= -1;
-
-    return bodyForce;
+    return -bodyForce;
 }
 
 

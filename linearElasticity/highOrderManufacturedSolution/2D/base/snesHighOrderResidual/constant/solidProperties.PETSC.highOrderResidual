@@ -17,33 +17,43 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+solidModel       linearGeometryTotalDisplacement;
 
-linearGeometryTotalDisplacementCoeffs
+"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
 {
-    // Solution algorithm
-    solutionAlgorithm implicitCoupled;
+    solutionAlgorithm PETScSNES;
+
+    optionsFile petscOptions;
 
     highOrderCoeffs
     {
+	highOrderJacobian false;
+	highOrderResidual true;
+
         LRECoeffs
         {
-            N 1;
-	    Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
+            N               1;
+            nLayers         2;
+            weightFunction  radiallySymmetricExponential;
+            k               6;
+            maxStencilSize  80;
             useQRDecomposition true;
             useGlobalStencils true;
             calcConditionNumber true;
         }
     }
 
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
+    // Maximum number of momentum correctors
+    nCorrectors     10;
+
+    // Solution tolerance for displacement
+    solutionTolerance 1e-07;
+
+    // Alternative solution tolerance for displacement
+    alternativeTolerance 1e-07;
+
+    // Write frequency for the residuals
+    infoFrequency   1;
 }
 
 // ************************************************************************* //

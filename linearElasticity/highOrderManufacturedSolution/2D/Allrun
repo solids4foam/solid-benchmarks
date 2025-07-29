@@ -21,15 +21,24 @@ configs=(
     "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=3"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=4"
-    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
-    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=4"
-    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=5"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=1 NLAYERS=3"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=2 NLAYERS=4"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=3 NLAYERS=5"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=1 Nn=10"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=2 Nn=10"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=3 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
 )
 
 # SNES segregated approach
@@ -114,9 +123,9 @@ do
             sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
 	fi
 
-	# Update number of layers in the LRECoeffs
-	if [ -n "${NLAYERS}" ]; then
-            sed -i "/^\s*nLayers /s|^.*|            nLayers ${NLAYERS};|" constant/solidProperties
+	# Update number of stencil cells in the LRECoeffs
+	if [ -n "${Nn}" ]; then
+            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
 	fi
 
         # Run the solver
