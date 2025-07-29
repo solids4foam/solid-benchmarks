@@ -45,5 +45,5 @@ Extrude {0, 0, d} {
 Physical Surface("frontAndBack") = {28, 6};
 Physical Surface("sides") = {27, 19, 15, 23};
 
-// Make a not-smooth unstructured mesh
+// Make a non-smooth unstructured mesh
 Mesh.Algorithm = 5;
