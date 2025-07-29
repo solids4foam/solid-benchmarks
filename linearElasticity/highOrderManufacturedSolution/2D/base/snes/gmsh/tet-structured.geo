@@ -10,10 +10,10 @@ L = 1;
 d = 0.1;
 
 // Points
-Point(1) = {0, 0, 0, dx};
-Point(2) = {L, 0, 0, dx};
-Point(3) = {L, L, 0, dx};
-Point(4) = {0, L, 0, dx};
+Point(1) = {0, 0, 0, 1};
+Point(2) = {L, 0, 0, 1};
+Point(3) = {L, L, 0, 1};
+Point(4) = {0, L, 0, 1};
 
 // Lines
 Line(1) = {1, 2};
@@ -25,12 +25,13 @@ Line(4) = {4, 1};
 Line Loop(6) = {4, 1, 2, 3};
 Plane Surface(6) = {6};
 
-// Force mapped meshing (triangles)
+// Force structured meshing
+Transfinite Line{1, 3} = L/dx + 1;
+Transfinite Line{2, 4} = L/dx + 1;
 Transfinite Surface {6};
-Mesh.Algorithm = 5;
 
-// Optional: combine triangles into quadrilaterals
-//Recombine Surface {6};
+// Combine triangles into quadrilaterals
+// Recombine Surface {6};
 
 // Create volume by extrusion
 Physical Volume("internal") = {1};

@@ -1,2 +1,2 @@
 // Mesh spacing
-dx = 0.2;
+dx = 1.0/5.0;

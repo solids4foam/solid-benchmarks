@@ -1,2 +1,2 @@
 // Mesh spacing for unstructured
-dx = 0.5;
+dx = 1.0/2.0;

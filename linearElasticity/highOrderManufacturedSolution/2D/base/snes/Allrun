@@ -6,11 +6,14 @@
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
 
-# Use structural type of mesh
-USE_STRUCTURAL_MESH=1
+# Use structural type (1) or unstructural type (0) of mesh
+USE_STRUCTURAL_MESH=0
 
-# Use tet or hex volumes
-USE_TET=0
+# Use tet (1) or hex (0) volumes
+USE_TET=1
+
+# Unstructured version (1=v1, 2=v2), v2 is more structured
+UNS_VER=2
 
 solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
@@ -27,7 +30,11 @@ then
 	    cp gmsh/hex-structured.geo gmsh/mesh.geo
 	fi
     else
-	cp gmsh/tet-unstructured.geo gmsh/mesh.geo
+    	if [ "$UNS_VER" -eq 1 ]; then
+	    cp gmsh/tet-unstructured_v1.geo gmsh/mesh.geo
+	else
+	    cp gmsh/tet-unstructured_v2.geo gmsh/mesh.geo
+	fi
     fi
     solids4Foam::runApplication gmsh -3 -format msh2 gmsh/mesh.geo
     solids4Foam::runApplication gmshToFoam gmsh/mesh.msh

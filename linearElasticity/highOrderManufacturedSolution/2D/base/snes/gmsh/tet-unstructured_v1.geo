@@ -25,12 +25,13 @@ Line(4) = {4, 1};
 Line Loop(6) = {4, 1, 2, 3};
 Plane Surface(6) = {6};
 
-// Force mapped meshing (triangles)
-//Transfinite Surface {6};
-Mesh.Algorithm = 5;
+// Force structured meshing
+// Transfinite Line{1, 3} = L/dx + 1;
+// Transfinite Line{2, 4} = L/dx + 1;
+// Transfinite Surface {6};
 
-// Optional: combine triangles into quadrilaterals
-//Recombine Surface {6};
+// Combine triangles into quadrilaterals
+// Recombine Surface {6};
 
 // Create volume by extrusion
 Physical Volume("internal") = {1};
@@ -43,3 +44,6 @@ Extrude {0, 0, d} {
 // Boundary patches
 Physical Surface("frontAndBack") = {28, 6};
 Physical Surface("sides") = {27, 19, 15, 23};
+
+// Make a not-smooth unstructured mesh
+Mesh.Algorithm = 5;
