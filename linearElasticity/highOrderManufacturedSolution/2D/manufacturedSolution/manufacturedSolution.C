@@ -74,7 +74,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
 	// Get interpolation order
 	const dictionary& hoDict = solidModelDict().subDict("highOrderCoeffs");
 
-	const label N = readInt(hoDict.subDict("LRECoeffs").lookup("N"));
+	const label N = 10;//readInt(hoDict.subDict("LRECoeffs").lookup("N"));
 
 	Info<<"Body force is integrated exactly for polynomials of order: "
 	    << N << endl;

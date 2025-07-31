@@ -141,7 +141,7 @@ do
         then
             echo "Running solids4Foam on ${CASE} with gtime"
             gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
-            
+
         elif [ -x /usr/bin/time ]
 	then
 	    echo "Running solids4Foam on ${CASE} with /usr/bin/time"
@@ -151,7 +151,7 @@ do
 	then
 	    echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
 	    time mpirun -np 1 solids4Foam &> log.solids4Foam
-	    
+
         else
             echo "Running solids4Foam on ${CASE}"
             # Strange PETSc issue on Macbook where I need to use mpirun for serial
@@ -214,6 +214,9 @@ then
         echo "Running gnuplot on $f"
         gnuplot "$f"
     done
+
+    mkdir dispErrorComparisonMatlab/
+    cp mms_dispErrorsComparison* dispErrorComparisonMatlab/
 fi
 
 # Extract comparison of JFNK and segregated for the hex meshes
