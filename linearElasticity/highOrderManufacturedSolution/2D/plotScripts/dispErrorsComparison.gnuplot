@@ -41,6 +41,20 @@ plot \
     "../plotScripts/Pablo_matlab/hex.struct.N2.txt" u ((1/$4)**0.5*1e3):($13) w lp ls 5 t "L_2 - N2 - matlab", \
     "../plotScripts/Pablo_matlab/hex.struct.N3.txt" u ((1/$4)**0.5*1e3):($13) w lp ls 6 t "L_2 - N3 - matlab"
 
+set output "mms_dispErrorsComparison-hex-Linf.pdf"
+set title "Hexahedral structured mesh L_∞"
+plot \
+    (3e-6 * x**2) w l lw 2 dt 2 lc "red" notitle,\
+    (0.15e-8 * x**3) w l lw 2 dt 2 lc "blue" notitle,\
+    (0.8e-12 * x**4) w l lw 2 dt 2 lc "violet" notitle,\
+    "hex.struct.ho.N1.summary.txt" u ((1/$4)**0.5*1e3):($6) w lp ls 1 t "L_∞ - N1", \
+    "hex.struct.ho.N2.summary.txt" u ((1/$4)**0.5*1e3):($6) w lp ls 2 t "L_∞ - N2", \
+    "hex.struct.ho.N3.summary.txt" u ((1/$4)**0.5*1e3):($6) w lp ls 3 t "L_∞ - N3", \
+    "../plotScripts/Pablo_matlab/hex.struct.N1.txt" u ((1/$4)**0.5*1e3):($14) w lp ls 4 t "L_∞ - N1 - matlab", \
+    "../plotScripts/Pablo_matlab/hex.struct.N2.txt" u ((1/$4)**0.5*1e3):($14) w lp ls 5 t "L_∞ - N2 - matlab", \
+    "../plotScripts/Pablo_matlab/hex.struct.N3.txt" u ((1/$4)**0.5*1e3):($14) w lp ls 6 t "L_∞ - N3 - matlab"
+
+
 set output "mms_dispErrorsComparison-tet-struct-L2.pdf"
 set title "Tetrahedral structured mesh L_2"
 plot \
@@ -63,9 +77,10 @@ plot \
      "tet.struct.ho.N1.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6) w lp ls 1 t "L_∞ - N1", \
      "tet.struct.ho.N2.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6) w lp ls 2 t "L_∞ - N2", \
      "tet.struct.ho.N3.summary.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($6) w lp ls 3 t "L_∞ - N3", \
-    "../plotScripts/Pablo_matlab/tet.struct.N1.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($13) w lp ls 4 t "L_2 - N1 - matlab", \
-    "../plotScripts/Pablo_matlab/tet.struct.N2.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($13) w lp ls 5 t "L_2 - N2 - matlab", \
-    "../plotScripts/Pablo_matlab/tet.struct.N3.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($13) w lp ls 6 t "L_2 - N3 - matlab"
+    "../plotScripts/Pablo_matlab/tet.struct.N1.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 4 t "L_∞ - N1 - matlab", \
+    "../plotScripts/Pablo_matlab/tet.struct.N2.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 5 t "L_∞ - N2 - matlab", \
+    "../plotScripts/Pablo_matlab/tet.struct.N3.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 6 t "L_∞ - N3 - matlab"
+
 
 set output "mms_dispErrorsComparison-tet-unstruct_v1-L2.pdf"
 set title"Tetrahedral unstructured-v1 mesh L_2"
@@ -92,6 +107,7 @@ plot \
     "../plotScripts/Pablo_matlab/tet.unstruct_v1.N1.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 4 t "L_∞ - N1 - matlab", \
     "../plotScripts/Pablo_matlab/tet.unstruct_v1.N2.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 5 t "L_∞ - N2 - matlab", \
     "../plotScripts/Pablo_matlab/tet.unstruct_v1.N3.txt" u ((4*(1/$4)/3**2)**0.5*1e3):($14) w lp ls 6 t "L_∞ - N3 - matlab"
+
 
 set output "mms_dispErrorsComparison-tet-unstruct_v2-L2.pdf"
 set title"Tetrahedral unstructured-v2 mesh L_2"
