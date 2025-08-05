@@ -94,7 +94,7 @@ do
         elif command -v time &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with time"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
         else
             echo "Running solids4Foam on ${CASE}"
             # Strange PETSc issue on Macbook where I need to use mpirun for serial
