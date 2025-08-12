@@ -123,7 +123,7 @@ plot \
     "../plotScripts/Pablo_matlab/tet.unstruct_v2.N3.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($13) w lp ls 6 t "L_2 - N3 - matlab"
 
 set output "mms_dispErrorsComparison-tet-unstruct_v2-Linf.pdf"
-set title"Tetrahedral unstructured-v2 mesh L__∞"
+set title"Tetrahedral unstructured-v2 mesh L_∞"
 plot \
     (3e-6 * x**2) w l lw 1 dt 2 lc "red" notitle,\
     (0.15e-8 * x**3) w l lw 1 dt 2 lc "blue" notitle,\

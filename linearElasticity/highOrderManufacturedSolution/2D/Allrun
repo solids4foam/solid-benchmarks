@@ -17,10 +17,10 @@ configs=(
     "BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=tet.unstruct_v2.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
     "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10"
     "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10"
     "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10"
@@ -33,18 +33,18 @@ configs=(
     "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=1 Nn=10"
     "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=2 Nn=10"
     "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=3 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
-    "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=hex.struct.snes-hoRes.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.struct.snes-hoRes.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v1.snes-hoRes.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=1 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=2 Nn=10"
+    # "BASE=base/snesHighOrderResidual NAME=tet.unstruct_v2.snes-hoRes.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre N=3 Nn=10"
 )
 
 # SNES segregated approach
@@ -154,7 +154,7 @@ do
 
         else
             echo "Running solids4Foam on ${CASE}"
-            # Strange PETSc issue on Macbook where I need to use mpirun for serial
+	    # Strange PETSc issue on Macbook where I need to use mpirun for serial
             #solids4Foam::runApplication solids4Foam
             mpirun -np 1 solids4Foam &> log.solids4Foam
         fi
@@ -216,55 +216,10 @@ then
     done
 
     mkdir dispErrorComparisonMatlab/
-    cp mms_dispErrorsComparison* dispErrorComparisonMatlab/
+    mkdir stressErrorComparisonMatlab/
+    mv mms_dispErrorsComparison* dispErrorComparisonMatlab/
+    mv mms_stressErrorsComparison* stressErrorComparisonMatlab/
 fi
-
-# Extract comparison of JFNK and segregated for the hex meshes
-# if [[ -f hex.hypre.summary.txt && -f hex.seg.summary.txt ]]
-# then
-#     # Define input files
-#     FILE1="hex.hypre.summary.txt"
-#     FILE2="hex.seg.summary.txt"
-#     OUTPUT="tableJFNKvsSeg_mms.tex"
-
-#     # Define mesh sizes for the rows in the table
-#     MESH_SIZES=("125" "\$1\,000\$" "\$8\,000\$" "\$64\,000\$" "\$512\,000\$" "\$4\,096\,000\$")
-
-#     # Extract columns and write to the output file
-#     {
-#         for i in $(seq 1 $((${#MESH_SIZES[@]})))
-#         do
-#             # Extract columns 2 and 3 from each file
-#             F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
-#             F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
-#             F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
-#             F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
-
-#             if [[ i -eq 1 ]]
-#             then
-#                 echo -e "\t\\\textbf{MMS}\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             elif [[ i -eq 2 ]]
-#             then
-#                 echo -e "\t\\emph{regular hex}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             elif [[ i -eq 3 ]]
-#             then
-#                 echo -e "\t\\emph{3-D, static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             elif [[ i -eq 4 ]]
-#             then
-#                 echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             else
-#                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             fi
-#         done
-#     } > "$OUTPUT"
-
-#     echo -e "\hline" >> "$OUTPUT"
-
-#     echo; echo "Table generated in $OUTPUT"
-# fi
-
-# # Exit the run directory
-# cd ..
 
 echo; echo; echo "Done!"; echo
 echo "View the PDF files in ${RUN_DIR}"

@@ -35,7 +35,7 @@ linearGeometryTotalDisplacementCoeffs
     	    maxStencilSize 80;
             useQRDecomposition true;
             useGlobalStencils true;
-            calcConditionNumber true;
+            calcConditionNumber false;
         }
     }
 
