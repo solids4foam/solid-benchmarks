@@ -12,43 +12,42 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    note        "mesh decomposition control dictionary";
+    location    "system";
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+numberOfSubdomains  2;
 
-linearGeometryTotalDisplacementCoeffs
+method          scotch;
+// method          hierarchical;
+//method          simple;
+//method          metis;
+// method          manual;
+
+simpleCoeffs
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
+    n           (2 1 1);
+    delta       0.001;
+}
 
-    optionsFile petscOptions.hypre;
+hierarchicalCoeffs
+{
+    n           (2 2 1);
+    delta       0.001;
+    order       xyz;
+}
 
-    highOrderCoeffs
-    {
-	highOrderJacobian false;
-	highOrderResidual true;
+metisCoeffs
+{}
 
-        LRECoeffs
-        {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
-        }
-    }
+scotchCoeffs
+{}
 
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
+manualCoeffs
+{
+    dataFile    "cellDecomposition";
 }
 
 // ************************************************************************* //

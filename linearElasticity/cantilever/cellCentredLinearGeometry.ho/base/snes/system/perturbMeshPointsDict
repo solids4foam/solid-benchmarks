@@ -12,43 +12,39 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      perturbMeshPointsDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+// Perturn by 30% of the local minimum edge length in the X and Y directions
+scaleFactor (0.3 0.3 0.3);
 
-linearGeometryTotalDisplacementCoeffs
-{
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
+// Gaussian or uniform random distribution
+Gaussian    no;
 
-    optionsFile petscOptions.hypre;
+// Seed for random number generator
+seed        1;
 
-    highOrderCoeffs
-    {
-	highOrderJacobian false;
-	highOrderResidual true;
+// Minimum cosine to find feature edges
+// Points on feature edges are not moved
+minCos      0.7;
 
-        LRECoeffs
-        {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
-        }
-    }
+// Names of patches which should not be perturbed
+fixedPatches
+(
+    // Add patch names here
+);
 
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
-}
+// Optional: maximum number of corrections iterations
+// Defaults to 1000
+//maxIter 1000;
+
+// Optional: local motion rescale factor for applying corrections
+// Defaults to 0.8
+beta 0.99;
+
+// Optional: local minimum allow cell volume relative to the initial volume
+// Defaults to 0.1
+//minCellVol 0.1;
 
 // ************************************************************************* //

@@ -12,42 +12,55 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+//libs            ("libhighOrderManufacturedSolution2D.so");
 
-linearGeometryTotalDisplacementCoeffs
+application     solids4Foam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         1;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   1;
+
+cycleWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
+
+functions
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
-
-    optionsFile petscOptions.hypre;
-
-    highOrderCoeffs
+    cantileverAnalytical
     {
-	highOrderJacobian false;
-	highOrderResidual true;
-
-        LRECoeffs
-        {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
-        }
-    }
-
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
+        type cantileverAnalyticalSolution;
+        P 0.1e6;
+        E 200e9;
+        nu 0.3;
+        L 2;
+        D 0.1;
+        cellDisplacement yes;
+        pointDisplacement no;
+        cellStress yes;
+        pointStress no;
     }
 }
 

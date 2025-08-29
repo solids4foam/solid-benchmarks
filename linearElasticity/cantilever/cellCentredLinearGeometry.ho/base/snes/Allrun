@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Use structural type (1) or unstructural type (0) of mesh
+USE_STRUCTURAL_MESH=1
+
+# Use tet (1) or hex (0) volumes
+USE_TET=0
+
+# Unstructured version (1=v1, 2=v2), v2 is more structured
+UNS_VER=1
+
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Create the mesh
+if command -v gmsh &>/dev/null
+then
+    if [ "$USE_STRUCTURAL_MESH" -eq 1 ]
+    then
+        if [ "$USE_TET" -eq 1 ]
+        then
+            cp gmsh/tet-structured.geo gmsh/mesh.geo
+        else
+            cp gmsh/hex-structured.geo gmsh/mesh.geo
+        fi
+    else
+        if [ "$UNS_VER" -eq 1 ]; then
+            cp gmsh/tet-unstructured_v1.geo gmsh/mesh.geo
+        else
+            cp gmsh/tet-unstructured_v2.geo gmsh/mesh.geo
+        fi
+    fi
+    solids4Foam::runApplication gmsh -3 -format msh2 gmsh/mesh.geo
+    solids4Foam::runApplication gmshToFoam gmsh/mesh.msh
+    rm -rf gmsh/mesh.geo gmsh/mesh.msh
+    solids4Foam::runApplication changeDictionary
+else
+    echo "gmsh mesher not found!"
+    exit 1
+fi
+
+# Run solver
+solids4Foam::runApplication solids4Foam

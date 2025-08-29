@@ -13,42 +13,12 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      solidProperties;
+    object      physicsProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
-
-linearGeometryTotalDisplacementCoeffs
-{
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
-
-    optionsFile petscOptions.hypre;
-
-    highOrderCoeffs
-    {
-	highOrderJacobian false;
-	highOrderResidual true;
-
-        LRECoeffs
-        {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
-        }
-    }
-
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
-}
+// type    fluid;
+type    solid;
+// type    fluidSolidInteraction;
 
 // ************************************************************************* //

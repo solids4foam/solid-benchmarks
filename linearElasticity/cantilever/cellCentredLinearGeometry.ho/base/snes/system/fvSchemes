@@ -12,43 +12,46 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "system";
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
-
-linearGeometryTotalDisplacementCoeffs
+d2dt2Schemes
 {
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
+    default                 steadyState;
+}
 
-    optionsFile petscOptions.hypre;
+ddtSchemes
+{
+    default                 steadyState;
+}
 
-    highOrderCoeffs
-    {
-	highOrderJacobian false;
-	highOrderResidual true;
+gradSchemes
+{
+    default                leastSquaresS4f;
+}
 
-        LRECoeffs
-        {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
-        }
-    }
+divSchemes
+{
+    default                 none;
+    div(sigma)              Gauss linear;
+    div((impK*grad(D)))     Gauss linear;
+}
 
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
-    }
+laplacianSchemes
+{
+    default                 Gauss linear corrected;
+}
+
+snGradSchemes
+{
+    default                 corrected;
+}
+
+interpolationSchemes
+{
+    default                 linear;
 }
 
 // ************************************************************************* //

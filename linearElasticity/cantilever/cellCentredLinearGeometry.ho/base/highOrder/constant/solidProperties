@@ -22,14 +22,16 @@ solidModel     linearGeometryTotalDisplacement;
 linearGeometryTotalDisplacementCoeffs
 {
     // Solution algorithm
-    solutionAlgorithm PETScSNES;
+    //solutionAlgorithm PETScSNES;
+    solutionAlgorithm implicitCoupled;
 
-    optionsFile petscOptions.hypre;
+    // PETSc options file used by PETScSNES
+    optionsFile petscOptions.ksponly;
 
     highOrderCoeffs
     {
-	highOrderJacobian false;
-	highOrderResidual true;
+        highOrderJacobian true;
+        highOrderResidual true;
 
         LRECoeffs
         {
@@ -37,7 +39,7 @@ linearGeometryTotalDisplacementCoeffs
             Nn 10;
             weightFunction radiallySymmetricExponential;
             k 6;
-    	    maxStencilSize 80;
+            maxStencilSize 100;
             useQRDecomposition true;
             useGlobalStencils true;
             calcConditionNumber false;
