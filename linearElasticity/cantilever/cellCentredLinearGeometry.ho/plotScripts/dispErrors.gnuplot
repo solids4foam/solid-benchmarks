@@ -6,7 +6,7 @@ beamArea = 0.2
 #set size ratio 1
 
 set grid
-set xrange [7:50]
+set xrange [5:55]
 set yrange [1e-8:1e-2]
 set xtics
 set xtics add (5, 25, 50)

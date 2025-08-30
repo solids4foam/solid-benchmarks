@@ -16,16 +16,14 @@ License
     along with solids4foam.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::manufacturedSolutionFvPatchVectorField
+    analyticalCantileverDisplacementFvPatchVectorField
 
 Description
-    Applies a displacement field from a manufactured solution as a fixed value
-    condition.
-
-    The manufactured solution comes from the manufacturedSolution class.
+    Applies a displacement field from a analyticalCantilever analytical solution
+    as a fixed value condition.
 
 SourceFiles
-    manufacturedSolutionFvPatchVectorField.C
+    analyticalCantileverDisplacementFvPatchVectorField.C
 
 Author
     Philip Cardiff, UCD.
@@ -33,11 +31,11 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef manufacturedSolutionFvPatchVectorField_H
-#define manufacturedSolutionFvPatchVectorField_H
+#ifndef analyticalCantileverDisplacementFvPatchVectorField_H
+#define analyticalCantileverDisplacementFvPatchVectorField_H
 
 #include "fixedDisplacementFvPatchVectorField.H"
-#include "manufacturedSolution.H"
+#include "cantileverStressDisplacement.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,59 +43,55 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                 Class manufacturedSolutionFvPatch Declaration
+                 Class analyticalCantileverDisplacementFvPatch Declaration
 \*---------------------------------------------------------------------------*/
 
-class manufacturedSolutionFvPatchVectorField
+class analyticalCantileverDisplacementFvPatchVectorField
 :
     public fixedDisplacementFvPatchVectorField
 {
     // Private Data
 
-        //- Manufactured solution object pointer
-        mutable autoPtr<manufacturedSolution> mmsPtr_;
-
         //- A copy of the constructor dict
         const dictionary dict_;
-
 
 public:
 
     //- Runtime type information
-    TypeName("manufacturedSolution");
+    TypeName("analyticalCantileverDisplacement");
 
 
     // Constructors
 
         //- Construct from patch and internal field
-        manufacturedSolutionFvPatchVectorField
+        analyticalCantileverDisplacementFvPatchVectorField
         (
             const fvPatch&,
             const DimensionedField<vector, volMesh>&
         );
 
         //- Construct from patch, internal field and dictionary
-        manufacturedSolutionFvPatchVectorField
+        analyticalCantileverDisplacementFvPatchVectorField
         (
             const fvPatch&,
             const DimensionedField<vector, volMesh>&,
             const dictionary&
         );
 
-        //- Construct by mapping given manufacturedSolutionFvPatchVectorField
+        //- Construct by mapping given analyticalCantileverDisplacementFvPatchVectorField
         //  onto a new patch
-        manufacturedSolutionFvPatchVectorField
+        analyticalCantileverDisplacementFvPatchVectorField
         (
-            const manufacturedSolutionFvPatchVectorField&,
+            const analyticalCantileverDisplacementFvPatchVectorField&,
             const fvPatch&,
             const DimensionedField<vector, volMesh>&,
             const fvPatchFieldMapper&
         );
 
         //- Construct as copy
-        manufacturedSolutionFvPatchVectorField
+        analyticalCantileverDisplacementFvPatchVectorField
         (
-            const manufacturedSolutionFvPatchVectorField&
+            const analyticalCantileverDisplacementFvPatchVectorField&
 #ifdef OPENFOAM_ORG
         ) = delete;
 #else
@@ -108,15 +102,15 @@ public:
         {
             return tmp<fvPatchVectorField>
             (
-                new manufacturedSolutionFvPatchVectorField(*this)
+                new analyticalCantileverDisplacementFvPatchVectorField(*this)
             );
         }
 #endif
 
         //- Construct as copy setting internal field reference
-        manufacturedSolutionFvPatchVectorField
+        analyticalCantileverDisplacementFvPatchVectorField
         (
-            const manufacturedSolutionFvPatchVectorField&,
+            const analyticalCantileverDisplacementFvPatchVectorField&,
             const DimensionedField<vector, volMesh>&
         );
 
@@ -128,7 +122,7 @@ public:
         {
             return tmp<fvPatchVectorField>
             (
-                new manufacturedSolutionFvPatchVectorField(*this, iF)
+                new analyticalCantileverDisplacementFvPatchVectorField(*this, iF)
             );
         }
 
@@ -146,6 +140,9 @@ public:
             (
                 const CompactListList<point>& faceQuadPoints
             ) const;
+
+        //- Write
+        virtual void write(Ostream&) const;
 
 };
 

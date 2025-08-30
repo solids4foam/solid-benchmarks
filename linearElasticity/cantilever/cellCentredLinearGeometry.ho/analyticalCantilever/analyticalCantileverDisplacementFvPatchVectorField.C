@@ -17,7 +17,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "manufacturedSolutionFvPatchVectorField.H"
+#include "analyticalCantileverDisplacementFvPatchVectorField.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -27,33 +27,34 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
+analyticalCantileverDisplacementFvPatchVectorField::
+analyticalCantileverDisplacementFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     fixedDisplacementFvPatchVectorField(p, iF),
-    mmsPtr_(),
     dict_()
 {}
 
 
-manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
+analyticalCantileverDisplacementFvPatchVectorField::
+analyticalCantileverDisplacementFvPatchVectorField
 (
-    const manufacturedSolutionFvPatchVectorField& ptf,
+    const analyticalCantileverDisplacementFvPatchVectorField& ptf,
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     fixedDisplacementFvPatchVectorField(ptf, p, iF, mapper),
-    mmsPtr_(),
     dict_(ptf.dict_)
 {}
 
 
-manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
+analyticalCantileverDisplacementFvPatchVectorField::
+analyticalCantileverDisplacementFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
@@ -61,30 +62,29 @@ manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
 )
 :
     fixedDisplacementFvPatchVectorField(p, iF, dict),
-    mmsPtr_(),
     dict_(dict)
 {}
 
 #ifndef OPENFOAM_ORG
-manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
+analyticalCantileverDisplacementFvPatchVectorField::
+analyticalCantileverDisplacementFvPatchVectorField
 (
-    const manufacturedSolutionFvPatchVectorField& pivpvf
+    const analyticalCantileverDisplacementFvPatchVectorField& pivpvf
 )
 :
     fixedDisplacementFvPatchVectorField(pivpvf),
-    mmsPtr_(),
     dict_(pivpvf.dict_)
 {}
 #endif
 
-manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
+analyticalCantileverDisplacementFvPatchVectorField::
+analyticalCantileverDisplacementFvPatchVectorField
 (
-    const manufacturedSolutionFvPatchVectorField& pivpvf,
+    const analyticalCantileverDisplacementFvPatchVectorField& pivpvf,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     fixedDisplacementFvPatchVectorField(pivpvf, iF),
-    mmsPtr_(),
     dict_(pivpvf.dict_)
 {}
 
@@ -92,28 +92,31 @@ manufacturedSolutionFvPatchVectorField::manufacturedSolutionFvPatchVectorField
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 
-void manufacturedSolutionFvPatchVectorField::updateCoeffs()
+void analyticalCantileverDisplacementFvPatchVectorField::updateCoeffs()
 {
     if (this->updated())
     {
         return;
     }
 
-    // Set the MMS object, if required
-    if (!mmsPtr_.valid())
-    {
-        mmsPtr_.reset
-        (
-            new manufacturedSolution(patch().boundaryMesh().mesh(), dict_)
-        );
-    }
-
     // Set the displacement at each patch face
     vectorField& disp = totalDisp();
     const vectorField& Cf = patch().Cf();
+
+    const scalar P(readScalar(dict_.lookup("P")));
+    const scalar E(readScalar(dict_.lookup("E")));
+    const scalar nu(readScalar(dict_.lookup("nu")));
+    const scalar L(readScalar(dict_.lookup("L")));
+    const scalar D(readScalar(dict_.lookup("D")));
+    const scalar I(Foam::pow(D, 3.0)/12.0);
+
     forAll(disp, faceI)
     {
-        disp[faceI] = mmsPtr_->calculateDisplacement(Cf[faceI]);;
+        disp[faceI] =
+            cantileverDisplacement
+            (
+                Cf[faceI], P, E, nu, L, D, I
+            );
     }
 
     fixedDisplacementFvPatchVectorField::updateCoeffs();
@@ -121,7 +124,7 @@ void manufacturedSolutionFvPatchVectorField::updateCoeffs()
 
 
 autoPtr<CompactListList<vector>>
-manufacturedSolutionFvPatchVectorField::evaluateQuadrature
+analyticalCantileverDisplacementFvPatchVectorField::evaluateQuadrature
 (
     const CompactListList<point>& faceQuadPoints
 ) const
@@ -143,14 +146,12 @@ manufacturedSolutionFvPatchVectorField::evaluateQuadrature
     // Get a reference to the actual data for easier access
     CompactListList<vector>& quadPointsValue = tQuadPointsValue();
 
-    // Set the MMS object, if required
-    if (!mmsPtr_.valid())
-    {
-        mmsPtr_.reset
-        (
-            new manufacturedSolution(patch().boundaryMesh().mesh(), dict_)
-        );
-    }
+    const scalar P(readScalar(dict_.lookup("P")));
+    const scalar E(readScalar(dict_.lookup("E")));
+    const scalar nu(readScalar(dict_.lookup("nu")));
+    const scalar L(readScalar(dict_.lookup("L")));
+    const scalar D(readScalar(dict_.lookup("D")));
+    const scalar I(Foam::pow(D, 3.0)/12.0);
 
     // Loop over faces
     forAll(*this, faceI)
@@ -165,11 +166,35 @@ manufacturedSolutionFvPatchVectorField::evaluateQuadrature
         {
             const point quadPoint = faceQuadPoints[globalFaceID][pointI];
             quadPointsValue[faceI][pointI] =
-                mmsPtr_->calculateDisplacement(quadPoint);
+                cantileverDisplacement
+                (
+                    quadPoint, P, E, nu, L, D, I
+                );
         }
     }
 
     return tQuadPointsValue;
+}
+
+
+void analyticalCantileverDisplacementFvPatchVectorField::write(Ostream& os) const
+{
+    fixedDisplacementFvPatchVectorField::write(os);
+
+    os.writeKeyword("P")
+        << dict_.lookup("P") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("E")
+        << dict_.lookup("E") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("nu")
+        << dict_.lookup("nu") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("L")
+        << dict_.lookup("L") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("D")
+        << dict_.lookup("D") << token::END_STATEMENT << nl;
 }
 
 
@@ -178,7 +203,7 @@ manufacturedSolutionFvPatchVectorField::evaluateQuadrature
 makePatchTypeField
 (
     fvPatchVectorField,
-    manufacturedSolutionFvPatchVectorField
+    analyticalCantileverDisplacementFvPatchVectorField
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -24,21 +24,22 @@ boundaryField
 {
     left
     {
-        type            fixedDisplacement;
-        value    uniform (0 0 0);
-        //type            cantileverDisplacement;
+        //type            fixedDisplacement;
+        //value    uniform (0 0 0);
+        type            analyticalCantileverDisplacement;
         P 0.1e6;
         E 200e9;
         nu 0.3;
         L 2;
         D 0.1;
+        value        uniform (0 0 0);
     }
     right
     {
-        type            solidTraction;
-        traction        uniform (0 -1e6 0);
-        pressure        uniform 0;
-        //type             cantileverTraction;
+        //type            solidTraction;
+        //traction        uniform (0 -1e6 0);
+        //pressure        uniform 0;
+        type             analyticalCantileverTraction;
         P 0.1e6;
         E 200e9;
         nu 0.3;
