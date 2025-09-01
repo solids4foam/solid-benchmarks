@@ -6,7 +6,8 @@
 -ksp_rtol 1e-8
 -ksp_atol 0
 -ksp_monitor
--ksp_max_it 1000
+-ksp_max_it 5000
+-ksp_gmres_restart 100
 #-ksp_monitor_true_residual
 #-ksp_converged_reason
 -ksp_error_if_not_converged
