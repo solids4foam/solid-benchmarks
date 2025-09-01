@@ -22,8 +22,8 @@ solidModel     linearGeometryTotalDisplacement;
 linearGeometryTotalDisplacementCoeffs
 {
     // Solution algorithm
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm implicitCoupled;
+    //solutionAlgorithm PETScSNES;
+    solutionAlgorithm implicitCoupled;
 
     // PETSc options file used by PETScSNES
     optionsFile petscOptions.ksponly;

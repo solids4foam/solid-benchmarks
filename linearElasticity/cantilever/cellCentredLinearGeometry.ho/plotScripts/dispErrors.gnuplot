@@ -1,4 +1,5 @@
-set term pdfcairo dashed enhanced
+set term pdfcairo dashed enhanced size 3.5,2
+
 set datafile separator " "
 
 beamArea = 0.2
@@ -7,7 +8,7 @@ beamArea = 0.2
 
 set grid
 set xrange [5:55]
-set yrange [1e-8:1e-2]
+set yrange [1e-14:1e-2]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -23,9 +24,8 @@ set key right bottom;
 #set label "1^{st} order" at graph 0.5,0.86 center rotate by 10
 #set label "2^{nd} order" at graph 0.5,0.37 center rotate by 25
 
-
 set output "dispErrors_hex.pdf"
-set title "Hexahedral structured mesh"
+#set title "Hexahedral structured mesh"
 plot \
     (2e-6 * x**2) w l lw 2 dt 2 lc "red" notitle,\
     (4e-8 * x**3) w l lw 2 dt 2 lc "blue" notitle,\
@@ -42,7 +42,7 @@ plot \
     "hex.struct.ho.N3.summary.txt" u ((beamArea/$4)**0.5*1e3):($6) w lp ps 0.5 pt 4 lc "violet" t "L_∞ - N3"
 
 set output "dispErrors_tet-struct.pdf"
-set title "Tetrahedral structured mesh"
+#set title "Tetrahedral structured mesh"
 plot \
     (2e-6 * x**2) w l lw 2 dt 2 lc "red" notitle,\
     (4e-8 * x**3) w l lw 2 dt 2 lc "blue" notitle,\
@@ -59,7 +59,7 @@ plot \
     "tet.struct.ho.N3.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($6) w lp ps 0.5 pt 6 lc "violet" t "L_∞ - N3"
 
 set output "dispErrors_tet-unstruct.pdf"
-set title"Tetrahedral unstructured mesh"
+#set title"Tetrahedral unstructured mesh"
 plot \
     (2e-6 * x**2) w l lw 2 dt 2 lc "red" notitle,\
     (4e-8 * x**3) w l lw 2 dt 2 lc "blue" notitle,\

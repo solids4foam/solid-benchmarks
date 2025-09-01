@@ -1,11 +1,12 @@
-set term pdfcairo dashed enhanced
+set term pdfcairo dashed enhanced size 3.5,2
 set datafile separator " "
 
 #set size ratio 1
+beamArea= 0.2
 
 set grid
-set xrange [25:1000]
-set yrange [1e-5:5]
+set xrange [5:55]
+set yrange [0.0001:10]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -14,78 +15,52 @@ set logscale y
 set format y "10^{%L}"
 #set ytics 0.002
 set xlabel "Average cell edge (in mm)"
-set ylabel "Error (in Pa)"
+set ylabel "Error (in MPa)"
 #set key left top;
-set key right bottom;
+set key right bottom outside;
 
 #set label "1^{st} order" at graph 0.5,0.86 center rotate by 10
 #set label "2^{nd} order" at graph 0.5,0.37 center rotate by 25
 
 
-set output "mms_stressErrors_ho-hex.pdf"
-set title "Hexahedral structured mesh"
+set output "stressErrors_hex.pdf"
+#set title "Hexahedral structured mesh"
 plot \
-    (2e-3 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.1e-8 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "hex.struct.hypre-snes.summary.txt" u ((1/$4)**0.5*1e3):($7) w lp ps 0.5 pt 5 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "hex.struct.hypre-snes.summary.txt" u ((1/$4)**0.5*1e3):($8) w lp ps 0.5 pt 4 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "hex.struct.seg.summary.txt" u ((1/$4)**0.5*1e3):($7) w lp ps 0.5 pt 5 lc "black" t "L_2 - S4F (SEG)", \
-    "hex.struct.seg.summary.txt" u ((1/$4)**0.5*1e3):($8) w lp ps 0.5 pt 4 lc  "black" t "L_∞ - S4F (SEG)", \
-    "hex.struct.ho.N1.summary.txt" u ((1/$4)**0.5*1e3):($7) w lp ps 0.5 pt 5 lc "red" t "L_2 - N1", \
-    "hex.struct.ho.N1.summary.txt" u ((1/$4)**0.5*1e3):($8) w lp ps 0.5 pt 4 lc "red" t "L_∞ - N1", \
-    "hex.struct.ho.N2.summary.txt" u ((1/$4)**0.5*1e3):($7) w lp ps 0.5 pt 5 lc "blue" t "L_2 - N2", \
-    "hex.struct.ho.N2.summary.txt" u ((1/$4)**0.5*1e3):($8) w lp ps 0.5 pt 4 lc "blue" t "L_∞ - N2", \
-    "hex.struct.ho.N3.summary.txt" u ((1/$4)**0.5*1e3):($7) w lp ps 0.5 pt 5 lc "violet" t "L_2 - N3", \
-    "hex.struct.ho.N3.summary.txt" u ((1/$4)**0.5*1e3):($8) w lp ps 0.5 pt 4 lc "violet" t "L_∞ - N3"
+    (0.2 * x**1) w l lw 2 dt 2 lc "red" notitle,\
+    (2e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
+    "hex.struct.hypre-snes.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "slategrey" t "L_2 - {/Symbol s}_{xx} -S4F (SNES)", \
+        "hex.struct.hypre-snes.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "slategrey" t "L_2 - {/Symbol s}_{yy} -S4F (SNES)", \
+    "hex.struct.hypre-snes.summary.txt" u ((beamArea/$4)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9 lc "slategrey" t "L_2 - {/Symbol s}_{xy} -S4F (SNES)", \
+    "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "red" t "L_2 - N1 - {/Symbol s}_{xx}", \
+    "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "red" t "L_2 - N1 - {/Symbol s}_{yy}", \
+    "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9  lc "red" t "L_2 - N1 - {/Symbol s}_{xy}", \
+    "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "blue" t "L_2 - N2 - {/Symbol s}_{xx}", \
+    "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "blue" t "L_2 - N2 - {/Symbol s}_{yy}", \
+    "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9 lc "blue" t "L_2 - N2 - {/Symbol s}_{xy}"
+    # "hex.struct.ho.N3.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ps 0.2 pt 5 lc "violet" t "L_2 - N2 - {/Symbol s}_{xx}", \
+    # "hex.struct.ho.N3.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ps 0.2 pt 5 lc "violet" t "L_2 - N2 - {/Symbol s}_{yy}", \
+    # "hex.struct.ho.N3.summary.txt" u ((beamArea/$4)**0.5*1e3):($9*1e-6) w lp ps 0.2 pt 5 lc "violet" t "L_2 - N2 - {/Symbol s}_{xy}"
 
-set output "mms_stressErrors_ho-tet-struct.pdf"
-set title "Tetrahedral structured mesh"
+set output "stressErrors_tet-struct.pdf"
+#set title "Tetrahedral structured mesh"
 plot \
-    (2e-3 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.1e-8 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.struct.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 7 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "tet.struct.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 6 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "tet.struct.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 7 lc "black" t "L_2 - S4F (SEG)", \
-    "tet.struct.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 6 lc "black" t "L_∞ - S4F (SEG)", \
-    "tet.struct.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 7 lc "red" t "L_2 - N1", \
-    "tet.struct.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 6 lc "red" t "L_∞ - N1", \
-    "tet.struct.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 7 lc "blue" t "L_2 - N2", \
-    "tet.struct.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 6 lc "blue" t "L_∞ - N2", \
-    "tet.struct.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 7 lc "violet" t "L_2 - N3", \
-    "tet.struct.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 6 lc "violet" t "L_∞ - N3"
+    (0.2 * x**1) w l lw 2 dt 2 lc "red" notitle,\
+    (2e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
+    "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "red" t "L_2 - N1 - {/Symbol s}_{xx}", \
+    "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "red" t "L_2 - N1 - {/Symbol s}_{yy}", \
+    "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9  lc "red" t "L_2 - N1 - {/Symbol s}_{xy}", \
+    "tet.struct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "blue" t "L_2 - N2 - {/Symbol s}_{xx}", \
+    "tet.struct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "blue" t "L_2 - N2 - {/Symbol s}_{yy}", \
+    "tet.struct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9 lc "blue" t "L_2 - N2 - {/Symbol s}_{xy}"
 
-set output "mms_stressErrors_ho-tet-unstruct_v1.pdf"
-set title"Tetrahedral unstructured-v1 mesh"
+set output "stressErrors_tet-unstruct.pdf"
+# set title"Tetrahedral unstructured mesh"
 plot \
-    (2e-3 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.1e-8 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.unstruct_v1.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "tet.unstruct_v1.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "tet.unstruct_v1.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F (SEG)", \
-    "tet.unstruct_v1.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "black" t "L_∞ - S4F (SEG)", \
-    "tet.unstruct_v1.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "red" t "L_2 - N1", \
-    "tet.unstruct_v1.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "red" t "L_∞ - N1", \
-    "tet.unstruct_v1.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "blue" t "L_2 - N2", \
-    "tet.unstruct_v1.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "blue" t "L_∞ - N2", \
-    "tet.unstruct_v1.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "violet" t "L_2 - N3", \
-    "tet.unstruct_v1.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "violet" t "L_∞ - N3"
-
-set output "mms_stressErrors_ho-tet-unstruct_v2.pdf"
-set title"Tetrahedral unstructured-v2 mesh"
-plot \
-    (2e-3 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.1e-8 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "tet.unstruct_v2.hypre-snes.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "tet.unstruct_v2.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F (SEG)", \
-    "tet.unstruct_v2.seg.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "black" t "L_∞ - S4F (SEG)", \
-    "tet.unstruct_v2.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "red" t "L_2 - N1", \
-    "tet.unstruct_v2.ho.N1.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "red" t "L_∞ - N1", \
-    "tet.unstruct_v2.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "blue" t "L_2 - N2", \
-    "tet.unstruct_v2.ho.N2.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "blue" t "L_∞ - N2", \
-    "tet.unstruct_v2.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($7) w lp ps 0.5 pt 9 lc "violet" t "L_2 - N3", \
-    "tet.unstruct_v2.ho.N3.summary.txt" u ((4*(1/$4)/3**0.5)**0.5*1e3):($8) w lp ps 0.5 pt 8 lc "violet" t "L_∞ - N3"
+    (0.2 * x**1) w l lw 2 dt 2 lc "red" notitle,\
+    (2e-5 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
+    "tet.unstruct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "red" t "L_2 - N1 - {/Symbol s}_{xx}", \
+    "tet.unstruct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "red" t "L_2 - N1 - {/Symbol s}_{yy}", \
+    "tet.unstruct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9  lc "red" t "L_2 - N1 - {/Symbol s}_{xy}", \
+    "tet.unstruct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 4 lc "blue" t "L_2 - N2 - {/Symbol s}_{xx}", \
+    "tet.unstruct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($8*1e-6) w lp ps 0.5 pt 5 dt 8 lc "blue" t "L_2 - N2 - {/Symbol s}_{yy}", \
+    "tet.unstruct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($9*1e-6) w lp ps 0.5 pt 6 dt 9 lc "blue" t "L_2 - N2 - {/Symbol s}_{xy}"
