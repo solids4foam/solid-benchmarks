@@ -1,0 +1,113 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : solids4Foam
+Date   : Sep 17 2025
+Time   : 13:27:00
+Host   : Ivans-MacBook-Pro.local
+PID    : 97963
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/linearElasticity/sphericalCavity.ho/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+/*---------------------------------------------------------------------------*\
+|    For further information on the solids4Foam toolbox implementations,      |
+|    please see the following publications:                                   |
+|                                                                             |
+|    P. Cardiff, A Karac, P. De Jaeger, H. Jasak, J. Nagy, A. Ivankovic,      |
+|    Z. Tukovic: An open-source finite volume toolbox for solid mechanics and |
+|    fluid-solid interaction simulations. arXiv:1808.10736v2, 2018, available |
+|    at https://arxiv.org/abs/1808.10736.                                     |
+|                                                                             |
+|    Z. Tukovic, A. Karac, P. Cardiff, H. Jasak, A. Ivankovic: OpenFOAM       |
+|    finite volume solver for fluid-solid interaction.  Transactions of       |
+|    Famena, 42 (3), pp. 1-31, 2018, 10.21278/TOF.42301.                      |
+\*---------------------------------------------------------------------------*/
+
+Selecting physicsModel solidModel
+Selecting solidModel linearGeometryTotalDisplacement
+Selecting dynamicFvMesh staticFvMesh
+Creating solidTraction boundary condition
+    under-relaxation method: fixed
+No finite volume options present
+Creating the mechanicalModel
+Selecting mechanical law linearElastic
+solvePressure = false
+    Setting `extrapolateValue` to `true` on the posZ patch of the D field
+    Setting `extrapolateValue` to `true` on the posY patch of the D field
+    Setting `extrapolateValue` to `true` on the cavity patch of the D field
+    Setting `extrapolateValue` to `true` on the posX patch of the D field
+Creating cavityAnalytical function object
+Time = 1
+
+Solving the momentum equation for D using PETSc SNES
+  0 SNES Function norm 1.107296603170e+04
+    Linear solve converged due to CONVERGED_RTOL iterations 39
+  1 SNES Function norm 8.470005272590e-01
+    Linear solve converged due to CONVERGED_RTOL iterations 45
+  2 SNES Function norm 1.601563181106e-05
+  Nonlinear solve converged due to CONVERGED_FNORM_RELATIVE iterations 2
+Max epsilonEq = 8.48388907654e-06
+Max sigmaEq (von Mises stress) = 1957820.55613
+ExecutionTime = 4.16 s  ClockTime = 5 s
+
+Writing analyticalCellStress field
+
+Writing analyticalCellStressEq field
+
+Writing analyticalD field
+
+Writing cellStressDifference field
+    Component: 0
+    Norms: mean L1, mean L2, LInf: 
+    1738.0235491 3316.59002204 32888.4755501
+
+    Component: 1
+    Norms: mean L1, mean L2, LInf: 
+    725.992667846 1405.80784971 11376.6068087
+
+    Component: 2
+    Norms: mean L1, mean L2, LInf: 
+    1194.59342038 2105.79645412 18279.0149266
+
+    Component: 3
+    Norms: mean L1, mean L2, LInf: 
+    1733.80098281 3322.22821359 34491.7441956
+
+    Component: 4
+    Norms: mean L1, mean L2, LInf: 
+    1204.42147386 2120.02475874 17930.4631719
+
+    Component: 5
+    Norms: mean L1, mean L2, LInf: 
+    2904.24892914 5401.7993291 52703.1610606
+
+Writing DDifference field
+    Norms: mean L1, mean L2, LInf: 
+    9.4264232465e-10 1.15515613358e-09 3.65198080327e-09
+
+The momentum equation converged in all time-steps
+
+
+End
+
+--> FOAM Warning : 
+    From virtual Foam::foamPetscSnesHelper::~foamPetscSnesHelper()
+    in file solidModels/solidModel/foamPetscSnesHelper/foamPetscSnesHelper.C at line 569
+    Find a neat solution to finalise PETSc only once
+--> FOAM Warning : 
+    From static void Foam::UPstream::shutdown(int)
+    in file UPstream.C at line 445
+    Finalizing MPI, but was initialized elsewhere

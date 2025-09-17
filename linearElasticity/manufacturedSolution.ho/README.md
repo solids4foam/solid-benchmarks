@@ -1,9 +1,68 @@
 # Method of Manufactured Solutions
 
+Prepared by Ivan Batistić, Pablo Castrillo and Philip Cardiff
+
+---
+
 ## Overview
-This test case applies a manufactured solution to a cube domain and measures the
-accuracy and order of accuracy for the displacement and stress fields on various
-mesh types.
+
+This test case applies a manufactured solution to a 2D and 3D square domain and measures the
+accuracy and order of accuracy for the displacement and stress fields on various mesh types.  
+
+The analytical solution is the same as in the following references:
+
+### polynomial
+
+$$
+\begin{eqnarray}
+	\mathbf{u} =
+	\begin{pmatrix}
+	a_x(x^3 + xy^2) \\
+	a_y(y^3 + yz^2) \\
+	a_z(z^3 + zx^2)
+	\end{pmatrix}
+\end{eqnarray}
+$$
+
+Polynomial solution serves as a patch test for fourth-order discretisation, of which is expected to reach machine precision.
+
+### trigonometric
+
+- Federico Mazzanti and Philip Cardiff. "Performance of a vertex-centred block-coupled finite volume methodology for small-strain static elastoplasticity", Computers & Mathematics with Applications,
+  Volume 195, 212-238, 2025.
+- Philip Cardiff, Dylan Armfield, Željko Tuković and Ivan Batistić, "A Jacobian-free Newton-Krylov method for cell-centred finite volume solid mechanics", arXiv, 2025.  
+
+$$
+\begin{eqnarray}
+	\mathbf{u} =
+	\begin{pmatrix}
+	a_x \sin(4\pi x) \sin(2\pi y) \sin(\pi z) \\
+	a_y \sin(4 \pi x) \sin(2 \pi y) \sin(\pi z) \\
+	a_z \sin(4 \pi x) \sin(2 \pi y) \sin(\pi z) 
+	\end{pmatrix}
+\end{eqnarray}
+$$
+
+### mixed
+
+- Castrillo, Pablo, et al. "High-order finite volume method for linear elasticity on unstructured meshes." *Computers & Structures* 268, 2022.
+- Castrillo, Pablo, Eugenio Schillaci, and Joaquim Rigola. "High-order cell-centered finite volume method for solid dynamics on unstructured meshes." *Computers & Structures* 295, 2024.
+
+#### 2D case
+
+$$
+u_x(x,y) = e^{x^2}\sin(y),\\
+u_y(x,y) = \ln(3+y)\cos(x)+\sin(y),\\
+u_z(x,y) = 0.
+$$
+
+#### 3D case
+
+$$
+u_x(x,y) = \ln(x+3)y(z+1)+e^z,\\
+u_y(x,y) = \sin(yz) + 3y,\\
+u_z(x,y) = e^{xz}y-4\cos(z).
+$$
 
 ## Instructions
 

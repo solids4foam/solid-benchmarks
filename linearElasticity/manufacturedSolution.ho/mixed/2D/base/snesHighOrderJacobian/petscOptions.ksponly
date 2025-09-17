@@ -1,0 +1,24 @@
+-snes_type ksponly
+-snes_converged_reason
+
+# Krylov
+-ksp_type gmres              # or lgmres if you prefer
+#-ksp typepreonly
+-ksp_rtol 1e-8
+-ksp_atol 0
+-ksp_max_it 1000
+-ksp_monitor_true_residual
+-ksp_converged_reason
+-ksp_error_if_not_converged
+# (Avoid restarts at first; add -ksp_gmres_restart 200 only if memory becomes an issue)
+
+# Preconditioner: AMG
+#-pc_type lu
+-pc_type hypre
+-pc_hypre_type boomeramg
+-pc_hypre_boomeramg_coarsen_type HMIS
+-pc_hypre_boomeramg_interp_type ext+i
+-pc_hypre_boomeramg_strong_threshold 0.7
+-pc_hypre_boomeramg_max_iter 1
+
+-mat_view ::ascii_info

@@ -35,14 +35,14 @@ linearGeometryTotalDisplacementCoeffs
 
         LRECoeffs
         {
-            N 1;
-            Nn 10;
+            N 3;
+            Nn 20;
             weightFunction radiallySymmetricExponential;
             k 6;
             maxStencilSize 100;
             useQRDecomposition true;
             useGlobalStencils true;
-            calcConditionNumber false;
+            calcConditionNumber true;
         }
     }
 

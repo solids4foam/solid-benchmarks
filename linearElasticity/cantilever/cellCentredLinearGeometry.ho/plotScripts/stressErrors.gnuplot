@@ -18,6 +18,7 @@ set xlabel "Average cell edge (in mm)"
 set ylabel "Error (in MPa)"
 #set key left top;
 set key right bottom outside;
+set rmargin 20
 
 #set label "1^{st} order" at graph 0.5,0.86 center rotate by 10
 #set label "2^{nd} order" at graph 0.5,0.37 center rotate by 25

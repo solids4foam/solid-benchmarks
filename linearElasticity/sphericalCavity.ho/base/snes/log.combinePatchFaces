@@ -1,0 +1,44 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : combinePatchFaces 45 -overwrite
+Date   : Sep 17 2025
+Time   : 13:27:00
+Host   : Ivans-MacBook-Pro.local
+PID    : 97960
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/linearElasticity/sphericalCavity.ho/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create polyMesh for time = 0
+
+Merging all faces of a cell
+    - which are on the same patch
+    - which make an angle < 45 degrees
+      (cos:0.707106781187)
+    - even when resulting face becomes concave by more than 30 degrees
+      (sin:0.5)
+
+Merging 858 sets of faces.
+Detected 0 error faces on boundaries that have been merged. These will be restored to their original faces.
+Merging all points on surface that
+- are used by only two boundary faces and
+- make an angle with a cosine of more than 0.707106781187.
+
+Removing 2107 straight edge points ...
+Writing morphed mesh to time 0
+
+End
+
