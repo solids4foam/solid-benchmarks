@@ -1,7 +1,6 @@
 set term pdfcairo dashed enhanced
 set datafile separator " "
 
-set output "cooksMembrane-neoHookeanTipDispConvergence.pdf"
 
 set size ratio 0.7
 
@@ -28,16 +27,29 @@ dx=12.649
 # Average mesh spacing of mesh 1 for Zienkiewicz and Taylor results
 dxZT = 18.973666
 
-file = "hex.lu.summary.txt"
+# Membrane area
+area =  1440
+
 file_D = "deal.II.dat"
 file_A = "abaqus.dat"
 
 # Assume the mesh spacing is being halved for each succesive mesh
+set output "cooksMembrane-hex-neoHookeanTipDispConvergence.pdf"
 plot \
-    file u (dx/(2**($0))):($4*1000) w lp pt 6 ps 1 lw 1.2 lc "black" t "S4F",\
+    "hex.lu.summary.txt" u (dx/(2**($0))):($5*1000) w lp pt 6 ps 1 lw 1.2 lc "black" t "S4F",\
     file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 1 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
     file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 1 lw 1.2 lc "black!40" t "Pelteret and McBride (2016) - Q2", \
     file_A u 2:4 w lp pt 4 ps 1 lw 1.2 lc "purple" t "Abaqus (CPE4H)",\
-    "hex.struct.ho.N1.summary.txt" u (dx/(2**($0))):($4*1000) w lp ps 1 pt 5 lw 1.2 lc "red" t "N1", \
-    "hex.struct.ho.N2.summary.txt" u (dx/(2**($0))):($4*1000) w lp ps 1 pt 5 lw 1.2 lc "blue" t "N2", \
-    "hex.struct.ho.N3.summary.txt" u (dx/(2**($0))):($4*1000) w lp ps 1 pt 5 lw 1.2 lc "violet" t "N3"
+    "hex.ho.N1.summary.txt" u (dx/(2**($0))):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "red" t "N1", \
+    "hex.ho.N2.summary.txt" u (dx/(2**($0))):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "blue" t "N2", \
+    "hex.ho.N3.summary.txt" u (dx/(2**($0))):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "violet" t "N3"
+
+set output "cooksMembrane-tet-neoHookeanTipDispConvergence.pdf"
+plot \
+    "tet.seg.summary.txt" u (dx/(2**($0))):($5*1000) w lp pt 6 ps 1 lw 1.2 lc "black" t "S4F",\
+    file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 1 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
+    file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 1 lw 1.2 lc "black!40" t "Pelteret and McBride (2016) - Q2", \
+    file_A u 2:4 w lp pt 4 ps 1 lw 1.2 lc "purple" t "Abaqus (CPE4H)",\
+    "tet.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "red" t "N1", \
+    "tet.ho.N2.summary.txt" u ((4*(area/$4)/3**0.5)**0.5):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "blue" t "N2", \
+    "tet.ho.N3.summary.txt" u ((4*(area/$4)/3**0.5)**0.5):($5*1000) w lp ps 1 pt 5 lw 1.2 lc "violet" t "N3"

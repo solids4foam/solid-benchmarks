@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Use tet (1) or hex (0) volumes
+USE_TET=0
+
+# Create the mesh
+if [ "$USE_TET" -eq 1 ]
+then
+    if command -v gmsh &> /dev/null
+    then
+        # Remporarily rename 0 to avoid issues
+        mv 0 0.tmp
+
+        # Create mesh with gmsh
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/cooksMembrane.geo
+        solids4Foam::runApplication gmshToFoam gmsh/cooksMembrane.msh
+        # Uncomment this for poly mesh
+        #solids4Foam::runApplication polyDualMesh 30 -overwrite
+        #solids4Foam::runApplication combinePatchFaces 45 -overwrite
+        solids4Foam::runApplication changeDictionary
+
+        # Move 0 back
+        mv 0.tmp 0
+    else
+        # Fail silently
+        echo; echo "Gmsh is required for tet meshes: please install it"
+        exit 0
+    fi
+else
+    solids4Foam::runApplication blockMesh
+fi
+
+# Run solver
+solids4Foam::runApplication solids4Foam

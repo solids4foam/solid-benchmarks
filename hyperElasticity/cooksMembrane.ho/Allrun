@@ -6,11 +6,15 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-    "BASE=base/hex.segregated NAME=hex.seg"
-    "BASE=base/hex.highOrder NAME=hex.ho.N1 N=1 Nn=7 PETSC_FILE=petscOptions.lu"
-    "BASE=base/hex.highOrder NAME=hex.ho.N2 N=2 Nn=10 PETSC_FILE=petscOptions.lu"
-    "BASE=base/hex.highOrder NAME=hex.ho.N3 N=3 Nn=10 PETSC_FILE=petscOptions.lu"
+    "BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
+    "BASE=base/segregated NAME=hex.seg"
+    "BASE=base/segregated NAME=tet.seg GMSH_FILE=cooksMembrane"
+    "BASE=base/highOrder NAME=hex.ho.N1 N=1 Nn=7 PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.ho.N2 N=2 Nn=10 PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.ho.N3 N=3 Nn=10 PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.ho.N1 N=1 Nn=7  GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.ho.N2 N=2 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.ho.N3 N=3 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
 )
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
@@ -56,7 +60,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D" > "${SUMMARY}"
+    echo "# Mesh Time Mem CellsNumber D" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
@@ -68,19 +72,37 @@ do
         cp -r "../${BASE}" "${CASE}"
         cd "$CASE"
 
-        # Replace the blockMeshDict
-        if [[ ! -f "system/blockMeshDict.$i" ]]
-        then
-            echo "Cannot find ${CASE}/system/blockMeshDict.$i: please add it to ${BASE}/meshes/"; echo
-            exit 1;
-        else
-            echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
-            \cp "system/blockMeshDict.$i" system/blockMeshDict
-            rm -f constant/polyMesh/blockMeshDict
-        fi
-
         # Create the mesh
-        solids4Foam::runApplication blockMesh
+        if [ -n "${GMSH_FILE}" ]; then
+            if command -v gmsh &> /dev/null
+            then
+                # Remporarily rename 0 to avoid issues
+                mv 0 0.tmp
+                cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+                solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+                solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+                solids4Foam::runApplication changeDictionary
+                # Move 0 back
+                mv 0.tmp 0
+            else
+                # Fail silently
+                echo; echo "Gmsh is required for tet meshes: please install it"
+                exit 0
+            fi
+        else
+            # Replace the blockMeshDict
+            if [[ ! -f "system/blockMeshDict.$i" ]]
+            then
+                echo "Cannot find ${CASE}/system/blockMeshDict.$i: please add it to ${BASE}/meshes/"; echo
+                exit 1;
+            else
+                echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
+                \cp "system/blockMeshDict.$i" system/blockMeshDict
+                rm -f constant/polyMesh/blockMeshDict
+            fi
+            solids4Foam::runApplication blockMesh
+        fi
+        solids4Foam::runApplication checkMesh
 
         # Update the PETSc options file
         if [ -n "${PETSC_FILE}" ]; then
@@ -128,6 +150,9 @@ do
             MAX_MEMORY="NaN"
         fi
 
+        # Number of cells
+        CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+
         # Record the time
         CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
 
@@ -135,7 +160,7 @@ do
         DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
 
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $CELLS $DISP" >> ../"${SUMMARY}"
 
         cd ..
     done

@@ -34,7 +34,7 @@ linearGeometryTotalDisplacementCoeffs
         LRECoeffs
         {
             N 1;
-            Nn 45;
+            Nn 40;
             weightFunction radiallySymmetricExponential;
             k 6;
             maxStencilSize 80;

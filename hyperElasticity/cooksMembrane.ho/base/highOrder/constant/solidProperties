@@ -17,37 +17,29 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
-linearGeometryTotalDisplacementCoeffs
+nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitCoupled;
     solutionAlgorithm PETScSNES;
-    optionsFile petscOptions.ksponly;
+    optionsFile petscOptions.lu;
 
     highOrderCoeffs
     {
-        highOrderJacobian true;
+        highOrderJacobian false;
         highOrderResidual true;
 
         LRECoeffs
         {
-            N 1;
-            Nn 45;
-            weightFunction radiallySymmetricExponential;
             k 6;
+            N 3;
+            weightFunction radiallySymmetricExponential;
+            Nn 10;
             maxStencilSize 80;
             useQRDecomposition true;
             useGlobalStencils true;
             calcConditionNumber false;
         }
-    }
-
-    stabilisation
-    {
-        type        RhieChow;
-        scaleFactor 0.1;
     }
 }
 

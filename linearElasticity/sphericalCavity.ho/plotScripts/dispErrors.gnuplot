@@ -8,7 +8,7 @@ volume = 0.104056049
 
 set grid
 set xrange [10:100]
-set yrange [1e-12:1e-04]
+set yrange [1e-12:1e-06]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -28,6 +28,9 @@ set rmargin 15
 #set xrange [25:85]
 set output "sphericalCavity_dispErrors_tet.pdf"
 plot \
+    (5e-12 * x**2) w l lw 2 dt 2 lc "red" notitle,\
+    (0.5e-13 * x**3) w l lw 2 dt 2 lc "blue" notitle,\
+    (0.5e-15 * x**4) w l lw 2 dt 2 lc "violet" notitle,\
     "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 1.5 pt 9 lc "slategrey" t "L_2 - S4F*", \
     "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 1.5 pt 8 lc "slategrey" t "L_∞ - S4F*", \
     "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 1.5 pt 9 lc "black" t "L_2 - S4F", \

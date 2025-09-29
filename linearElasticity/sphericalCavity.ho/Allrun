@@ -7,10 +7,10 @@ source solids4FoamScripts.sh
 # Define configurations as space-separated strings
 configs=(
     #"BASE=base/snes NAME=poly.hypre PETSC_FILE=petscOptions.hypre"
-    # "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
+    #"BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
     "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
 )
 
 # Define start and end mesh indices
