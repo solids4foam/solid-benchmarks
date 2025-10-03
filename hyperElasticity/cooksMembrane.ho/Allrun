@@ -10,8 +10,8 @@ configs=(
     "BASE=base/segregated NAME=hex.seg"
     "BASE=base/segregated NAME=tet.seg GMSH_FILE=cooksMembrane"
     "BASE=base/highOrder NAME=hex.ho.N1 N=1 Nn=7 PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.ho.N2 N=2 Nn=10 PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.ho.N3 N=3 Nn=10 PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.ho.N2 N=2 Nn=20 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/highOrder NAME=hex.ho.N3 N=3 Nn=30 PETSC_FILE=petscOptions.lu"
     "BASE=base/highOrder NAME=tet.ho.N1 N=1 Nn=7  GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
     "BASE=base/highOrder NAME=tet.ho.N2 N=2 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
     "BASE=base/highOrder NAME=tet.ho.N3 N=3 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
@@ -22,7 +22,7 @@ configs=(
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 8
 START_MESH=1
-END_MESH=4
+END_MESH=2
 
 
 # Detect the CPU type: we append this to the case name
@@ -52,6 +52,9 @@ cd "${RUN_DIR}"
 # Iterate through configurations
 for config in "${configs[@]}"
 do
+    # Reset variables in the case some variable is not used
+    unset GMSH_FILE PETSC_FILE N Nn
+
     # Parse the configuration string
     eval $config
     echo; echo "***************************************"
