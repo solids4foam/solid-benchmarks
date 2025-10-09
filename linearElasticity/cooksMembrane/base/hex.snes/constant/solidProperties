@@ -31,6 +31,16 @@ solidModel     linearGeometryTotalDisplacement;
     //optionsFile petscOptions.hypre;
     //optionsFile petscOptions.ilu;
     //optionsFile petscOptions.seg.hypre;
+    //optionsFile petscOptions.physics;
+
+    // Settings for the "physics" preconditioner, which is a segregated solid
+    // solver
+    preconditioner
+    {
+        // The "simplifiedEquation" approach solves a simple Laplace equation,
+        // while the non-basic approach solves the full solid mechanics system
+        simplifiedEquation yes;
+    }
 }
 
 // ************************************************************************* //

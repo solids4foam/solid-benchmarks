@@ -18,6 +18,17 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solvers
-{}
+{
+    // Linear solver used by the "physics" preconditioner
+    preconditionD
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+        minIter         0;
+        maxIter         15;
+    }
+}
 
 // ************************************************************************* //
