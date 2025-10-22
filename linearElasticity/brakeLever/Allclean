@@ -7,4 +7,4 @@
 source solids4FoamScripts.sh
 
 cleanCase
-\rm -f constant/polyMesh case.foam proc*
+\rm -f constant/polyMesh case.foam proc* *.stl *.fms

@@ -18,7 +18,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 checkForGluedMesh 1;
-surfaceFile "domain.fms";
+surfaceFile "domain_scaled_edges.fms";
 maxCellSize 0.001;
 boundaryCellSize $maxCellSize;
 
