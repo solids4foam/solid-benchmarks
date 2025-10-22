@@ -28,13 +28,13 @@ set rmargin 15
 #set xrange [25:85]
 set output "sphericalCavity_dispErrors_tet.pdf"
 plot \
-    (5e-12 * x**2) w l lw 2 dt 2 lc "red" notitle,\
-    (0.5e-13 * x**3) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.5e-15 * x**4) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 1.5 pt 9 lc "slategrey" t "L_2 - S4F*", \
-    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 1.5 pt 8 lc "slategrey" t "L_∞ - S4F*", \
-    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 1.5 pt 9 lc "black" t "L_2 - S4F", \
-    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 1.5 pt 8 lc "black" t "L_∞ - S4F", \
+    (5e-12 * x**2) w l lw 1 dt 2 lc "red" notitle,\
+    (0.8e-14 * x**3) w l lw 1 dt 2 lc "blue" notitle,\
+    (0.8e-16 * x**4) w l lw 1 dt 2 lc "violet" notitle,\
+    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F*", \
+    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F*", \
+    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F", \
+    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 0.5 pt 8 lc "black" t "L_∞ - S4F", \
     "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 0.5 pt 9 lc "red" t "L_2 - N1", \
     "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ps 0.5 pt 8 lc "red" t "L_∞ - N1", \
     "tet.unstruct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ps 0.5 pt 9 lc "blue" t "L_2 - N2", \

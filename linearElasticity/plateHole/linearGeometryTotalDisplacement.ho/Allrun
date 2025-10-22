@@ -14,21 +14,21 @@ configs=(
     #"BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     #"BASE=base/snes NAME=poly.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     #"BASE=base/snes NAME=tet.unstruct.hypre-snes GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/segregated NAME=hex.seg USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.seg USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.ho.N1 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=hex.ho.N2 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=hex.ho.N3 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=tet.ho.N1 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=tet.ho.N2 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=tet.ho.N3 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/segregated NAME=hex.seg USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/segregated NAME=tet.seg USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/highOrder NAME=hex.ho.N1 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/highOrder NAME=hex.ho.N2 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/highOrder NAME=hex.ho.N3 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.snes"
+    "BASE=base/highOrder NAME=tet.ho.N1 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes"
+    "BASE=base/highOrder NAME=tet.ho.N2 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes"
+    "BASE=base/highOrder NAME=tet.ho.N3 USE_TET=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.snes"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=5
+END_MESH=4
 
 
 # Detect the CPU type: we append this to the case name

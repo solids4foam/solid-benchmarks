@@ -28,7 +28,7 @@ linearGeometryTotalDisplacementCoeffs
 
     highOrderCoeffs
     {
-        highOrderJacobian true;
+        highOrderJacobian false;
         highOrderResidual true;
 
         LRECoeffs
@@ -46,8 +46,8 @@ linearGeometryTotalDisplacementCoeffs
 
     stabilisation
     {
-        type        RhieChow;
-        scaleFactor 0.1;
+        type        alpha;
+        scaleFactor 0.2;
     }
 }
 

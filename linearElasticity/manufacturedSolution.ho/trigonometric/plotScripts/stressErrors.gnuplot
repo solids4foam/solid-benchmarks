@@ -5,7 +5,7 @@ volume = 0.2**3
 #set size ratio 1
 
 set grid
-set xrange [10:60]
+set xrange [5:60]
 set yrange [1e-4:10]
 set xtics
 set xtics add (5, 25, 50)

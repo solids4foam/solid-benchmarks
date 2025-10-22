@@ -30,6 +30,8 @@ then
         solids4Foam::runApplication gmshToFoam gmsh/tet.msh
     fi
     solids4Foam::runApplication changeDictionary
+    solids4Foam::runApplication projectPointsToSphere cavity "(0 0 0)" 0.2 -overwrite
+    rm -rf 0
 
     # Move 0 back
     mv 0.tmp 0

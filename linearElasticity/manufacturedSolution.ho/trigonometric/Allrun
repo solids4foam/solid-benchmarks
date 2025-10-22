@@ -27,15 +27,27 @@ configs=(
     # "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
     # "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
     # "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=35 PETSC_FILE=petscOptions.ksponly"
-    # "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=65 PETSC_FILE=petscOptions.ksponly"
-    # "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=55 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
-    "BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=35 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=45 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=55 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=45 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=55 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=45 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=55 PETSC_FILE=petscOptions"
+    #"BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    "BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions"
+    "BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=2 Nn=45 PETSC_FILE=petscOptions"
+    "BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=3 Nn=55 PETSC_FILE=petscOptions"
 )
 
 # Define start and end mesh indices
-# Mesh input files are defined from 1 to 6
+# Mesh input files are defined from 1 to 19
 # END_MESH should be greater than START_MESH
 START_MESH=1
 END_MESH=7

@@ -8,9 +8,10 @@ source solids4FoamScripts.sh
 configs=(
     #"BASE=base/snes NAME=poly.hypre PETSC_FILE=petscOptions.hypre"
     #"BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
-    #"BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
-    #"BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=45 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.snes"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly N=3 Nn=65 PETSC_FILE=petscOptions.snes"
 )
 
 # Define start and end mesh indices
@@ -19,6 +20,11 @@ configs=(
 START_MESH=1
 END_MESH=4
 
+# Compile projectPoitnToSphere
+cd projectPointsToSphere
+wclean
+wmake
+cd ..
 
 # Detect the CPU type: we append this to the case name
 if [[ "$OSTYPE" == "darwin"* ]]
@@ -100,7 +106,9 @@ do
         fi
 
         # Project the cavity patch to a sphere to avoid write precision issue
-        solids4Foam::runApplication projectPointsToSphere cavity "(0 0 0)" 0.2 -overwrite
+        solids4Foam::runApplication projectPointsToSphere cavity "(0 0 0)" 0.2
+        mv 1/polyMesh/points constant/polyMesh/points
+        rm -rf 1/meshPhi 1/pointMotion  1/polyMesh
 
         # Update the PETSc options file
         if [ -n "${PETSC_FILE}" ]; then

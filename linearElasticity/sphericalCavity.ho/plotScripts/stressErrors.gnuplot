@@ -27,9 +27,9 @@ set rmargin 15
 set output "sphericalCavity_ho-tet.pdf"
 #set title"Tetrahedral unstructured mesh"
 plot \
-    (5e-1 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (15e-4 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (1e-5 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
+    (5e-4 * x) w l lw 2 dt 2 lc "red" notitle,\
+    (11e-7 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
+    (1e-8 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
     "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F*", \
     "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F*", \
     "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F", \

@@ -25,30 +25,52 @@ boundaryField
     negX
     {
         type            symmetry;
+        // type            analyticalSphericalCavityDisplacement;
+        // farFieldTractionZ 1e6;
+        // cavityRadius    0.2;
+        // E               200e+09;
+        // nu              0.3;
+        // value           uniform (0 0 0);
     }
     negY
     {
         type            symmetry;
+        // type            analyticalSphericalCavityDisplacement;
+        // farFieldTractionZ 1e6;
+        // cavityRadius    0.2;
+        // E               200e+09;
+        // nu              0.3;
+        // value           uniform (0 0 0);
     }
     posZ
     {
         type            analyticalSphericalCavityTraction;
+        //type            analyticalSphericalCavityDisplacement;
         farFieldTractionZ 1e6;
         cavityRadius    0.2;
+        E               200e+09;
         nu              0.3;
         value           uniform (0 0 0);
     }
     posY
     {
         type            analyticalSphericalCavityTraction;
+        //type            analyticalSphericalCavityDisplacement;
         farFieldTractionZ 1e6;
         cavityRadius    0.2;
+        E               200e+09;
         nu              0.3;
         value           uniform (0 0 0);
     }
     negZ
     {
         type            symmetry;
+        // type            analyticalSphericalCavityDisplacement;
+        // farFieldTractionZ 1e6;
+        // cavityRadius    0.2;
+        // E               200e+09;
+        // nu              0.3;
+        // value           uniform (0 0 0);
     }
     cavity
     {
@@ -56,12 +78,20 @@ boundaryField
         traction        uniform ( 0 0 0 );
         pressure        uniform 0;
         value           uniform (0 0 0);
+        // type            analyticalSphericalCavityDisplacement;
+        // farFieldTractionZ 1e6;
+        // cavityRadius    0.2;
+        // E               200e+09;
+        // nu              0.3;
+        // value           uniform (0 0 0);
     }
     posX
     {
         type            analyticalSphericalCavityTraction;
+        //type            analyticalSphericalCavityDisplacement;
         farFieldTractionZ 1e6;
         cavityRadius    0.2;
+        E               200e+09;
         nu              0.3;
         value           uniform (0 0 0);
     }

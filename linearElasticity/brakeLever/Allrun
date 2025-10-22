@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Case only tested with OpenFOAM.com
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+if ! command -v cartesianMesh &> /dev/null
+then
+    echo
+    echo "cartesianMesh command not found, which is required for this case."
+    echo "Please install cfMesh"
+    exit 0
+fi
+
+# Download geometry and prepare it for meshing
+wget https://www.solids4foam.com/tutorials/archive/lever.zip
+unzip lever.zip
+mv lever/* .
+rm -rf lever lever.zip
+cat *.stl >> domain.stl
+solids4Foam::runApplication scaleSurfaceMesh domain.stl domain_scaled.stl 0.001
+solids4Foam::runApplication surfaceToFMS domain_scaled.stl
+solids4Foam::runApplication surfaceFeatureEdges -angle 30 domain_scaled.fms domain_scaled_edges.fms
+
+# Create volume mesh
+solids4Foam::runApplication cartesianMesh
+
+# Check mesh
+solids4Foam::runApplication checkMesh
+
+# Run parallel
+solids4Foam::runApplication decomposePar
+solids4Foam::runParallel solids4Foam
+solids4Foam::runApplication reconstructPar

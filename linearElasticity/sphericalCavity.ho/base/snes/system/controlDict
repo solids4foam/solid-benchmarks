@@ -17,6 +17,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+libs            ("libsphericalCavity.so");
+
 application     solids4Foam;
 
 startFrom       startTime;
@@ -35,7 +37,7 @@ writeInterval   1;
 
 cycleWrite      0;
 
-writeFormat     binary;
+writeFormat     ascii;
 
 writePrecision  12;
 
@@ -52,7 +54,7 @@ functions
         type sphericalCavityAnalyticalSolution;
         farFieldTractionZ 1e6;
         cavityRadius 0.2;
-	E 200e9;
+        E 200e9;
         nu 0.3;
         cellDisplacement yes;
         pointDisplacement no;
