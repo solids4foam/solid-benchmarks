@@ -1,12 +1,11 @@
-set term pdfcairo dashed enhanced size 3.5, 3
+set term pdfcairo dashed enhanced size 3.25, 2
 set datafile separator " "
 
 volume = 0.2**3
-#set size ratio 1
 
 set grid
 set xrange [5:60]
-set yrange [1e-4:10]
+set yrange [1e-8:10]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -17,76 +16,66 @@ set format y "10^{%L}"
 set xlabel "Average cell edge (in mm)"
 set ylabel "Error (in MPa)"
 set key right bottom outside;
-set rmargin 15
+set rmargin 16
+set key spacing 1.2
 
-#set label "1^{st} order" at graph 0.5,0.86 center rotate by 10
-#set label "2^{nd} order" at graph 0.5,0.37 center rotate by 25
+# Polynomial guide lines (no title)
+set style line 1 lc rgb "red"    lt 2 lw 2 dt 2
+set style line 2 lc rgb "blue"   lt 2 lw 2 dt 2
+set style line 3 lc rgb "violet" lt 2 lw 2 dt 2
 
+# Data lines for each p-order (with titles)
+set style line 11 lc rgb "red"    pt 7 ps 0.5 lw 1
+set style line 12 lc rgb "red"    pt 6 ps 0.5 lw 1
+set style line 21 lc rgb "blue"   pt 5 ps 0.5 lw 1
+set style line 22 lc rgb "blue"   pt 4 ps 0.5 lw 1
+set style line 31 lc rgb "violet" pt 9 ps 0.5 lw 1
+set style line 32 lc rgb "violet" pt 8 ps 0.5 lw 1
 
-set output "mms_stressErrors_ho-hex.pdf"
-#set title "Hexahedral structured mesh"
+set output "mms_3D_stressErrors_hex_struct.pdf"
 plot \
-    (2e-2 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-3 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.4e-6 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "hex.struct.hypre-snes.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 5 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "hex.struct.hypre-snes.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 4 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "hex.struct.seg.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 5 lc "black" t "L_2 - S4F (SEG)", \
-    "hex.struct.seg.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 4 lc  "black" t "L_∞ - S4F (SEG)", \
-    "hex.struct.ho.N1.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 5 lc "red" t "L_2 - N1", \
-    "hex.struct.ho.N1.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 4 lc "red" t "L_∞ - N1", \
-    "hex.struct.ho.N2.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 5 lc "blue" t "L_2 - N2", \
-    "hex.struct.ho.N2.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 4 lc "blue" t "L_∞ - N2", \
-    "hex.struct.ho.N3.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 5 lc "violet" t "L_2 - N3", \
-    "hex.struct.ho.N3.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 4 lc "violet" t "L_∞ - N3"
+    (2e-2 * x)  w l ls 1 title "1^{st} order", \
+    (0.15e-3 * x**2) w l ls 2 title "2^{nd} order", \
+    (0.4e-6 * x**3) w l ls 3 title "3^{rd} order", \
+    "hex.struct.ho.N1.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+    "hex.struct.ho.N1.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "hex.struct.ho.N2.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+    "hex.struct.ho.N2.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
+    "hex.struct.ho.N3.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
+    "hex.struct.ho.N3.summary.txt" u ((volume/$4)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"
 
-set output "mms_stressErrors_ho-tet-struct.pdf"
-#set title "Tetrahedral structured mesh"
+set output "mms_3D_stressErrors_ho-tet_struct.pdf"
 plot \
-    (2e-2 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-3 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.4e-6 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.struct.hypre-snes.summary.txt" u ((4*(volume/$4)/3**0.5)**0.5*1e3):($7*1e-6) w lp ps 0.5 pt 7 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "tet.struct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 6 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "tet.struct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 7 lc "black" t "L_2 - S4F (SEG)", \
-    "tet.struct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 6 lc "black" t "L_∞ - S4F (SEG)", \
-    "tet.struct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 7 lc "red" t "L_2 - N1", \
-    "tet.struct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 6 lc "red" t "L_∞ - N1", \
-    "tet.struct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 7 lc "blue" t "L_2 - N2", \
-    "tet.struct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 6 lc "blue" t "L_∞ - N2", \
-    "tet.struct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 7 lc "violet" t "L_2 - N3", \
-    "tet.struct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 6 lc "violet" t "L_∞ - N3"
+    (2e-2 * x)  w l ls 1 title "1^{st} order", \
+    (0.15e-3 * x**2) w l ls 2 title "2^{nd} order", \
+    (0.4e-6 * x**3) w l ls 3 title "3^{rd} order", \
+    "tet.struct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+    "tet.struct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "tet.struct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+    "tet.struct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
+    "tet.struct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
+    "tet.struct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"
 
-set output "mms_stressErrors_ho-tet-unstruct.pdf"
-#set title"Tetrahedral unstructured mesh"
+set output "mms_3D_stressErrors_ho-tet_unstruct.pdf"
 plot \
-    (2e-2 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-3 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.4e-6 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "tet.unstruct.hypre-snes.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F (SEG)", \
-    "tet.unstruct.seg.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "black" t "L_∞ - S4F (SEG)", \
-    "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "red" t "L_2 - N1", \
-    "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "red" t "L_∞ - N1", \
-    "tet.unstruct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "blue" t "L_2 - N2", \
-    "tet.unstruct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "blue" t "L_∞ - N2", \
-    "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "violet" t "L_2 - N3", \
-    "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "violet" t "L_∞ - N3"
+    (2e-2 * x)  w l ls 1 title "1^{st} order", \
+    (0.15e-3 * x**2) w l ls 2 title "2^{nd} order", \
+    (0.4e-6 * x**3) w l ls 3 title "3^{rd} order", \
+    "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+    "tet.unstruct.ho.N1.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "tet.unstruct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+    "tet.unstruct.ho.N2.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
+    "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
+    "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($8*1e-6) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"
 
-set output "mms_stressErrors_ho-poly.pdf"
-#set title"Polyhedral mesh"
+set output "mms_3D_stressErrors_ho-poly_struct.pdf"
 plot \
-    (2e-2 * x) w l lw 2 dt 2 lc "red" notitle,\
-    (0.15e-3 * x**2) w l lw 2 dt 2 lc "blue" notitle,\
-    (0.4e-6 * x**3) w l lw 2 dt 2 lc "violet" notitle,\
-    "poly.hypre-snes.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "slategrey" t "L_2 - S4F (SNES)", \
-    "poly.hypre-snes.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "slategrey" t "L_∞ - S4F (SNES)", \
-    "poly.seg.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "black" t "L_2 - S4F (SEG)", \
-    "poly.seg.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "black" t "L_∞ - S4F (SEG)", \
-    "poly.ho.N1.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "red" t "L_2 - N1", \
-    "poly.ho.N1.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "red" t "L_∞ - N1", \
-    "poly.ho.N2.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "blue" t "L_2 - N2", \
-    "poly.ho.N2.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "blue" t "L_∞ - N2", \
-    "poly.ho.N3.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ps 0.5 pt 9 lc "violet" t "L_2 - N3", \
-    "poly.ho.N3.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ps 0.5 pt 8 lc "violet" t "L_∞ - N3"
+    (2e-2 * x)  w l ls 1 title "1^{st} order", \
+    (0.15e-3 * x**2) w l ls 2 title "2^{nd} order", \
+    (0.4e-6 * x**3) w l ls 3 title "3^{rd} order", \
+    "poly.struct.ho.N1.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+    "poly.struct.ho.N1.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "poly.struct.ho.N2.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+    "poly.struct.ho.N2.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
+    "poly.struct.ho.N3.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($7*1e-6) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
+    "poly.struct.ho.N3.summary.txt" u ((6*(volume/$4)/pi)**(1.0/3.0)*1e3):($8*1e-6) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"

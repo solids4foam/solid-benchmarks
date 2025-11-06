@@ -12,43 +12,46 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      createPatchDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+pointSync false;
 
-linearGeometryTotalDisplacementCoeffs
-{
-    // Solution algorithm
-    solutionAlgorithm PETScSNES;
-
-    optionsFile petscOptions.ksponly;
-
-    highOrderCoeffs
+// Patches to create.
+patches
+(
     {
-	highOrderJacobian true;
-	highOrderResidual true;
+        // Name of new patch
+        name frontAndBack;
 
-        LRECoeffs
+        // Dictionary to construct new patch from
+        patchInfo
         {
-            N 1;
-            Nn 10;
-            weightFunction radiallySymmetricExponential;
-            k 6;
-    	    maxStencilSize 80;
-            useQRDecomposition true;
-            useGlobalStencils true;
-            calcConditionNumber false;
+            type empty;
         }
+
+        // How to construct: either from 'patches' or 'set'
+        constructFrom patches;
+	patches         (front back);
     }
 
-    stabilisation
     {
-        type        RhieChow;
-        scaleFactor 0.1;
+        // Name of new patch
+        name sides;
+
+        // Dictionary to construct new patch from
+        patchInfo
+        {
+            type patch;
+        }
+
+        // How to construct: either from 'patches' or 'set'
+        constructFrom patches;
+	patches         (sides1 sides2 sides3 sides4);
     }
-}
+);
+
+
 
 // ************************************************************************* //

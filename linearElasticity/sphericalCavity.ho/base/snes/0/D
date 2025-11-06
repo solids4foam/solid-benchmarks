@@ -74,9 +74,15 @@ boundaryField
     }
     cavity
     {
-        type            solidTraction;
-        traction        uniform ( 0 0 0 );
-        pressure        uniform 0;
+	type            analyticalSphericalCavityTraction;
+        farFieldTractionZ 1e6;
+        cavityRadius    0.2;
+        E               200e+09;
+        nu              0.3;
+        // value           uniform (0 0 0);
+        // type            solidTraction;
+        // traction        uniform ( 0 0 0 );
+        // pressure        uniform 0;
         value           uniform (0 0 0);
         // type            analyticalSphericalCavityDisplacement;
         // farFieldTractionZ 1e6;
