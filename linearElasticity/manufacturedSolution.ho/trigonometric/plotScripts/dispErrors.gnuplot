@@ -4,7 +4,7 @@ set datafile separator " "
 volume = 0.2**3
 
 set grid
-set xrange [0.1:60]
+set xrange [3:60]
 set yrange [1e-9:0.2]
 set xtics
 set xtics add (5, 25, 50)

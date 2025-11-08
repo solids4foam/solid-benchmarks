@@ -13,15 +13,15 @@ solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true"
 )
 
 # Define start and end mesh indices
@@ -106,18 +106,28 @@ do
             sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
         fi
 
+	# Update how Jacobian is calculated
+        if [ -n "${HOJAC}" ]; then
+            sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
+        fi
+
+	# Update how Residual is calculated
+        if [ -n "${HORES}" ]; then
+            sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
         # Run the solver
         # If "gtime" is available (could be called "time" on Linux), use it to
         # record the max memory usage
         if command -v gtime &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif [ -x /usr/bin/time ]
         then
-           echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            echo "Running solids4Foam on ${CASE} with /usr/bin/time"
+            /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif command -v time &> /dev/null
         then
@@ -131,14 +141,20 @@ do
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "gtime/time" log.solids4Foam; then
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+        else
+            # Record the time
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        fi
+
+        # Extract results from solver log and append them to a summary file
+        echo; echo "Appending results to ${SUMMARY}"
         if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"
         fi
-
-        # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
 
         # Number of cells
         CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
@@ -148,7 +164,6 @@ do
 
         # Extract the LInfinity (max) error for displacement
         DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
 
         # Extract the L2 (average) error for mag(sigma)
         STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')

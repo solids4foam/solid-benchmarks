@@ -38,7 +38,7 @@ configs=(
 # Mesh input files are defined from 1 to 19
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=17
+END_MESH=13
 
 
 # Detect the CPU type: we append this to the case name
@@ -140,12 +140,12 @@ do
         if command -v gtime &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif [ -x /usr/bin/time ]
         then
             echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif command -v time &> /dev/null
         then
@@ -159,14 +159,18 @@ do
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
-        if grep -q "Maximum resident" log.solids4Foam; then
+        if grep -q "gtime/time" log.solids4Foam; then
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+        else
+            # Record the time
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        fi
+
+	if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"
         fi
-
-        # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
 
         # Number of cells
         CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
