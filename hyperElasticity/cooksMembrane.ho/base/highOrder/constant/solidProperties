@@ -21,8 +21,10 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
 nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 {
+    // Solution algorithm
+    //solutionAlgorithm implicitCoupled;
     solutionAlgorithm PETScSNES;
-    optionsFile petscOptions.lu;
+    optionsFile petscOptions.ksponly;
 
     highOrderCoeffs
     {
@@ -31,15 +33,21 @@ nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
 
         LRECoeffs
         {
-            k 6;
-            N 3;
-            weightFunction radiallySymmetricExponential;
+            N 1;
             Nn 10;
+            weightFunction radiallySymmetricExponential;
+            k 6;
             maxStencilSize 80;
             useQRDecomposition true;
             useGlobalStencils true;
             calcConditionNumber false;
         }
+    }
+
+    stabilisation
+    {
+        type        alpha;
+        scaleFactor 0.1;
     }
 }
 

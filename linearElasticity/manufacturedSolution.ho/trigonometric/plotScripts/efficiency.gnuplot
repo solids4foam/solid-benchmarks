@@ -34,34 +34,66 @@ set style line 22 lc rgb "blue"   pt 4 ps 0.5 lw 1
 set style line 31 lc rgb "violet" pt 9 ps 0.5 lw 1
 set style line 32 lc rgb "violet" pt 8 ps 0.5 lw 1
 
-set output "mms_3D_efficiency_hex_struct.pdf"
+set output "mms_3D_dispEfficiency_hex_struct.pdf"
 plot \
     "hex.struct.seg.summary.txt" u  2:($5*1e6) w lp ls 01 title"S4F_{seg}", \
     "hex.struct.hypre-snes.summary.txt" u 2:($5*1e6) w lp ls 02 title "S4F_{snes}", \
     "hex.struct.ho.N1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
     "hex.struct.ho.N2.summary.txt" u 2:($5*1e6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
-    "hex.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3", \
+    "hex.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
 
-set output "mms_3D_efficiency_tet_struct.pdf"
+set output "mms_3D_dispEfficiency_tet_struct.pdf"
 plot \
     "tet.struct.seg.summary.txt" u  2:($5*1e6) w lp ls 01 title"S4F_{seg}", \
     "tet.struct.hypre-snes.summary.txt" u 2:($5*1e6) w lp ls 02 title "S4F_{snes}", \
     "tet.struct.ho.N1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
     "tet.struct.ho.N2.summary.txt" u 2:($5*1e6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
-    "tet.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3", \
+    "tet.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
 
-set output "mms_3D_efficiency_tet_unstruct.pdf"
+set output "mms_3D_dispEfficiency_tet_unstruct.pdf"
 plot \
     "tet.unstruct.seg.summary.txt" u  2:($5*1e6) w lp ls 01 title"S4F_{seg}", \
     "tet.unstruct.hypre-snes.summary.txt" u 2:($5*1e6) w lp ls 02 title "S4F_{snes}", \
     "tet.unstruct.ho.N1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
     "tet.unstruct.ho.N2.summary.txt" u 2:($5*1e6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
-    "tet.unstruct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3", \
+    "tet.unstruct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
 
-set output "mms_3D_efficiency_poly_struct.pdf"
+set output "mms_3D_dispeEfficiency_poly_struct.pdf"
 plot \
     "poly.struct.seg.summary.txt" u  2:($5*1e6) w lp ls 01 title"S4F_{seg}", \
     "poly.struct.hypre-snes.summary.txt" u 2:($5*1e6) w lp ls 02 title "S4F_{snes}", \
     "poly.struct.ho.N1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
     "poly.struct.ho.N2.summary.txt" u 2:($5*1e6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
-    "poly.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3", \
+    "poly.struct.ho.N3.summary.txt" u 2:($5*1e6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
+
+set output "mms_3D_stressEfficiency_hex_struct.pdf"
+plot \
+    "hex.struct.seg.summary.txt" u  2:($7*1e-6) w lp ls 01 title"S4F_{seg}", \
+    "hex.struct.hypre-snes.summary.txt" u 2:($7*1e-6) w lp ls 02 title "S4F_{snes}", \
+    "hex.struct.ho.N1.summary.txt" u 2:($7*1e-6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
+    "hex.struct.ho.N2.summary.txt" u 2:($7*1e-6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
+    "hex.struct.ho.N3.summary.txt" u 2:($7*1e-6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
+
+set output "mms_3D_stressEfficiency_tet_struct.pdf"
+plot \
+    "tet.struct.seg.summary.txt" u  2:($7*1e-6) w lp ls 01 title"S4F_{seg}", \
+    "tet.struct.hypre-snes.summary.txt" u 2:($7*1e-6) w lp ls 02 title "S4F_{snes}", \
+    "tet.struct.ho.N1.summary.txt" u 2:($7*1e-6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
+    "tet.struct.ho.N2.summary.txt" u 2:($7*1e-6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
+    "tet.struct.ho.N3.summary.txt" u 2:($7*1e-6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
+
+set output "mms_3D_stressEfficiency_tet_unstruct.pdf"
+plot \
+    "tet.unstruct.seg.summary.txt" u  2:($7*1e-6) w lp ls 01 title"S4F_{seg}", \
+    "tet.unstruct.hypre-snes.summary.txt" u 2:($7*1e-6) w lp ls 02 title "S4F_{snes}", \
+    "tet.unstruct.ho.N1.summary.txt" u 2:($7*1e-6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
+    "tet.unstruct.ho.N2.summary.txt" u 2:($7*1e-6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
+    "tet.unstruct.ho.N3.summary.txt" u 2:($7*1e-6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
+
+set output "mms_3D_stressEfficiency_poly_struct.pdf"
+plot \
+    "poly.struct.seg.summary.txt" u  2:($7*1e-6) w lp ls 01 title"S4F_{seg}", \
+    "poly.struct.hypre-snes.summary.txt" u 2:($7*1e-6) w lp ls 02 title "S4F_{snes}", \
+    "poly.struct.ho.N1.summary.txt" u 2:($7*1e-6) w lp ls 11  title "{/Times-Italic p}_{ }=1", \
+    "poly.struct.ho.N2.summary.txt" u 2:($7*1e-6) w lp ls 21  title "{/Times-Italic p}_{ }=2", \
+    "poly.struct.ho.N3.summary.txt" u 2:($7*1e-6) w lp ls 31  title "{/Times-Italic p}_{ }=3"

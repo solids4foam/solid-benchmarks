@@ -33,7 +33,7 @@ set style line 22 lc rgb "blue"   pt 4 ps 0.5 lw 1
 set style line 31 lc rgb "violet" pt 9 ps 0.5 lw 1
 set style line 32 lc rgb "violet" pt 8 ps 0.5 lw 1
 
-set output "cantilever_dispErrors_hex.pdf"
+set output "cantilever_dispErrors-hex.pdf"
 plot \
     (2e-6 * x**2)   w l ls 1 title "2^{nd} order", \
     (4e-8 * x**3)   w l ls 2 title "3^{rd} order", \
@@ -49,7 +49,7 @@ plot \
     (2e-6 * x**2)   w l ls 1 title "2^{nd} order", \
     (4e-8 * x**3)   w l ls 2 title "3^{rd} order", \
     "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($5) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
-    "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($6)  w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "tet.struct.ho.N1.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
     "tet.struct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($5) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
     "tet.struct.ho.N2.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
     "tet.struct.ho.N3.summary.txt" u ((4*(beamArea/$4)/3**0.5)**0.5*1e3):($5) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \

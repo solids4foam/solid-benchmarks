@@ -6,15 +6,15 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-    "BASE=base/segregated NAME=hex.seg"
-    "BASE=base/segregated NAME=tet.seg GMSH_FILE=cooksMembrane"
-    "BASE=base/highOrder NAME=hex.ho.N1 N=1 Nn=7 PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.ho.N2 N=2 Nn=20 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
+    #"BASE=base/segregated NAME=hex.seg"
+    "BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
+    #"BASE=base/highOrder NAME=hex.ho.N1 N=1 Nn=7 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/highOrder NAME=hex.ho.N2 N=2 Nn=20 PETSC_FILE=petscOptions.lu"
     #"BASE=base/highOrder NAME=hex.ho.N3 N=3 Nn=30 PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.ho.N1 N=1 Nn=7  GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.ho.N2 N=2 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.ho.N3 N=3 Nn=10 GMSH_FILE=cooksMembrane PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.ho.N1 N=1 Nn=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N2 N=2 Nn=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N3 N=3 Nn=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
 )
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
@@ -22,7 +22,7 @@ configs=(
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 8
 START_MESH=1
-END_MESH=8
+END_MESH=7
 
 
 # Detect the CPU type: we append this to the case name
@@ -39,9 +39,8 @@ else
     CPU_TYPE="Unknown_CPU"
 fi
 
-
 # Create timestamped working directory for this run
-DATE=$(date +%Y%m%d_%H%M%S)
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
 RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
@@ -122,18 +121,28 @@ do
             sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
         fi
 
+	# Update how Jacobian is calculated
+        if [ -n "${HOJAC}" ]; then
+            sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
+        fi
+
+	# Update how Residual is calculated
+        if [ -n "${HORES}" ]; then
+            sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
         # Run the solver
         # If "gtime" is available (could be called "time" on Linux), use it to
         # record the max memory usage
         if command -v gtime &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif [ -x /usr/bin/time ]
         then
             echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+            /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
 
         elif command -v time &> /dev/null
         then
@@ -147,6 +156,14 @@ do
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "gtime/time" log.solids4Foam; then
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+        else
+            # Record the time
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        fi
+
+        # Extract results from solver log and append them to a summary file
         if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
@@ -155,9 +172,6 @@ do
 
         # Number of cells
         CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
-
-        # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
 
         # Extract the reference point vertical displacement
         DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
@@ -182,49 +196,9 @@ then
     for f in *gnuplot
     do
         echo "Running gnuplot on $f"
-        gnuplot "$f"
+        gnuplot "$f" 2>/dev/null
     done
 fi
-
-# Extract comparison of JFNK and segregated for the hex meshes
-# if [[ -f hex.lu.summary.txt && -f hex.seg.summary.txt ]]
-# then
-#     # Define input files
-#     FILE1="hex.lu.summary.txt"
-#     FILE2="hex.seg.summary.txt"
-#     OUTPUT="tableJFNKvsSeg_membraneii.tex"
-
-#     # Define mesh sizes for the rows in the table
-#     MESH_SIZES=("9" "36" "144" "576" "\$2\,304\$" "\$9\,216\$" "\$36\,864\$" "\$147\,456\$")
-
-#     # Extract columns and write to the output file
-#     {
-#         for i in $(seq 1 $((${#MESH_SIZES[@]}))); do
-#             # Extract columns 2 and 3 from each file
-#             F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
-#             F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
-#             F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
-#             F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
-
-#             if [[ i -eq 1 ]]
-#             then
-#                 echo -e "\t\\\textbf{Membrane ii}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             elif [[ i -eq 2 ]]
-#             then
-#                 echo -e "\t\\emph{2-D, static,}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             elif [[ i -eq 3 ]]
-#             then
-#                 echo -e "\t\\emph{hyperelastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             else
-#                 echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
-#             fi
-#         done
-#     } > "$OUTPUT"
-
-#     echo -e "\hline" >> "$OUTPUT"
-
-#     echo; echo "Table generated in $OUTPUT"
-# fi
 
 # Exit the run directory
 cd ..

@@ -17,8 +17,8 @@ if [ "$USE_TET" -eq 1 ]
 then
     if command -v gmsh &>/dev/null
     then
-        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/plateHole.geo
-        solids4Foam::runApplication gmshToFoam gmsh/plateHole.msh
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/tet-unstructured.geo
+        solids4Foam::runApplication gmshToFoam gmsh/tet-unstructured.msh
         solids4Foam::runApplication changeDictionary
     fi
 else

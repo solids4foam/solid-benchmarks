@@ -11,4 +11,4 @@ cleanCase
 \rm -rf system/*Subset constant/*Subset postProcessing
 
 # Remove the mesh
-rm -f plateHole.msh
+rm -f *.msh gmsh/*.msh
