@@ -39,7 +39,6 @@ file_A = "abaqus.dat"
 # Assume the mesh spacing is being halved for each succesive mesh
 set output "CooksMembrane-hex-neoHookeanTipDispConvergence.pdf"
 plot \
-    "hex.lu.summary.txt" u (dx/(2**($0))):($5*1000) w lp pt 6 ps 0.75 lw 1.2 lc "black" t "solids4foam",\
     file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 0.75 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
     file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 0.75 lw 1.2 lc "black!40" t "Pelteret and McBride (2016) - Q2", \
     file_A u 2:4 w lp pt 4 ps 0.75 lw 1.2 lc "purple" t "Abaqus (CPE4H)",\
@@ -49,7 +48,6 @@ plot \
 
 set output "CooksMembrane-tet-neoHookeanTipDispConvergence.pdf"
 plot \
-    "tet.seg.summary.txt" u (dx/(2**($0))):($5*1000) w lp pt 6 ps 0.75 lw 1.2 lc "black" t "solids4foam",\
     file_D u (dxZT/(2**($0))):($2) w lp pt 8 ps 0.75 lw 1.2 lc "gray" t "Pelteret and McBride (2016) - Q1",\
     file_D u (dxZT/(2**($0))):($3) w lp pt 4 ps 0.75 lw 1.2 lc "black!40" t "Pelteret and McBride (2016) - Q2", \
     file_A u 2:4 w lp pt 4 ps 0.75 lw 1.2 lc "purple" t "Abaqus (CPE4H)",\

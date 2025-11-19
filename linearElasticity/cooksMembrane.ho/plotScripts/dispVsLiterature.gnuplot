@@ -1,8 +1,6 @@
 set term pdfcairo dashed enhanced size 3.25,2
 set datafile separator " "
 
-set size ratio 0.7
-
 set grid
 set xrange [0.099:20]
 set yrange [14:34]
@@ -16,7 +14,7 @@ set format x "%g"
 #set ytics 0.002
 set xlabel "Average cell spacing (in mm)"
 set ylabel "Reference point vertical\n displacement (in µm)"
-set key bottom center
+set key left b
 
 # Data lines for each p-order (with titles)
 set style line 11 lc rgb "red"    pt 7 ps 0.75 lw 1
@@ -40,7 +38,6 @@ area=1440
 
 set output "CooksMembrane-tet-hookeanTipDispConvergence.pdf"
 plot \
-    "tet.seg.summary.txt" u (dx/(2**($0))):($5*1000) w lp pt 6 ps 0.75 lw 1.2 lc "black" t "solids4foam",\
     file_ZT u (dxZT/(2**($0))):($2) w lp pt 8 ps 1 lw 1.2 lc "gray" t "Zienkiewicz and Taylor (2000) - Q4",\
     file_A u 2:4 w lp pt 4 ps 1 lw 1.2 lc "purple" t "Abaqus (CPE4H)",\
     "tet.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5):($5*1000*1000) w lp ls 11 t"{/Times-Italic p}_{ }=1", \

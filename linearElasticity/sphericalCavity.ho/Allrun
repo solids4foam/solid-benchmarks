@@ -6,20 +6,23 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    #"BASE=base/snes NAME=poly.hypre PETSC_FILE=petscOptions.hypre"
-    #"BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
-    #"BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=45 PETSC_FILE=petscOptions.snes"
-    #"BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.snes"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=100 PETSC_FILE=petscOptions.snes"
-    #"BASE=base/highOrder-new NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.snes"
-    #"BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly N=3 Nn=65 PETSC_FILE=petscOptions.snes"
+    #"BASE=base/snes NAME=tet.hypre PETSC_FILE=petscOptions.hypre GMSH_FILE=tet"
+    "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/snes NAME=poly.unstruct.hypre PETSC_FILE=petscOptions.hypre GMSH_FILE=poly"
+    "BASE=base/segregated NAME=poly.unstruct.seg GMSH_FILE=poly"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N1 GMSH_FILE=poly N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N2 GMSH_FILE=poly N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=5
+END_MESH=6
 
 # Compile projectPoitnToSphere
 cd projectPointsToSphere
@@ -43,7 +46,7 @@ fi
 
 
 # Create timestamped working directory for this run
-DATE=$(date +%Y%m%d_%H%M%S)
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
 RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
@@ -54,6 +57,9 @@ cd "${RUN_DIR}"
 # Iterate through configurations
 for config in "${configs[@]}"
 do
+    # Reset variables in the case some variable is not used
+    unset GMSH_FILE PETSC_FILE N Nn HOJAC HORES
+
     # Parse the configuration string
     eval $config
     echo; echo "***************************************"
@@ -126,33 +132,54 @@ do
             sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
         fi
 
+	# Update how Jacobian is calculated
+        if [ -n "${HOJAC}" ]; then
+            sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
+        fi
+
+	# Update how Residual is calculated
+        if [ -n "${HORES}" ]; then
+            sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
         # Run the solver
         # If "gtime" is available (could be called "time" on Linux), use it to
         # record the max memory usage
         if command -v gtime &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+        elif [ -x /usr/bin/time ]
+        then
+            echo "Running solids4Foam on ${CASE} with /usr/bin/time"
+            /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
         elif command -v time &> /dev/null
         then
-            echo "Running solids4Foam on ${CASE} with time"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
+            time solids4Foam &> log.solids4Foam
+
         else
             echo "Running solids4Foam on ${CASE}"
-            # Strange PETSc issue on Macbook where I need to use mpirun for serial
             solids4Foam::runApplication solids4Foam
         fi
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "gtime/time" log.solids4Foam; then
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+        else
+            # Record the time
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        fi
+
+        # Extract results from solver log and append them to a summary file
         if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"
         fi
-
-        # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
 
         # Number of cells
         CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
@@ -185,7 +212,6 @@ if command -v gnuplot &>/dev/null
 then
     # Copy gnuplot scripts
     cp ../plotScripts/*gnuplot .
-    cp ../plotScripts/orderOfAccuracySlopes*.dat .
 
     # Run all scripts
     for f in *gnuplot

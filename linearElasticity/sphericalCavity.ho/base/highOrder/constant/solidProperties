@@ -47,7 +47,7 @@ linearGeometryTotalDisplacementCoeffs
     stabilisation
     {
         type        alpha;
-        scaleFactor 0.0;
+        scaleFactor 0.1;
     }
 }
 

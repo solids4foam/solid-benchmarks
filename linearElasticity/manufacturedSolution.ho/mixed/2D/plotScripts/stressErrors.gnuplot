@@ -2,10 +2,10 @@ set term pdfcairo dashed enhanced size 3.25, 2
 set datafile separator " "
 
 set grid
-set xrange [25:1000]
+set xrange [25:500]
 set yrange [1e-5:5]
 set xtics
-set xtics add (5, 25, 50)
+set xtics add (5, 25, 50, 500)
 set ytics
 set logscale x
 set logscale y
