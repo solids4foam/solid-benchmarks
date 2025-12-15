@@ -1,0 +1,86 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : gmshToFoam gmsh/mesh.msh
+Date   : Dec 05 2025
+Time   : 10:48:59
+Host   : Ivans-MacBook-Pro.local
+PID    : 15919
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/hyperElasticity/pressurisedCylinder.ho/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Starting to read mesh format at line 2
+Read format version 2.2  ascii 0
+
+Starting to read physical names at line 5
+Physical names:7
+    Surface 2	front
+    Surface 3	back
+    Surface 4	symmetry-y
+    Surface 5	outer
+    Surface 6	symmetry-x
+    Surface 7	inner
+    Volume 1	internal
+
+Starting to read points at line 15
+Vertices to be read: 26196
+Vertices read:26196
+
+Starting to read cells at line 26214
+Cells to be read: 39064
+
+Mapping region 3 to Foam patch 0
+Mapping region 4 to Foam patch 1
+Mapping region 5 to Foam patch 2
+Mapping region 6 to Foam patch 3
+Mapping region 7 to Foam patch 4
+Mapping region 2 to Foam patch 5
+Mapping region 1 to Foam cellZone 0
+Cells:
+    total:12870
+    hex  :12870
+    prism:0
+    pyr  :0
+    tet  :0
+
+CellZones:
+Zone	Size
+    0	12870
+
+Patch 0 gets name back
+Patch 1 gets name symmetry-y
+Patch 2 gets name outer
+Patch 3 gets name symmetry-x
+Patch 4 gets name inner
+Patch 5 gets name front
+
+--> FOAM Warning : 
+    From Foam::polyMesh::polyMesh(const IOobject &, pointField &&, const cellShapeList &, const faceListList &, const wordList &, const wordList &, const word &, const word &, const wordList &, const bool)
+    in file meshes/polyMesh/polyMeshFromShapeMesh.C at line 640
+    Found 26194 undefined faces in mesh; adding to default patch defaultFaces
+Finding faces of patch 0
+Finding faces of patch 1
+Finding faces of patch 2
+Finding faces of patch 3
+Finding faces of patch 4
+Finding faces of patch 5
+
+FaceZones:
+Zone	Size
+
+Writing zone 0 to cellZone internal and cellSet
+End
+

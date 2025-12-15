@@ -97,8 +97,8 @@ set output "mms_3D_alpha_efficiency_hex_struct.pdf"
 plot \
     "hex.struct.ho.N1.alpha.0.001.summary.txt" u 2:($5*1e6) w lp ls 10  title "{/Symbol a}=0.001 ({/Times-Italic p}_{ }=1)", \
     "hex.struct.ho.N1.alpha.0.01.summary.txt" u 2:($5*1e6) w lp ls 1  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=1)", \
-    "hex.struct.ho.N1.alpha.0.1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=1)", \
-    "hex.struct.ho.N1.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 111  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=1)", \
+    "hex.struct.ho.N1.alpha.0.1.summary.txt" u 2:($5*1e6) w lp ls 11  title "{/Symbol a}=0.1 ({/Times-Italic p}_{ }=1)", \
+    "hex.struct.ho.N1.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 111  title "{/Symbol a}=1 ({/Times-Italic p}_{ }=1)", \
     "hex.struct.ho.N2.alpha.0.001.summary.txt" u 2:($5*1e6) w lp ls 20  title "{/Symbol a}=0.001 ({/Times-Italic p}_{ }=2)", \
     "hex.struct.ho.N2.alpha.0.01.summary.txt" u 2:($5*1e6) w lp ls 2  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=2)", \
     "hex.struct.ho.N2.alpha.0.1.summary.txt" u 2:($5*1e6) w lp ls 22  title "{/Symbol a}=0.1 ({/Times-Italic p}_{ }=2)", \

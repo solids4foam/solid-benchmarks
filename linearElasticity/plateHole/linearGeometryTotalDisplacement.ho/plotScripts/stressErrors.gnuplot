@@ -4,8 +4,8 @@ set datafile separator " "
 area= 3.803650459
 
 set grid
-set xrange [5:150]
-set yrange [1e-7:0.1]
+set xrange [4:130]
+set yrange [1e-8:0.1]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -37,7 +37,7 @@ set output "plateHole_stressErrors_hex.pdf"
 plot \
     (2e-4 * x**1) w l ls 1 title "1^{st} order", \
     (1e-6 * x**2) w l ls 2 title "2^{nd} order", \
-    (5e-9 * x**3) w l ls 3 title "2^{rd} order", \
+    (5e-9 * x**3) w l ls 3 title "3^{rd} order", \
     "hex.struct.ho.N1.summary.txt" u ((area/$4)**0.5*1e3):($5*1e6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
     "hex.struct.ho.N1.summary.txt" u ((area/$4)**0.5*1e3):($6*1e6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
     "hex.struct.ho.N2.summary.txt" u ((area/$4)**0.5*1e3):($5*1e6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
@@ -49,8 +49,8 @@ plot \
 set output "plateHole_stressErrors_tet-unstruct.pdf"
 plot \
     (2e-4 * x**1) w l ls 1 title "1^{st} order", \
-    (1e-6 * x**2) w l ls 2 title "2^{nd} order", \
-    (5e-9 * x**3) w l ls 3 title "2^{rd} order", \
+    (0.4e-6 * x**2) w l ls 2 title "2^{nd} order", \
+    (0.4e-9 * x**3) w l ls 3 title "3^{rd} order", \
     "tet.unstruct.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($5*1e6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
     "tet.unstruct.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($6*1e6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
     "tet.unstruct.ho.N2.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($5*1e6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
@@ -63,7 +63,7 @@ set output "plateHole_stressErrors_tet-struct.pdf"
 plot \
     (2e-4 * x**1) w l ls 1 title "1^{st} order", \
     (1e-6 * x**2) w l ls 2 title "2^{nd} order", \
-    (5e-9 * x**3) w l ls 3 title "2^{rd} order", \
+    (5e-9 * x**3) w l ls 3 title "3^{rd} order", \
     "tet.struct.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($5*1e6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
     "tet.struct.ho.N1.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($6*1e6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
     "tet.struct.ho.N2.summary.txt" u ((4*(area/$4)/3**0.5)**0.5*1e3):($5*1e6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \

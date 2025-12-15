@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Use tet (1) or hex (0) volumes
+USE_TET=0
+
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Create the mesh
+if command -v gmsh &>/dev/null
+then
+
+    if [ "$USE_TET" -eq 1 ]
+    then
+        cp gmsh/tet-unstructured.geo gmsh/mesh.geo
+    else
+        cp gmsh/hex-structured.geo gmsh/mesh.geo
+    fi
+
+    solids4Foam::runApplication gmsh -3 -format msh2 gmsh/mesh.geo
+    solids4Foam::runApplication gmshToFoam gmsh/mesh.msh
+    rm -rf gmsh/mesh.geo gmsh/mesh.msh
+    solids4Foam::runApplication changeDictionary
+    solids4Foam::runApplication checkMesh
+else
+    echo "gmsh mesher not found!"
+    exit 1
+fi
+
+# Run solver
+solids4Foam::runApplication solids4Foam
+
+solids4Foam::runApplication postProcess -func sampleDict -latestTime
+
+if ! command -v python3 &> /dev/null
+then
+    echo "python3 not found. Load python environment, aborting..."
+    exit 1
+fi
+
+INPUT_FILE="postProcessing/sampleDict/100/line_D_sigma:Transformed.xy"
+OUTPUT_FILE="filteredSigmaTransformed.dat"
+TOL="0.3"
+./filterHoopAndRadialStress.py "$INPUT_FILE" "$OUTPUT_FILE" --tol "$TOL"
+
+if  command -v gnuplot &> /dev/null
+then
+    gnuplot  stressAlongLine.gplt
+fi

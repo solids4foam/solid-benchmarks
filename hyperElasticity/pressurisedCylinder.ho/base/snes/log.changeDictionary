@@ -1,0 +1,82 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _1d8f0d55f7-20231221 OPENFOAM=2312 version=v2312
+Arch   : "LSB;label=32;scalar=64"
+Exec   : changeDictionary
+Date   : Dec 05 2025
+Time   : 10:48:59
+Host   : Ivans-MacBook-Pro.local
+PID    : 15921
+I/O    : uncollated
+Case   : /Volumes/OpenFOAM/work/solid-benchmarks-ib/hyperElasticity/pressurisedCylinder.ho/base/snes
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Read dictionary changeDictionaryDict with replacements for dictionaries 1(boundary)
+Reading polyMesh/boundary file to extract patch names
+Loaded dictionary boundary with entries 6(back symmetry-y outer symmetry-x inner front)
+Replacing entries in dictionary boundary
+Special handling of boundary as polyMesh/boundary file.
+Merging entries from 4(back front symmetry-x symmetry-y)
+fieldDict:
+{
+    back
+    {
+        type            empty;
+        physicalType    empty;
+        nFaces          12870;
+        startFace       25513;
+    }
+    symmetry-y
+    {
+        type            symmetry;
+        physicalType    symmetry;
+        nFaces          117;
+        startFace       38383;
+    }
+    outer
+    {
+        type            patch;
+        physicalType    patch;
+        nFaces          110;
+        startFace       38500;
+    }
+    symmetry-x
+    {
+        type            symmetry;
+        physicalType    symmetry;
+        nFaces          117;
+        startFace       38610;
+    }
+    inner
+    {
+        type            patch;
+        physicalType    patch;
+        nFaces          110;
+        startFace       38727;
+    }
+    front
+    {
+        type            empty;
+        physicalType    empty;
+        nFaces          12870;
+        startFace       38837;
+    }
+}
+
+Writing modified boundary
+
+End
+
