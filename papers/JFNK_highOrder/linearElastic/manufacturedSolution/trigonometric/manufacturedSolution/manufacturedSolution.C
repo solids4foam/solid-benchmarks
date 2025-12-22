@@ -87,7 +87,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
             const point& cellC = mesh.C()[cellI];
             const cell& c = mesh.cells()[cellI];
 
-            // // Handle tetrahedral cells
+            // Handle tetrahedral cells
             if (shape.model() == cellModel::ref(cellModel::TET))
             {
                 const tetPoints tet =
@@ -146,12 +146,13 @@ void Foam::manufacturedSolution::calcBodyForces() const
                         const face& triF = triFaces[triI];
 
                         // Build tet: (cell centroid + triangle)
-                        tetPoints t(
-                                      cellC,
-                                      mesh.points()[triF[0]],
-                                      mesh.points()[triF[1]],
-                                      mesh.points()[triF[2]]
-                                      );
+                        tetPoints t
+			(
+			    cellC,
+			    mesh.points()[triF[0]],
+			    mesh.points()[triF[1]],
+			    mesh.points()[triF[2]]
+			);
                         tetPointRef tet(t);
                         cellV += mag(tet.mag());
 

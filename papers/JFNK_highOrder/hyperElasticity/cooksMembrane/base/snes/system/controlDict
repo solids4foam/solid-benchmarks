@@ -47,6 +47,7 @@ functions
    pointDisp
    {
        type    solidPointDisplacement;
+       extrapolate true;
        point   (0.048 0.052 0);
    }
 }
