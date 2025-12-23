@@ -6,16 +6,16 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
+    "BASE=base/hex.snes NAME=hex.physics PETSC_FILE=petscOptions.physics"
     "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-    "BASE=base/hex.segregated NAME=hex.seg"
 )
 # SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
+#    "BASE=base/hex.segregated NAME=hex.seg"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 8
 START_MESH=1
-END_MESH=8
+END_MESH=6
 
 
 # Detect the CPU type: we append this to the case name
@@ -94,7 +94,7 @@ do
         elif command -v time &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with time"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
         else
             echo "Running solids4Foam on ${CASE}"
             # Strange PETSc issue on Macbook where I need to use mpirun for serial

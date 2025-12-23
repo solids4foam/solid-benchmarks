@@ -11,35 +11,29 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    class       volVectorField;
+    object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+dimensions      [0 1 -1 0 0 0 0];
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+internalField   uniform (0 0 0);
+
+boundaryField
 {
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-    //optionsFile petscOptions.seg.hypre;
-    //optionsFile petscOptions.physics;
-
-    // Settings for the "physics" preconditioner, which is a segregated solid
-    // solver
-    preconditioner
+    back
     {
-        // The "simplifiedEquation" approach solves a simple Laplace equation,
-        // while the non-basic approach solves the full solid mechanics system
-        simplifiedEquation yes;
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    front
+    {
+        type            zeroGradient;
+    }
+    "top|bottom|left|right"
+    {
+        type            zeroGradient;
     }
 }
 
