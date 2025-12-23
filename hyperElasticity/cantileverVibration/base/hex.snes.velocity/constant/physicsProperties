@@ -13,34 +13,12 @@ FoamFile
     format      ascii;
     class       dictionary;
     location    "constant";
-    object      solidProperties;
+    object      physicsProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
-
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
-{
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-    //optionsFile petscOptions.seg.hypre;
-    //optionsFile petscOptions.physics;
-
-    // Settings for the "physics" preconditioner, which is a segregated solid
-    // solver
-    preconditioner
-    {
-        // The "simplifiedEquation" approach solves a simple Laplace equation,
-        // while the non-basic approach solves the full solid mechanics system
-        simplifiedEquation yes;
-    }
-}
+// type    fluid;
+type    solid;
+// type    fluidSolidInteraction;
 
 // ************************************************************************* //

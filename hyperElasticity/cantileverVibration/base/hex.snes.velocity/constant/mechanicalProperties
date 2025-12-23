@@ -12,35 +12,22 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    object      mechanicalProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+planeStress     no;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
-{
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
-
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-    //optionsFile petscOptions.seg.hypre;
-    //optionsFile petscOptions.physics;
-
-    // Settings for the "physics" preconditioner, which is a segregated solid
-    // solver
-    preconditioner
+mechanical
+(
+    heartTissue
     {
-        // The "simplifiedEquation" approach solves a simple Laplace equation,
-        // while the non-basic approach solves the full solid mechanics system
-        simplifiedEquation yes;
+        //type            StVenantKirchhoffElastic;
+        type            neoHookeanElastic;
+        rho             rho [1 -3 0 0 0 0 0] 1000;
+        E               E [1 -1 -2 0 0 0 0] 15.293e6;
+        nu              nu [0 0 0 0 0 0 0] 0.3;
     }
-}
+);
 
 // ************************************************************************* //

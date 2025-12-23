@@ -12,35 +12,64 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      solidProperties;
+    location    "constant/polyMesh";
+    object      blockMeshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel     linearGeometryTotalDisplacement;
+convertToMeters 1;
 
-"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
-{
-    // Solution algorithm
-    //solutionAlgorithm implicitSegregated;
-    solutionAlgorithm PETScSNES;
-    //solutionAlgorithm explicit;
+vertices
+(
+    (0 0 0)
+    (0.2 0 0)
+    (0.2 0.2 0)
+    (0 0.2 0)
+    (0 0 2)
+    (0.2 0 2)
+    (0.2 0.2 2)
+    (0 0.2 2)
+);
 
-    // PETSc options file used by PETScSNES
-    optionsFile petscOptions.lu;
-    //optionsFile petscOptions.hypre;
-    //optionsFile petscOptions.ilu;
-    //optionsFile petscOptions.seg.hypre;
-    //optionsFile petscOptions.physics;
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (12 12 120) simpleGrading (1 1 1)
+);
 
-    // Settings for the "physics" preconditioner, which is a segregated solid
-    // solver
-    preconditioner
-    {
-        // The "simplifiedEquation" approach solves a simple Laplace equation,
-        // while the non-basic approach solves the full solid mechanics system
-        simplifiedEquation yes;
-    }
-}
+edges
+(
+);
+
+patches
+(
+    patch top
+    (
+        (2 3 7 6)
+    )
+    patch left
+    (
+        (3 0 4 7)
+    )
+    patch right
+    (
+        (1 2 6 5)
+    )
+    patch bottom
+    (
+        (0 1 5 4)
+    )
+    patch front
+    (
+        (7 6 5 4)
+    )
+    patch back
+    (
+        (0 1 2 3)
+    )
+);
+
+mergePatchPairs
+(
+);
 
 // ************************************************************************* //
