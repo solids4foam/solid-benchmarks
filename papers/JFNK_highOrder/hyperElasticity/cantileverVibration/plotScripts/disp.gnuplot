@@ -33,7 +33,7 @@ set style line 31 lc rgb "violet" pt 9 ps 0.6 lw 1
 set style line 32 lc rgb "violet" pt 8 ps 0.6 lw 1
 
 set style line 41 lc rgb "black" pt 4 ps 0.5 lw 2
-set style line 51 lc rgb "grey" pt 8 ps 0.5 lw 1
+set style line 51 lc rgb "gray50" pt 8 ps 0.5 lw 1.5
 
 #set key font ",10"
 set object 1 rect from 0.25,2 to 0.45,2.85 fc rgb "red" fs empty border lw 1 lc rgb "red"

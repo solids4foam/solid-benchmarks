@@ -106,7 +106,7 @@ plot \
     "hex.struct.ho.N3.alpha.0.001.summary.txt" u 2:($5*1e6) w lp ls 30 title "{/Symbol a}=0.001 ({/Times-Italic p}_{ }=3)",\
     "hex.struct.ho.N3.alpha.0.01.summary.txt" u 2:($5*1e6) w lp ls 3  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=3)",\
     "hex.struct.ho.N3.alpha.0.1.summary.txt" u 2:($5*1e6) w lp ls 33  title "{/Symbol a}=0.1 ({/Times-Italic p}_{ }=3)",\
-    "hex.struct.ho.N3.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 333  title "{/Symbol a}1 ({/Times-Italic p}_{ }=3)"
+    "hex.struct.ho.N3.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 333  title "{/Symbol a}=1 ({/Times-Italic p}_{ }=3)"
 
 set output "mms_3D_alpha_efficiency_tet_unstruct.pdf"
 set yrange [8e-8:0.1]
@@ -123,4 +123,4 @@ plot \
     "tet.unstruct.ho.N3.alpha.0.001.summary.txt" u 2:($5*1e6) w lp ls 30  title "{/Symbol a}=0.001 ({/Times-Italic p}_{ }=3)",\
     "tet.unstruct.ho.N3.alpha.0.01.summary.txt" u 2:($5*1e6) w lp ls 3  title "{/Symbol a}=0.01 ({/Times-Italic p}_{ }=3)",\
     "tet.unstruct.ho.N3.alpha.0.1.summary.txt" u 2:($5*1e6) w lp ls 33  title "{/Symbol a}=0.1 ({/Times-Italic p}_{ }=3)",\
-    "tet.unstruct.ho.N3.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 333  title "{/Symbol a}1 ({/Times-Italic p}_{ }=3)"
+    "tet.unstruct.ho.N3.alpha.1.summary.txt" u 2:($5*1e6) w lp ls 333  title "{/Symbol a}=1 ({/Times-Italic p}_{ }=3)"
