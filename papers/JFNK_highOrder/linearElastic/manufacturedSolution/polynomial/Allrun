@@ -1,0 +1,201 @@
+#!/bin/bash
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# Working only with .com version
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Compile the manucafturedSolution library
+(cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
+
+# Define configurations as space-separated strings
+configs=(
+    #"BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    #"BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    #"BASE=base/snes NAME=poly.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    #"BASE=base/snes NAME=tet.unstruct.hypre-snes GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    # "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=poly.seg GMSH_FILE=tet-unstructured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+     "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
+     "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+     "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=1 Nn=25 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.ksponly"
+    # "BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.ksponly"
+)
+
+# Define start and end mesh indices
+# Mesh input files are defined from 1 to 12
+# END_MESH should be greater than START_MESH
+START_MESH=1
+END_MESH=4 # 12
+
+
+# Detect the CPU type: we append this to the case name
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    # macOS
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    # Linux
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    # Fallback if neither method works
+    CPU_TYPE="Unknown_CPU"
+fi
+
+
+# Create timestamped working directory for this run
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+# Enter the run directory
+cd "${RUN_DIR}"
+
+# Iterate through configurations
+for config in "${configs[@]}"
+do
+    # Parse the configuration string
+    eval $config
+    echo; echo "***************************************"
+    echo "Running configuration: $config"
+    echo "***************************************"
+
+    # Define results summary file name
+    SUMMARY="${NAME}.summary.txt"
+    echo "# Mesh Time Mem CellsNumber D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+
+    # Loop over mesh densities in each configuration
+    for i in `seq $START_MESH $END_MESH`
+    do
+        CASE="${NAME}.$i"
+        echo; echo "Processing case: $CASE"
+
+        # Prepare the case
+        cp -rL "../${BASE}" "${CASE}"
+        cd "$CASE"
+
+        # GMSH Mesh generation
+        cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+        solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+        solids4Foam::runApplication createPatch -overwrite
+        if [ "$USE_DUALMESH" -eq 1 ]; then
+            solids4Foam::runApplication polyDualMesh 30 -overwrite
+            solids4Foam::runApplication combinePatchFaces 45 -overwrite
+        fi
+
+        # Optional mesh distortion
+        if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
+        then
+            solids4Foam::runApplication perturbMeshPoints
+            mv 0/polyMesh/* constant/polyMesh/.
+        fi
+        solids4Foam::runApplication checkMesh
+
+        # Update the PETSc options file
+        if [ -n "${PETSC_FILE}" ]; then
+            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+        fi
+
+        # Update the order in the LRECoeffs
+        if [ -n "${N}" ]; then
+            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        fi
+
+        # Update number of stencil cells in the LRECoeffs
+        if [ -n "${Nn}" ]; then
+            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        fi
+
+        # Run the solver
+        # If "gtime" is available (could be called "time" on Linux), use it to
+        # record the max memory usage
+        if command -v gtime &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with gtime"
+            gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+        elif [ -x /usr/bin/time ]
+        then
+            echo "Running solids4Foam on ${CASE} with /usr/bin/time"
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+        elif command -v time &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
+            time solids4Foam &> log.solids4Foam
+
+        else
+            echo "Running solids4Foam on ${CASE}"
+            solids4Foam::runApplication solids4Foam
+        fi
+
+        # Extract results from solver log and append them to a summary file
+        echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "Maximum resident" log.solids4Foam; then
+            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+        else
+            MAX_MEMORY="NaN"
+        fi
+
+        # Record the time
+        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+
+        # Number of cells
+        CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+
+        # Extract the L2 (average) error for displacement
+        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+
+        # Extract the LInfinity (max) error for displacement
+        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+
+        # Extract the L2 (average) error for mag(sigma)
+        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+
+        # Extract the LInfinity (max) error for mag(sigma)
+        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+
+        # Write data to file
+        echo "$i $CLOCK_TIME $MAX_MEMORY $CELLS $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
+
+        cd ..
+    done
+
+    # Print summary file
+    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+done
+
+# Create plots if gnuplot in installed
+if command -v gnuplot &>/dev/null
+then
+    # Copy gnuplot scripts
+    cp ../plotScripts/*gnuplot .
+
+    # Run all scripts
+    for f in *gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f" 2>/dev/null
+    done
+fi
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo $(date)
+echo; echo

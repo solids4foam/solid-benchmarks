@@ -1,0 +1,39 @@
+postProcDirectory = "filteredSigmaTransformed.dat"
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Radial stress along radius
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+reset
+set terminal png size 400,300 enhanced font ",12"
+set output 'radial-stress.png'
+
+set grid
+set xlabel 'Radius (m)'
+set ylabel 'Radial Stress (MPa)'
+set key right bottom
+set key font ",10"
+
+set xrange [7:18.625]
+
+plot postProcDirectory u (sqrt($1**2+$2**2)):($7/1e6) w l lw 1.5 title "Numerical"
+set output
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Hoop stress along radius
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+reset
+set terminal png size 400,300 enhanced font ",12"
+set output 'hoop-stress.png'
+
+set grid
+set xlabel 'Radius (m)'
+set ylabel 'Hoop Stress (MPa)'
+set key right top
+set key font ",10"
+
+set xrange [7:18.625]
+
+plot postProcDirectory u (sqrt($1**2+$2**2)):($10/1e6) w l lw 1.5  title "Numerical"
+set output

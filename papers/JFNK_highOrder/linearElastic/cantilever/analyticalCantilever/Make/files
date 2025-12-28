@@ -1,0 +1,4 @@
+analyticalCantileverDisplacementFvPatchVectorField.C
+analyticalCantileverTractionFvPatchVectorField.C
+
+LIB = $(FOAM_USER_LIBBIN)/libanalyticalCantilever

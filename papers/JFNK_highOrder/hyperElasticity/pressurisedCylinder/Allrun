@@ -1,0 +1,194 @@
+#!/bin/bash
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# Define configurations as space-separated strings
+configs=(
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=1 Nn=10 TOL=0.6"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=2 Nn=10 TOL=0.4"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=3 Nn=10 TOL=0.3"
+)
+
+# Define start and end mesh indices
+# Mesh input files are defined from 1 to 4
+# We will run simulations on one mesh, (p refinement)
+START_MESH=1
+END_MESH=3
+
+# Detect the CPU type: we append this to the case name
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    # macOS
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    # Linux
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    # Fallback if neither method works
+    CPU_TYPE="Unknown_CPU"
+fi
+
+if ! command -v python3 &> /dev/null
+then
+    echo "python3 not found. Load python environment, aborting..."
+    exit 1
+fi
+
+# Create timestamped working directory for this run
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+# Enter the run directory
+cd "${RUN_DIR}"
+
+# Iterate through configurations
+for config in "${configs[@]}"
+do
+    unset PETSC_FILE N Nn HOJAC HORES
+
+    # Parse the configuration string
+    eval $config
+    echo; echo "***************************************"
+    echo "Running configuration: $config"
+    echo "***************************************"
+
+    # Define results summary file name
+    SUMMARY="${NAME}.summary.txt"
+    echo "# Mesh Time Mem" > "${SUMMARY}"
+
+    # Loop over mesh densities in each configuration
+    for i in `seq $START_MESH $END_MESH`
+    do
+        CASE="${NAME}.$i"
+        echo; echo "Processing case: $CASE"
+
+        # Prepare the case
+        cp -r "../${BASE}" "${CASE}"
+        cd "$CASE"
+
+        # GMSH Mesh generation
+        cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+        solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+        solids4Foam::runApplication changeDictionary
+	solids4Foam::runApplication checkMesh
+
+        # Update the PETSc options file
+        if [ -n "${PETSC_FILE}" ]; then
+            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+        fi
+
+        # Update the order in the LRECoeffs
+        if [ -n "${N}" ]; then
+            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        fi
+
+        # Update number of stencil cells in the LRECoeffs
+        if [ -n "${Nn}" ]; then
+            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        fi
+
+	# Update how Jacobian is calculated
+        if [ -n "${HOJAC}" ]; then
+            sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
+        fi
+
+	# Update how Residual is calculated
+        if [ -n "${HORES}" ]; then
+            sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
+        # Run the solver
+        # If "gtime" is available (could be called "time" on Linux), use it to
+        # record the max memory usage
+        if command -v gtime &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with gtime"
+            gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+        elif [ -x /usr/bin/time ]
+        then
+            echo "Running solids4Foam on ${CASE} with /usr/bin/time"
+            /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+        elif command -v time &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
+            time solids4Foam &> log.solids4Foam
+
+        else
+            echo "Running solids4Foam on ${CASE}"
+            solids4Foam::runApplication solids4Foam
+        fi
+
+	solids4Foam::runApplication postProcess -func sampleDict -latestTime
+
+	if ! command -v python3 &> /dev/null
+	then
+	    echo "python3 not found. Load python environment, aborting..."
+	    exit 1
+	fi
+
+	INPUT_FILE="postProcessing/sampleDict/100/line_D_sigma:Transformed.xy"
+	OUTPUT_FILE="../filteredSigmaTransformed_p${N}.$i.dat"
+	./filterHoopAndRadialStress.py "$INPUT_FILE" "$OUTPUT_FILE" --tol "$TOL"
+
+	# Extract results from solver log and append them to a summary file
+        echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "gtime/time" log.solids4Foam; then
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+        else
+            # Record the time
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        fi
+
+        # Extract results from solver log and append them to a summary file
+        if grep -q "Maximum resident" log.solids4Foam; then
+            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+        else
+            MAX_MEMORY="NaN"
+        fi
+
+        # Set clocktime to "-" if the solver failed
+        # Otherwise clocktime would be the time after the latest successful time step
+        if grep -q "FOAM aborting" log.solids4Foam
+        then
+            CLOCK_TIME="-"
+        fi
+
+        # Number of cells
+        CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+
+        # Write data to file
+        echo "$i $CLOCK_TIME $MAX_MEMORY" >> ../"${SUMMARY}"
+
+        cd ..
+    done
+
+    # Print summary file
+    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+done
+
+# Create plots if gnuplot in installed
+if command -v gnuplot &>/dev/null
+then
+    # Copy gnuplot scripts
+    cp ../plotScripts/* .
+
+    # Run all scripts
+    for f in *gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f"
+    done
+fi
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo "Completed at" $(date +%Y%m%d_%H%M%S)
+echo; echo

@@ -1,6 +1,9 @@
 # git-ls-files --others --exclude-from=.git/info/exclude
 # Lines that start with '#' are comments.
 
+# Run files
+run_*
+
 # Work in progress files
 *.wip
 todo*

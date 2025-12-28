@@ -1,0 +1,34 @@
+-snes_type ksponly
+-snes_converged_reason
+
+# Linear solver
+-ksp_type lgmres
+-ksp_rtol 1e-8
+-ksp_atol 0
+-ksp_monitor
+-ksp_max_it 2000
+-ksp_gmres_restart 100
+#-ksp_monitor_true_residual
+#-ksp_converged_reason
+-ksp_error_if_not_converged
+# (Avoid restarts at first; add -ksp_gmres_restart 200 only if memory becomes an issue)
+
+# Preconditioner - multigrid
+# Should perform better than LU for larger cases
+-pc_type hypre
+-pc_hypre_type boomeramg
+-pc_hypre_boomeramg_max_iter 1
+-pc_hypre_boomeramg_strong_threshold 0.25
+#-pc_hypre_boomeramg_strong_threshold 0.7
+-pc_hypre_boomeramg_grid_sweeps_up 1
+-pc_hypre_boomeramg_grid_sweeps_down 1
+-pc_hypre_boomeramg_agg_nl 1
+-pc_hypre_boomeramg_agg_num_paths 1
+-pc_hypre_boomeramg_max_levels 25
+-pc_hypre_boomeramg_coarsen_type HMIS
+-pc_hypre_boomeramg_interp_type ext+i
+-pc_hypre_boomeramg_P_max 1
+-pc_hypre_boomeramg_truncfactor 0.3
+
+#-pc_type bjacobi
+#-sub_pc_type lu

@@ -1,0 +1,3 @@
+analyticalSphericalCavityDisplacementFvPatchVectorField.C
+
+LIB = $(FOAM_USER_LIBBIN)/libsphericalCavity

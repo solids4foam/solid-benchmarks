@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Use tet (1) or hex (0) volumes
+USE_TET=1
+
+# Create mesh
+if [ "$USE_TET" -eq 1 ]
+then
+    if command -v gmsh &>/dev/null
+    then
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/tet-unstructured.geo
+        solids4Foam::runApplication gmshToFoam gmsh/tet-unstructured.msh
+        solids4Foam::runApplication changeDictionary
+    fi
+else
+    solids4Foam::runApplication blockMesh
+fi
+solids4Foam::runApplication checkMesh
+
+# Run solver
+solids4Foam::runApplication solids4Foam

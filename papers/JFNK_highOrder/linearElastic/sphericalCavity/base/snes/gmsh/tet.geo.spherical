@@ -1,0 +1,92 @@
+// Gmsh .geo file to create a mesh of a cube with a spherical cavity
+
+// Mesh spacing parameters
+Include "tet-meshSpacing/meshSpacing.geo";
+
+SetFactory("OpenCASCADE");  // Use OpenCASCADE kernel
+
+
+//----------------------------------------------------
+// 1/8 sphere-cube domain with spherical outer boundary
+// and inner spherical cavity — explicit patch tagging
+//----------------------------------------------------
+
+Include "tet-meshSpacing/meshSpacing.geo";
+SetFactory("OpenCASCADE");
+
+// Parameters
+L    = 0.5;   // cube edge
+Rin  = 0.2;   // inner cavity radius
+Rout = 0.5;   // outer spherical boundary radius
+
+//----------------------------------------------------
+// Create primitives
+//----------------------------------------------------
+Box(1)     = {0, 0, 0, L, L, L};
+Sphere(2)  = {0, 0, 0, Rout};
+Sphere(3)  = {0, 0, 0, Rin};
+
+// Create outer spherical-cap octant
+BooleanIntersection{ Volume{1}; Delete; }{ Volume{2}; Delete; }
+
+// Now there is a single volume (tag 1)
+// Subtract the inner sphere to make the cavity
+BooleanDifference{ Volume{1}; Delete; }{ Volume{3}; Delete; }
+
+//----------------------------------------------------
+// At this point Gmsh assigned new tags to all surfaces.
+// Let's list them automatically to identify patches
+//----------------------------------------------------
+Recursive Delete {
+  // Optional cleanup
+}
+Printf("List of surfaces:");
+For i In {1:100}
+  If(Exists(Surface{i}))
+    Printf("  Surface %g", i);
+  EndIf
+EndFor
+
+//----------------------------------------------------
+// Usually for this geometry you'll get 5 surfaces:
+//  - three planes: x=0,y=0,z=0
+//  - inner sphere (cavity)
+//  - outer spherical surface
+//
+// Let's tag them manually using Surface In BoundingBox.
+//----------------------------------------------------
+eps = 1e-6;
+s_negX[] = Surface In BoundingBox(-eps, -eps, -eps,  eps,   L+eps, L+eps);
+s_negY[] = Surface In BoundingBox(-eps, -eps, -eps,  L+eps, eps,   L+eps);
+s_negZ[] = Surface In BoundingBox(-eps, -eps, -eps,  L+eps, L+eps, eps);
+s_cavity[] = Surface In BoundingBox(0.01, 0.01, 0.01, Rin+eps, Rin+eps, Rin+eps);
+low = 0.6*Rout;
+s_outer[]  = Surface In BoundingBox(low, low, low, L+eps, L+eps, L+eps);
+
+//----------------------------------------------------
+// Physical groups (boundary patches)
+//----------------------------------------------------
+Physical Surface("negX")        = { s_negX[] };
+Physical Surface("negY")        = { s_negY[] };
+Physical Surface("negZ")        = { s_negZ[] };
+Physical Surface("cavity")      = { s_cavity[] };
+Physical Surface("outerSphere") = { s_outer[] };
+Physical Volume("volume")       = {1};
+
+//----------------------------------------------------
+// Mesh refinement near cavity
+//----------------------------------------------------
+Field[1] = Distance;
+Field[1].FacesList = { s_cavity[] };
+Field[2] = Threshold;
+Field[2].IField  = 1;
+Field[2].LcMin   = minDeltaX;
+Field[2].LcMax   = maxDeltaX;
+Field[2].DistMin = minDist;
+Field[2].DistMax = maxDist;
+Background Field = 2;
+
+//----------------------------------------------------
+// Mesh
+//----------------------------------------------------
+Mesh 3;
