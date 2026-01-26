@@ -20,7 +20,7 @@ END_MESH=4
 # Define the time-step
 # 2e-5 results with Co = 0.5
 TIME_STEP=(3.2e-4 1.6e-4 4.0e-5)
-
+#TIME_STEP=(0.01 0.005 0.001)
 
 # Detect the CPU type: we append this to the case name
 if [[ "$OSTYPE" == "darwin"* ]]
@@ -63,7 +63,7 @@ do
     do
         # Define results summary file name
         SUMMARY="${NAME}.mesh-${i}.summary.txt"
-        echo "# Mesh CellsNumber Time Mem AvgDy" > "${SUMMARY}"
+        echo "# Mesh CellsNumber TimeStep Time Mem AvgDy" > "${SUMMARY}"
 
         # Loop over different time-steps in  each configuration
         for TS in "${TIME_STEP[@]}"; do
@@ -141,7 +141,7 @@ do
             AVG_DY=$(awk '$1 !~ /^#/ {sum += $3; n++} END {if (n>0) print sum/n}' postProcessing/0/solidPointDisplacement_pointDisp.dat)
 
             # Write data to file
-            echo "$i $CELLS $CLOCK_TIME $MAX_MEMORY $AVG_DY " >> ../"${SUMMARY}"
+            echo "$i $CELLS $TS $CLOCK_TIME $MAX_MEMORY $AVG_DY " >> ../"${SUMMARY}"
 
             cd ..
         done
@@ -149,9 +149,6 @@ do
         echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
     done
 done
-
-ls
-ls ../plotScripts
 
 # Create plots if gnuplot in installed
 if command -v gnuplot &>/dev/null; then

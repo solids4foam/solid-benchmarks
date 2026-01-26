@@ -28,7 +28,6 @@ DT1 = "3.2e-4"
 DT2 = "1.6e-4"
 DT3 = "4.0e-5"
 
-
 # Mesh 1 - time-step behaviour
 set output "mesh_1-dispComparison.pdf"
 set label 1 "Mesh size: 264 cells" at graph 1.05,0.9 font ",10"
@@ -42,13 +41,13 @@ snes_vel_3 = sprintf("velocity-snes.mesh-1.deltaT-%s/postProcessing/0/solidPoint
 
 plot \
      NaN title "Greendshields paper" with l ls 2,\
-    "../plotScritps/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
-    snes_disp_1 u 1:($5) every 2 w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
-    snes_disp_2 u 1:($5) every 2 w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
-    snes_disp_3 u 1:($5) every 2 w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
-    snes_vel_1 u 1:($5) every 2 w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
-    snes_vel_2 u 1:($5) every 2 w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
-    snes_vel_3 u 1:($5) every 2 w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
+    "../plotScripts/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
+    snes_disp_1 u 1:($5)  w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
+    snes_disp_2 u 1:($5)  w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
+    snes_disp_3 u 1:($5)  w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
+    snes_vel_1 u 1:($5)   w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
+    snes_vel_2 u 1:($5)   w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
+    snes_vel_3 u 1:($5)   w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
 
 
 
@@ -65,13 +64,13 @@ snes_vel_3 = sprintf("velocity-snes.mesh-2.deltaT-%s/postProcessing/0/solidPoint
 
 plot \
      NaN title "Greendshields paper" with l ls 2,\
-    "../plotScritps/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
-    snes_disp_1 u 1:($5) every 2 w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
-    snes_disp_2 u 1:($5) every 2 w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
-    snes_disp_3 u 1:($5) every 2 w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
-    snes_vel_1 u 1:($5) every 2 w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
-    snes_vel_2 u 1:($5) every 2 w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
-    snes_vel_3 u 1:($5) every 2 w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
+    "../plotScripts/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
+    snes_disp_1 u 1:($5)  w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
+    snes_disp_2 u 1:($5)  w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
+    snes_disp_3 u 1:($5)  w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
+    snes_vel_1 u 1:($5)   w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
+    snes_vel_2 u 1:($5)   w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
+    snes_vel_3 u 1:($5)   w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
 
 
 # Mesh 3 - time-step behaviour
@@ -87,13 +86,13 @@ snes_vel_3 = sprintf("velocity-snes.mesh-3.deltaT-%s/postProcessing/0/solidPoint
 
 plot \
      NaN title "Greendshields paper" with l ls 2,\
-    "../plotScritps/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
-    snes_disp_1 u 1:($5) every 2 w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
-    snes_disp_2 u 1:($5) every 2 w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
-    snes_disp_3 u 1:($5) every 2 w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
-    snes_vel_1 u 1:($5) every 2 w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
-    snes_vel_2 u 1:($5) every 2 w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
-    snes_vel_3 u 1:($5) every 2 w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
+    "../plotScripts/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
+    snes_disp_1 u 1:($5)  w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
+    snes_disp_2 u 1:($5)  w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
+    snes_disp_3 u 1:($5)  w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
+    snes_vel_1 u 1:($5)   w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
+    snes_vel_2 u 1:($5)   w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
+    snes_vel_3 u 1:($5)   w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
 
 # Mesh 4 - time-step behaviour
 set output "mesh_4-dispComparison.pdf"
@@ -108,10 +107,10 @@ snes_vel_3 = sprintf("velocity-snes.mesh-4.deltaT-%s/postProcessing/0/solidPoint
 
 plot \
      NaN title "Greendshields paper" with l ls 2,\
-    "../plotScritps/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
-    snes_disp_1 u 1:($5) every 2 w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
-    snes_disp_2 u 1:($5) every 2 w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
-    snes_disp_3 u 1:($5) every 2 w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
-    snes_vel_1 u 1:($5) every 2 w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
-    snes_vel_2 u 1:($5) every 2 w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
-    snes_vel_3 u 1:($5) every 2 w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
+    "../plotScripts/analyticalEndDeflection.txt" u 1:2 w p ls 1 notitle,\
+    snes_disp_1 u 1:($5)  w l ls 3 notitle, '' u 1:5 every 50 w p ls 3 t sprintf("D-SNES  {/Symbol D}T=%s", DT1),\
+    snes_disp_2 u 1:($5)  w l ls 4 notitle, '' u 1:5 every 100 w p ls 4 t sprintf("D-SNES  {/Symbol D}T=%s", DT2),\
+    snes_disp_3 u 1:($5)  w l ls 5 notitle, '' u 1:5 every 400 w p ls 5 t sprintf("D-SNES  {/Symbol D}T=%s", DT3),\
+    snes_vel_1 u 1:($5)   w l ls 6 notitle, '' u 1:5 every 50 w p ls 6 t sprintf("V-SNES  {/Symbol D}T=%s", DT1),\
+    snes_vel_2 u 1:($5)   w l ls 7 notitle, '' u 1:5 every 100 w p ls 7 t sprintf("V-SNES  {/Symbol D}T=%s", DT2),\
+    snes_vel_3 u 1:($5)   w l ls 8 notitle, '' u 1:5 every 400 w p ls 8 t sprintf("V-SNES  {/Symbol D}T=%s", DT3)
