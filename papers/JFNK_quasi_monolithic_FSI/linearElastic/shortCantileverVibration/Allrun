@@ -1,0 +1,172 @@
+#!/bin/bash
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# Define configurations as space-separated strings
+configs=(
+    #"BASE=base/displacement-segregated NAME=displacement-seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/displacement-snes NAME=displacement-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    "BASE=base/velocity-snes NAME=velocity-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+)
+
+# Define start and end mesh indices
+# Mesh input files are defined from 1 to 8
+# END_MESH should be greater than START_MESH
+START_MESH=1
+END_MESH=4
+
+# Define the time-step
+# 2e-5 results with Co = 0.5
+TIME_STEP=(3.2e-4 1.6e-4 4.0e-5)
+
+
+# Detect the CPU type: we append this to the case name
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    # macOS
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    # Linux
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    # Fallback if neither method works
+    CPU_TYPE="Unknown_CPU"
+fi
+
+
+# Create timestamped working directory for this run
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+# Enter the run directory
+cd "${RUN_DIR}"
+
+# Iterate through configurations
+for config in "${configs[@]}"
+do
+    # Reset variables in the case some variable is not used
+    unset GMSH_FILE PETSC_FILE
+
+    # Parse the configuration string
+    eval $config
+    echo; echo "***************************************"
+    echo "Running configuration: $config"
+    echo "***************************************"
+
+    # Loop over mesh densities in each configuration
+    for i in `seq $START_MESH $END_MESH`
+    do
+        # Define results summary file name
+        SUMMARY="${NAME}.mesh-${i}.summary.txt"
+        echo "# Mesh CellsNumber Time Mem AvgDy" > "${SUMMARY}"
+
+        # Loop over different time-steps in  each configuration
+        for TS in "${TIME_STEP[@]}"; do
+            CASE="${NAME}.mesh-${i}.deltaT-${TS}"
+            echo; echo "Processing case: $CASE"
+
+            # Prepare the case
+            cp -rL "../${BASE}" "${CASE}"
+            cd "$CASE"
+
+            # GMSH Mesh generation
+            cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+            solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+            solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+            solids4Foam::runApplication changeDictionary
+
+            # Optional mesh distortion
+            if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
+            then
+                solids4Foam::runApplication perturbMeshPoints
+            fi
+            solids4Foam::runApplication checkMesh
+
+            # Update time-step
+            sed -i "/^\s*deltaT /s|^.*|deltaT ${TS};|"  system/controlDict
+
+            # Update the PETSc options file
+            if [ -n "${PETSC_FILE}" ]; then
+                sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+            fi
+
+            # Run the solver
+            # If "gtime" is available (could be called "time" on Linux), use it to
+            # record the max memory usage
+            if command -v gtime &> /dev/null
+            then
+                echo "Running solids4Foam on ${CASE} with gtime"
+                gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+            elif [ -x /usr/bin/time ]
+            then
+                echo "Running solids4Foam on ${CASE} with /usr/bin/time"
+                /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+
+            elif command -v time &> /dev/null
+            then
+                echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
+                time solids4Foam &> log.solids4Foam
+
+            else
+                echo "Running solids4Foam on ${CASE}"
+                solids4Foam::runApplication solids4Foam
+            fi
+
+            # Extract results from solver log and append them to a summary file
+            echo; echo "Appending results to ${SUMMARY}"
+            if grep -q "gtime/time" log.solids4Foam; then
+                CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
+            else
+                # Record the time
+                CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+            fi
+
+            # Extract results from solver log and append them to a summary file
+            if grep -q "Maximum resident" log.solids4Foam; then
+                MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+            else
+                MAX_MEMORY="NaN"
+            fi
+
+            # Number of cells
+            CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+
+            # Average tip deflection (over time)
+            AVG_DY=$(awk '$1 !~ /^#/ {sum += $3; n++} END {if (n>0) print sum/n}' postProcessing/0/solidPointDisplacement_pointDisp.dat)
+
+            # Write data to file
+            echo "$i $CELLS $CLOCK_TIME $MAX_MEMORY $AVG_DY " >> ../"${SUMMARY}"
+
+            cd ..
+        done
+        # Print summary file
+        echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+    done
+done
+
+ls
+ls ../plotScripts
+
+# Create plots if gnuplot in installed
+if command -v gnuplot &>/dev/null; then
+    # Copy gnuplot scripts
+    cp ../plotScripts/*.gnuplot .
+
+    # Run all scripts
+    for f in *.gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f" 2>/dev/null
+    done
+fi
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo $(date)
+echo; echo

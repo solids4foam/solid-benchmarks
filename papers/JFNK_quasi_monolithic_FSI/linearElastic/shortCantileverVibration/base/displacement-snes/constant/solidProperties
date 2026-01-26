@@ -35,7 +35,7 @@ linearGeometryTotalDisplacementCoeffs
     stabilisation
     {
         type        RhieChow;
-        scaleFactor 0.1;
+        scaleFactor 2;
     }
 }
 
