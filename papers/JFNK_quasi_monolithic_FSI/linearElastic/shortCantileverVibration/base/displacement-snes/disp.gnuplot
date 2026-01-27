@@ -24,5 +24,5 @@ set style line 5 lc rgb "black" pt 8 ps 0.4 lw 1.5
 
 plot \
      NaN title "Greendshields paper" with l ls 5,\
-    "../../plotScritps/analyticalEndDeflection.txt" u 1:2 w p ls 4 notitle, \
+    "../../plotScripts/analyticalEndDeflection.txt" u 1:2 w p ls 4 notitle, \
     "./postProcessing/0/solidPointDisplacement_pointDisp.dat" u 1:($5) every 50 w l ls 1 t "solids4Foam"
