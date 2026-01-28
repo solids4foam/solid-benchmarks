@@ -54,7 +54,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
