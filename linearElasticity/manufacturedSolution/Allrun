@@ -4,6 +4,15 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+# Build the manufactured solution library
+if [[ -z "${SOLIDS4FOAM_DIR}" ]]
+then
+    echo "Please set SOLIDS4FOAM_DIR, e.g."
+    echo "    export SOLIDS4FOAM_DIR=/Users/philipc/OpenFOAM/philipc-v2312/solids4foam"
+    exit 1
+fi
+(cd manufacturedSolution && ./Allwmake -j -s)
+
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/snes NAME=hex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
@@ -15,11 +24,6 @@ configs=(
     "BASE=base/segregated NAME=poly.seg USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=distHex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1"
 )
-# SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=tet.seg.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=poly.seg.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
-#    "BASE=base/snes NAME=distHex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.seg.hypre"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
