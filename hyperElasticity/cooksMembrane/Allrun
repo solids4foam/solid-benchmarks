@@ -9,8 +9,6 @@ configs=(
     "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
     "BASE=base/hex.segregated NAME=hex.seg"
 )
-# SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 8
