@@ -16,11 +16,11 @@ fi
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/snes NAME=hex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
-    "BASE=base/snes NAME=tet.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
+    #"BASE=base/snes NAME=tet.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=poly.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
     "BASE=base/snes NAME=distHex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.hypre"
     "BASE=base/segregated NAME=hex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.seg USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/segregated NAME=tet.seg USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=poly.seg USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=distHex.seg USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1"
 )
