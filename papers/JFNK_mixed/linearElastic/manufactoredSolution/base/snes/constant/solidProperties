@@ -1,0 +1,58 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.0                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      solidProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solidModel     linearGeometryTotalDisplacement;
+
+linearGeometryTotalDisplacementCoeffs
+{
+    // Solution algorithm
+    //solutionAlgorithm implicitSegregated;
+    solutionAlgorithm PETScSNES;
+    //solutionAlgorithm explicit;
+
+    // PETSc options file used by PETScSNES
+    //optionsFile petscOptions.lu;
+    //optionsFile petscOptions.hypre;
+    optionsFile petscOptions.split;
+    //optionsFile petscOptions.ilu;
+    //optionsFile petscOptions.seg.hypre;
+
+    stabilisation
+    {
+        type        RhieChow;
+        scaleFactor 0.1;
+    }
+    preconditioner
+    {
+	// The "simplifiedEquation" approach solves a simple Laplace equation,
+	// while the non-basic approach solves the full solid mechanics system
+	simplifiedEquation yes;
+    }
+    solvePressure true;
+    pressureSmoothingCoeff 1.0;
+    stabilisationType oosterlee;
+    omega    omega [0 0 0 0 0 0 0] 0.125;
+    omegaTau    omegaTau [0 0 0 0 0 0 0] 0.0;
+    mu          mu [1 -1 -2 0 0 0 0] 2.62507e+07;
+    lambda      lambda [1 -1 -2 0 0 0 0] 5.24856e+07;
+    pressureConfig none;
+    pressureScale 1.0;
+}
+
+// ************************************************************************* //
