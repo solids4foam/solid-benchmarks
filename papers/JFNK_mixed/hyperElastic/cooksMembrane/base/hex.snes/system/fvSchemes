@@ -24,7 +24,7 @@ d2dt2Schemes
 
 ddtSchemes
 {
-    default                 backward;
+    default                 steadyState;
 }
 
 gradSchemes
