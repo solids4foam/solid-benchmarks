@@ -40,7 +40,8 @@ NewtonQuasiMonolithicCoeffs
 
     passViscousStress no;
 
-    optionsFile    "petscOptions.Up";
+    //optionsFile    "petscOptions.Up";
+    optionsFile    "petscOptions.pcsplit3D";
 }
 
 // ************************************************************************* //
