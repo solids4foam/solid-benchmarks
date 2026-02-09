@@ -4,13 +4,14 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+# Compile helper utility
+wmake extractEllipticPlateResults
+
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/hex.snes NAME=hex.hypre PETSC_FILE=petscOptions.hypre"
     "BASE=base/hex.segregated NAME=hex.seg"
 )
-# SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.hypre PETSC_FILE=petscOptions.seg.hypre"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
@@ -53,7 +54,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D" > "${SUMMARY}"
+    echo "# Mesh Time Mem" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`

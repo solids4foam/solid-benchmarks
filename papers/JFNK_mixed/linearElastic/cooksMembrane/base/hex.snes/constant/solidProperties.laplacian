@@ -1,0 +1,43 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.0                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      solidProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solidModel     linearGeometryTotalDisplacement;
+
+"linearGeometryTotalDisplacementCoeffs|unsLinearGeometryCoeffs"
+{
+    // Solution algorithm
+    //solutionAlgorithm implicitSegregated;
+    solutionAlgorithm PETScSNES;
+    //solutionAlgorithm explicit;
+
+    // PETSc options file used by PETScSNES
+    optionsFile petscOptions.split;
+    //optionsFile petscOptions.split;
+    //optionsFile petscOptions.hypre;
+    //optionsFile petscOptions.ilu;
+    //optionsFile petscOptions.seg.hypre;
+    solvePressure true;
+    pressureSmoothingCoeff 1.0;
+    stabilisationType oosterlee;
+    omega    omega [0 0 0 0 0 0 0] 0.125;
+    omegaTau    omegaTau [0 0 0 0 0 0 0] 0.0;
+    pressureScale 1.0;
+}
+
+// ************************************************************************* //

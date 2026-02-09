@@ -4,13 +4,14 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+# Compiler helper utility
+wmake extractIdealisedVentricleResults
+
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/snes NAME=hex.hypre PETSC_FILE=petscOptions.hypre"
     "BASE=base/segregated NAME=hex.seg"
 )
-# SNES segregated approach
-#    "BASE=base/snes NAME=hex.seg.hypre PETSC_FILE=petscOptions.seg.hypre"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 4
@@ -53,7 +54,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`

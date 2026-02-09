@@ -7,14 +7,9 @@ source solids4FoamScripts.sh
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-    "BASE=base/hex.snes.velocity NAME=hex.velocity"
+    #"BASE=base/hex.snes.velocity NAME=hex.velocity"
     "BASE=base/hex.segregated NAME=hex.seg"
 )
-# Approaches
-#    "BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-#    "BASE=base/hex.snes.velocity NAME=hex.velocity"
-#    "BASE=base/hex.segregated NAME=hex.seg"
-#    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 4

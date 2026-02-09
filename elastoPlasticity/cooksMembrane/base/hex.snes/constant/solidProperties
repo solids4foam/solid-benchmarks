@@ -23,7 +23,7 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 "nonLinearGeometryUpdatedLagrangianCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
     sTol 0;
-    predictor yes;
+    //predictor yes;
 
     //dampingCoeff [0 0 -1 0 0 0 0] 1e4;
     //dampingCoeffImplicit [0 0 -1 0 0 0 0] 1e4;

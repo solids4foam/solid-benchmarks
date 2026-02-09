@@ -1,0 +1,208 @@
+#!/bin/bash
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# Define configurations as space-separated strings
+configs=(
+    #"BASE=base/hex.snes NAME=hex.lu PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__blend     SOLIDPROPS_TAG=blend     PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__laplacian SOLIDPROPS_TAG=laplacian PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__rc        SOLIDPROPS_TAG=rc        PETSC_FILE=petscOptions.split"
+) 
+# "BASE=base/hex.segregated NAME=hex.seg"
+# SNES segregated approach
+#    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
+# Define start and end mesh indices
+# Mesh input files are defined from 1 to 8
+START_MESH=1
+END_MESH=3
+
+
+# Detect the CPU type: we append this to the case name
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    # macOS
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    # Linux
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    # Fallback if neither method works
+    CPU_TYPE="Unknown_CPU"
+fi
+
+
+# Create timestamped working directory for this run
+DATE=$(date +%Y%m%d_%H%M%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+# Enter the run directory
+cd "${RUN_DIR}"
+
+# Iterate through configurations
+for config in "${configs[@]}"
+do
+    # Parse the configuration string
+    eval $config
+    echo; echo "***************************************"
+    echo "Running configuration: $config"
+    echo "***************************************"
+
+    # Define results summary file name
+    SUMMARY="${NAME}.summary.txt"
+    echo "# Mesh Time Mem D" > "${SUMMARY}"
+
+    
+
+    # Loop over mesh densities in each configuration
+    for i in `seq $START_MESH $END_MESH`
+    do
+        CASE="${NAME}.$i"
+        echo; echo "Processing case: $CASE"
+
+        # Prepare the case
+        cp -r "../${BASE}" "${CASE}"
+        cd "$CASE"
+	
+
+	# Selecting stabilisation method i.e rc, blend, laplacian, jst
+	if [[ -n "${SOLIDPROPS_TAG:-}" ]]; then
+	    SOLIDPROPS_FILE="constant/solidProperties.${SOLIDPROPS_TAG}"
+
+	    if [[ ! -f "$SOLIDPROPS_FILE" ]]; then
+		echo "ERROR: missing $SOLIDPROPS_FILE in $(pwd)"
+		exit 1
+	    fi
+
+	    echo "Selecting stabilisation: ${SOLIDPROPS_TAG}"
+	    \cp "$SOLIDPROPS_FILE" constant/solidProperties
+	fi
+
+        # Replace the blockMeshDict
+        if [[ ! -f "system/blockMeshDict.$i" ]]
+        then
+            echo "Cannot find ${CASE}/system/blockMeshDict.$i: please add it to ${BASE}/meshes/"; echo
+            exit 1;
+        else
+            echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
+            \cp "system/blockMeshDict.$i" system/blockMeshDict
+            rm -f constant/polyMesh/blockMeshDict
+        fi
+
+        # Create the mesh
+        solids4Foam::runApplication blockMesh
+
+        # Update the PETSc options file
+        if [ -n "${PETSC_FILE}" ]; then
+            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+        fi
+
+        # Run the solver
+        # If "gtime" is available (could be called "time" on Linux), use it to
+        # record the max memory usage
+        if command -v gtime &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with gtime"
+            gtime -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+        elif command -v time &> /dev/null
+        then
+            echo "Running solids4Foam on ${CASE} with time"
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
+        else
+            echo "Running solids4Foam on ${CASE}"
+            # Strange PETSc issue on Macbook where I need to use mpirun for serial
+            #solids4Foam::runApplication solids4Foam
+            #mpirun -np 1 solids4Foam &> log.solids4Foam
+	    solids4Foam &> log.solids4Foam
+        fi
+
+        # Extract results from solver log and append them to a summary file
+        echo; echo "Appending results to ${SUMMARY}"
+        if grep -q "Maximum resident" log.solids4Foam; then
+            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+        else
+            MAX_MEMORY="NaN"
+        fi
+
+        # Record the time
+        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
+
+        # Extract the reference point vertical displacement
+        DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
+
+        # Write data to file
+        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
+
+        cd ..
+    done
+
+    # Print summary file
+    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+done
+
+# Create plots if gnuplot in installed
+if command -v gnuplot &>/dev/null
+then
+    # Copy gnuplot scripts
+    cp ../plotScripts/* .
+
+    # Run all scripts
+    for f in *gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f"
+    done
+fi
+
+# Extract comparison of JFNK and segregated for the hex meshes
+if [[ -f hex.lu.summary.txt && -f hex.seg.summary.txt ]]
+then
+    # Define input files
+    FILE1="hex.lu.summary.txt"
+    FILE2="hex.seg.summary.txt"
+    OUTPUT="tableJFNKvsSeg_membranei.tex"
+
+    # Define mesh sizes for the rows in the table
+    MESH_SIZES=("9" "36" "144" "576" "\$2\,304\$" "\$9\,216\$" "\$36\,864\$" "\$147\,456\$")
+
+    # Extract columns and write to the output file
+    {
+        for i in $(seq 1 $((${#MESH_SIZES[@]}))); do
+            # Extract columns 2 and 3 from each file
+            F1C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE1")
+            F1C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE1")
+            F2C2=$(awk "NR==$((i + 1)) {print \$2}" "$FILE2")
+            F2C3=$(awk "NR==$((i + 1)) {print \$3}" "$FILE2")
+
+            if [[ i -eq 1 ]]
+            then
+                echo -e "\t\\\textbf{Membrane i}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            elif [[ i -eq 2 ]]
+            then
+                echo -e "\t\\emph{2-D static}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            elif [[ i -eq 3 ]]
+            then
+                echo -e "\t\\emph{linear elastic}\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            else
+                echo -e "\t\t\t\t& ${MESH_SIZES[i-1]}\t& $F1C2 & $F1C3 & $F2C2 & $F2C3 \\\\\\"
+            fi
+        done
+    } > "$OUTPUT"
+
+    echo -e "\hline" >> "$OUTPUT"
+
+    echo; echo "Table generated in $OUTPUT"
+fi
+
+# Exit the run directory
+cd ..
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo $(date +%Y%m%d_%H%M%S)
+echo; echo
