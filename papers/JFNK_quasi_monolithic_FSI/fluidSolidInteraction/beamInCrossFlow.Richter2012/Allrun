@@ -7,13 +7,14 @@ source solids4FoamScripts.sh
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/quasiMonolithic NAME=quasiMonolithic"
+    "BASE=base/partitioned NAME=partitioned"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 4
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=3
+END_MESH=2
 
 
 # Detect the CPU type: we append this to the case name

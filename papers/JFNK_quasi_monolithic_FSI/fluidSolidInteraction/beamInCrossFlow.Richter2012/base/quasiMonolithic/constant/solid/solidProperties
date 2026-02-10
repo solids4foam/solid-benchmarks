@@ -26,6 +26,7 @@ nonLinearGeometryTotalLagrangianVelocityCoeffs
     mu           mu [1 -1 -2 0 0 0 0] 5e5;
     lambda       lambda [1 -1 -2 0 0 0 0] 2e6;
 
+    // Damp the solid to help convergence to steady-state
     dampingCoeff [0 0 -1 0 0 0 0] 1e4;
 }
 

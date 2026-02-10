@@ -38,10 +38,10 @@ fluidSolidInterface    Aitken;
     relaxationFactor 0.4;
 
     // Tolerance for the FSI loop within each time-step
-    outerCorrTolerance 1e-3; //6;
+    outerCorrTolerance 1e-4; //6;
 
     // Maximum number of outer FSI loop correctors within each time-step
-    nOuterCorr 20;
+    nOuterCorr 30;
 
     // Enable/disable coupling from the start
     coupled yes;
@@ -53,6 +53,10 @@ fluidSolidInterface    Aitken;
 
     // Write fsi residuals to file
     writeResidualsToFile yes;
+
+    // Move the fluid interface to the solid interface at the end of each time
+    // step
+    additionalMeshCorrection yes;
 
     // Optional: if coupled is set to "no", then the couplingStartTime allows
     // you to enable coupling at a specified time
