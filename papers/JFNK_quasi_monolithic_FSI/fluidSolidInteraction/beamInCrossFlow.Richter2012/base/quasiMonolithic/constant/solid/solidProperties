@@ -23,10 +23,8 @@ nonLinearGeometryTotalLagrangianVelocityCoeffs
     linearElasticFormulation yes;
     // E           E [1 -1 -2 0 0 0 0] 1.4e6;
     // nu          nu [0 0 0 0 0 0 0] 0.4;
-    mu           mu [1 -1 -2 0 0 0 0] 500000;
-    lambda       lambda [1 -1 -2 0 0 0 0] 2000000;
-
-    //futureForceFraction 0.5;
+    mu           mu [1 -1 -2 0 0 0 0] 5e5;
+    lambda       lambda [1 -1 -2 0 0 0 0] 2e6;
 
     dampingCoeff [0 0 -1 0 0 0 0] 1e4;
 }
