@@ -28,6 +28,11 @@ nonLinearGeometryTotalLagrangianVelocityCoeffs
 
     // Damp the solid to help convergence to steady-state
     dampingCoeff [0 0 -1 0 0 0 0] 1e4;
+
+    stabilisation
+    {
+        scaleFactor 0.025;
+    }
 }
 
 
