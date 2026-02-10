@@ -13,7 +13,7 @@ configs=(
 # Mesh input files are defined from 1 to 4
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=2
+END_MESH=3
 
 
 # Detect the CPU type: we append this to the case name
@@ -61,7 +61,6 @@ do
 
         # Prepare the case
         echo "BASE=$BASE"
-        "Running command: cp -r ../${BASE} ${CASE}"
         cp -r "../${BASE}" "${CASE}"
         cd "$CASE"
 
@@ -99,7 +98,7 @@ do
         elif command -v time &> /dev/null
         then
             echo "Running solids4Foam on ${CASE} with time"
-            time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
         else
             echo "Running solids4Foam on ${CASE}"
             solids4Foam::runApplication solids4Foam
