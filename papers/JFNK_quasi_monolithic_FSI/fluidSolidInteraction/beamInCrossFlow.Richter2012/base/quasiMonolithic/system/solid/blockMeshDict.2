@@ -1,6 +1,6 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | solids4foam: solid mechanics and fluid-solid interaction simulations        |
-| Version:     v2.0                                                           |
+| Version:     v2.3                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
@@ -12,28 +12,57 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fluidProperties;
+    object      blockMeshDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-fluidModel    newtonIcoFluid;
+scale 1;
 
-newtonIcoFluidCoeffs
-{
-    fluidFluxExtrapolationAlgorithm1 yes;
-    addDivPhiUDamping no;
-    pressureScaleFactor 1.0;
+vertices
+(
+    // Level 0
+    (0.45 0 0)
+    (0.55 0 0)
+    (0.55 0 -0.2)
+    (0.45 0 -0.2)
 
-    stabilisation
-    {
-        type RhieChow;
-        scaleFactor 1.0;
+    // Level 1
+    (0.45 0.2 0)
+    (0.55 0.2 0)
+    (0.55 0.2 -0.2)
+    (0.45 0.2 -0.2)
+);
 
-        // type laplacian;
-        // omega omega [0 -2 1 0 0 0 0] 1.0;
-    }
+blocks
+(
+    hex (3 2 6 7 0 1 5 4) (4 8 8) simpleGrading (1 1 1)
+);
 
-    optionsFile    petscOptions.Up; // used?
-}
+edges
+(
+);
+
+patches
+(
+    wall interface
+    (
+        (3 0 4 7)
+        (2 3 7 6)
+        (1 2 6 5)
+        (4 5 6 7)
+    )
+    symmetry symmetry
+    (
+        (0 1 5 4)
+    )
+    wall bottom
+    (
+        (0 3 2 1)
+    )
+);
+
+mergePatchPairs
+(
+);
 
 // ************************************************************************* //

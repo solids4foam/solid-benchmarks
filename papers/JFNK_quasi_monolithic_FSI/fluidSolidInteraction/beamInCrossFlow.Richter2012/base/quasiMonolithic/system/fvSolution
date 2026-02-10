@@ -12,56 +12,41 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      blockMeshDict;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-scale 1;
+solvers
+{
+    UpU
+    {
+        solver    petsc;
 
-vertices
-(
-//Level 0
-    (0.45 0 0)
-    (0.55 0 0)
-    (0.55 0 -0.2)
-    (0.45 0 -0.2)
-//Level 1
-    (0.45 0.2 0)
-    (0.55 0.2 0)
-    (0.55 0.2 -0.2)
-    (0.45 0.2 -0.2)
-);
+        options
+        {
+            snes_type newtonls;
+            snes_linesearch_type basic;
+            snes_rtol "1e-6";
+            snes_stol "1e-6";
+            snes_max_it "100";
+            snes_monitor;
+            snes_converged_reason;
 
-blocks
-(
-    hex (3 2 6 7 0 1 5 4) (4 8 8) simpleGrading (1 1 1)
-);
+            snes_mf;
+            snes_mf_operator;
 
-edges
-(
-);
+            ksp_type lgmres;
+            ksp_gmres_restart "100";
+            ksp_converged_reason;
 
-patches
-(
-    wall interface
-    (
-        (3 0 4 7)
-        (2 3 7 6)
-        (1 2 6 5)
-        (4 5 6 7)
-    )
-    symmetry symmetry
-    (
-        (0 1 5 4)
-    )
-    wall bottom
-    (
-        (0 3 2 1)
-    )
-);
+            pc_type bjacobi;
+            sub_pc_type lu;
 
-mergePatchPairs
-(
-);
+            snes_lag_preconditioner_persists true;
+            snes_lag_preconditioner "-2";
+        }
+    }
+}
 
 // ************************************************************************* //
