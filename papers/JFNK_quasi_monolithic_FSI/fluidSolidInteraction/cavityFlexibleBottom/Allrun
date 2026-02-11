@@ -14,7 +14,7 @@ configs=(
 # Mesh input files are defined from 1 to 4
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=1
+END_MESH=3
 
 
 # Detect the CPU type: we append this to the case name
@@ -167,11 +167,11 @@ do
         # Write data to file
         echo "$i $CELLS_FLUID $CELLS_SOLID $DT $CLOCK_TIME $MAX_MEMORY $DY " >> ../"${SUMMARY}"
 
+        # Print summary file
+        echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+
         cd ..
     done
-
-    # Print summary file
-    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
 
     # Create plots if gnuplot in installed
     if command -v gnuplot &>/dev/null
@@ -186,6 +186,7 @@ do
             gnuplot -c "$f" "${NAME}"
         done
     fi
+
 done
 
 # Exit the run directory

@@ -18,7 +18,7 @@ cases = system(sprintf("ls -d %s.*/ 2>/dev/null", base))
 
 set grid
 set xrange [0:200]
-set yrange [-6000:-4000]
+set yrange [-7000:-4000]
 #set xtics add (25, 50, 100, 200)
 set ytics
 #set logscale x
