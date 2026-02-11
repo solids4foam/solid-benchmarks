@@ -53,13 +53,13 @@ do
     echo "Running configuration: $config"
     echo "***************************************"
 
+    # Define results summary file name
+    SUMMARY="${NAME}.summary.txt"
+    echo "# Mesh CellsNumberFluid CellsNumberSolid TimeStep Time Mem Dy" > "${SUMMARY}"
+
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
-        # Define results summary file name
-        SUMMARY="${NAME}.mesh-${i}.summary.txt"
-        echo "# Mesh CellsNumberFluid CellsNumberSolid TimeStep Time Mem Dy" > "${SUMMARY}"
-
         CASE="${NAME}.mesh-${i}"
         echo; echo "Processing case: $CASE"
 
@@ -167,11 +167,11 @@ do
         # Write data to file
         echo "$i $CELLS_FLUID $CELLS_SOLID $DT $CLOCK_TIME $MAX_MEMORY $DY " >> ../"${SUMMARY}"
 
-        # Print summary file
-        echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
-
         cd ..
     done
+
+    # Print summary file
+    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
 
     # Create plots if gnuplot in installed
     if command -v gnuplot &>/dev/null
