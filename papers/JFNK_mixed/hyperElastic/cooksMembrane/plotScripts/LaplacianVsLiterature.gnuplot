@@ -1,7 +1,7 @@
 set term pdfcairo dashed enhanced
 set datafile separator " "
 
-set output "cooksMembrane-neoHookeanTipDispConvergence.pdf"
+set output "cooksMembrane-neoHookeanTipDispConvergenceLaplacian.pdf"
 
 set size ratio 0.7
 
