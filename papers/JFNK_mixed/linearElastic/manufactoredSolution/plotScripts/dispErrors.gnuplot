@@ -7,7 +7,7 @@ set output "mms_dispErrors.pdf"
 
 set grid
 set xrange [1:50]
-set yrange [1e-5:1.0]
+set yrange [1e-5:0.2]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
@@ -39,5 +39,5 @@ plot \
     "hex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e6*$5) w lp pt 4 lc "red" t "L_∞ - Hex", \
     "distHex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e6*$4) w lp pt 28 lc rgb "#800080" t "L_2 - Hex (distorted)", \
     "distHex.hypre.summary.txt" u (1e3*dx/(2**($0))):(1e6*$5) w lp pt 27 lc rgb "#800080" t "L_∞ - Hex (distorted)", \
-    "orderOfAccuracySlopesDisp.dat" u 1:(2.8*$2) w l lw 2 lc "black" notitle, \
+    "orderOfAccuracySlopesDisp.dat" u 1:2 w l lw 2 lc "black" notitle, \
     "orderOfAccuracySlopesDisp.dat" u 1:3 w l lw 2 lc "black" notitle
