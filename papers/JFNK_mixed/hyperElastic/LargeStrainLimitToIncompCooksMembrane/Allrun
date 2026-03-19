@@ -1,0 +1,167 @@
+#!/bin/bash
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# =========================
+# CONFIGS (unchanged style)
+# =========================
+configs=(
+    "BASE=base/hex.snes NAME=hex_snes__rc        SOLIDPROPS_TAG=rc        PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__laplacian SOLIDPROPS_TAG=laplacian PETSC_FILE=petscOptions.split"
+    "BASE=base/hex.snes NAME=hex_snes__disp      SOLIDPROPS_TAG=disp      PETSC_FILE=petscOptions.hypre"
+)
+
+# =========================
+# NEW: ν sweep
+# =========================
+NU_VALUES=(0.30 0.35 0.40 0.45 0.48 0.49 0.495 0.499)
+
+START_MESH=2
+END_MESH=2
+
+# =========================
+# CPU + run dir (unchanged)
+# =========================
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]; then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+DATE=$(date +%Y%m%d_%H%M%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+mkdir "${RUN_DIR}"
+cd "${RUN_DIR}" || exit 1
+
+MASTER_SUMMARY="all_results.csv"
+echo "formulation,config,stabilisation,nu,mesh,clock_time,max_memory_mb,disp,case,status" > "${MASTER_SUMMARY}"
+
+# =========================
+# NEW: safe ν setter
+# =========================
+set_nu()
+{
+    local file="$1"
+    local nu="$2"
+
+    sed -E -i.bak \
+        "s|(^[[:space:]]*nu[[:space:]]+nu[[:space:]]+\[[^]]*\][[:space:]]+)[0-9.]+;|\1${nu};|" \
+        "$file"
+    rm -f "${file}.bak"
+}
+# =========================
+# CRITICAL: use correct solver binary
+# =========================
+if [[ -n "$FOAM_USER_APPBIN" && -x "$FOAM_USER_APPBIN/solids4Foam" ]]; then
+    SOLVER_EXE="$FOAM_USER_APPBIN/solids4Foam"
+else
+    SOLVER_EXE=$(which solids4Foam)
+fi
+
+echo "Using solver: $SOLVER_EXE"
+echo "WM_PROJECT_DIR: $WM_PROJECT_DIR"
+
+# =========================
+# MAIN LOOPS
+# =========================
+for config in "${configs[@]}"; do
+    eval "$config"
+
+    # Derive formulation
+    FORMULATION="mixed"
+    if [[ "$SOLIDPROPS_TAG" == "disp" ]]; then
+        FORMULATION="displacement"
+    fi
+
+    for NU in "${NU_VALUES[@]}"; do
+
+        SUMMARY="${NAME}.nu_${NU}.summary.txt"
+        echo "# Mesh Time Mem D" > "${SUMMARY}"
+
+        for i in $(seq $START_MESH $END_MESH); do
+
+            CASE="${NAME}.nu_${NU}.mesh_${i}"
+            echo "Processing case: $CASE"
+
+            cp -r "../${BASE}" "${CASE}"
+            cd "${CASE}" || exit 1
+
+            # =========================
+            # Solid properties swap (unchanged)
+            # =========================
+            if [[ -n "${SOLIDPROPS_TAG:-}" && "${SOLIDPROPS_TAG}" != "none" ]]; then
+                \cp "constant/solidProperties.${SOLIDPROPS_TAG}" constant/solidProperties
+            fi
+
+            # =========================
+            # Mesh setup (unchanged)
+            # =========================
+            \cp "system/blockMeshDict.$i" system/blockMeshDict
+            rm -f constant/polyMesh/blockMeshDict
+
+            # =========================
+            # NEW: set ν
+            # =========================
+            set_nu "constant/mechanicalProperties" "${NU}"
+
+            # =========================
+            # PETSc options (unchanged)
+            # =========================
+            if [[ -n "${PETSC_FILE:-}" ]]; then
+                sed -i "" "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+            fi
+
+            # =========================
+            # Run blockMesh (UNCHANGED STYLE)
+            # =========================
+            solids4Foam::runApplication blockMesh
+
+            STATUS="OK"
+
+            # =========================
+            # CRITICAL FIX: NO mpirun
+            # =========================
+            echo "Running solids4Foam on ${CASE}"
+
+            if command -v gtime &> /dev/null; then
+                gtime -f "Maximum resident set size (kbytes): %M" \
+                    "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
+            elif command -v /usr/bin/time &> /dev/null; then
+                /usr/bin/time -f "Maximum resident set size (kbytes): %M" \
+                    "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
+            else
+                "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
+            fi
+
+            # =========================
+            # Post-processing (unchanged)
+            # =========================
+            if grep -q "Maximum resident" log.solids4Foam; then
+                MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6/1000)}')
+            else
+                MAX_MEMORY="NaN"
+            fi
+
+            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
+            [[ -z "$CLOCK_TIME" ]] && CLOCK_TIME="NaN"
+
+            if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]; then
+                DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
+            else
+                DISP="NaN"
+            fi
+
+            echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
+
+            echo "${FORMULATION},${NAME},${SOLIDPROPS_TAG},${NU},${i},${CLOCK_TIME},${MAX_MEMORY},${DISP},${CASE},${STATUS}" >> ../"${MASTER_SUMMARY}"
+
+            cd ..
+        done
+    done
+done
+
+cd ..
+echo "Done"
