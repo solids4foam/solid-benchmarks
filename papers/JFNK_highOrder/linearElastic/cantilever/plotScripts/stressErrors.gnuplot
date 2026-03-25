@@ -33,14 +33,14 @@ set style line 22 lc rgb "blue"   pt 4 ps 0.5 lw 1
 set style line 31 lc rgb "violet" pt 9 ps 0.5 lw 1
 set style line 32 lc rgb "violet" pt 8 ps 0.5 lw 1
 
-set output "cantilever_stressErrors_hex.pdf"
-plot \
-    (0.2 * x**1)  w l ls 1 title "1^{st} order", \
-    (2e-5 * x**2)  w l ls 2 title "2^{nd} order", \
-    "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
-    "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
-    "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
-    "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)"
+# set output "cantilever_stressErrors_hex.pdf"
+# plot \
+#     (0.2 * x**1)  w l ls 1 title "1^{st} order", \
+#     (2e-5 * x**2)  w l ls 2 title "2^{nd} order", \
+#     "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+#     "hex.struct.ho.N1.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+#     "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($7*1e-6) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+#     "hex.struct.ho.N2.summary.txt" u ((beamArea/$4)**0.5*1e3):($8*1e-6) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)"
 
 
 set output "cantilever_stressErrors_tet-struct.pdf"

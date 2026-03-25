@@ -150,11 +150,16 @@ void analyticalCantileverTractionFvPatchVectorField::updateCoeffs()
 
 autoPtr<CompactListList<vector>>
 analyticalCantileverTractionFvPatchVectorField::evaluateQuadrature
-(
-    const CompactListList<point>& faceQuadPoints
-) const
+() const
 {
-     // faceQuadPoints is list for whole mesh.
+    const fvMesh& mesh = patch().boundaryMesh().mesh();
+    const solidModel& solMod = lookupSolidModel(mesh);
+
+    // faceQuadPoints is list for the  whole mesh
+    const CompactListList<point>& faceQuadPoints =
+        solMod.MLSQuadrature().faceQuadPoints();
+
+    // faceQuadPoints is list for whole mesh.
     labelList nQpPerFace(this->size(), 0);
     const label start = this->patch().start();
     forAll(nQpPerFace, faceI)

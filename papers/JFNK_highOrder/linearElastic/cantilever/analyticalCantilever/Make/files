@@ -1,3 +1,5 @@
+cantileverStressDisplacement.C
+cantileverAnalyticalSolution.C
 analyticalCantileverDisplacementFvPatchVectorField.C
 analyticalCantileverTractionFvPatchVectorField.C
 
