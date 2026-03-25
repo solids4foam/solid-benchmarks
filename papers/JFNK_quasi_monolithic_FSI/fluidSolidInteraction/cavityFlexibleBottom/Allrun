@@ -6,8 +6,8 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    #"BASE=base/partitioned NAME=partitioned DT=0.1"
     "BASE=base/quasiMonolitic NAME=quasiMonolitic PETSC_FILE=petscOptions.lu DT=0.1"
+    "BASE=base/partitioned NAME=partitioned DT=0.1"
 )
 
 # Define start and end mesh indices
@@ -53,14 +53,14 @@ do
     echo "Running configuration: $config"
     echo "***************************************"
 
+    # Define results summary file name
+    SUMMARY="${NAME}.summary.txt"
+    echo "# Mesh CellsNumberFluid CellsNumberSolid TimeStep Time Mem Dy" > "${SUMMARY}"
+
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
-        # Define results summary file name
-        SUMMARY="${NAME}.mesh-${i}.summary.txt"
-        echo "# Mesh CellsNumberFluid CellsNumberSolid TimeStep Time Mem Dy" > "${SUMMARY}"
-
-        CASE="${NAME}.mesh-${i}"
+        CASE="${NAME}.${i}"
         echo; echo "Processing case: $CASE"
 
         # Prepare the case
