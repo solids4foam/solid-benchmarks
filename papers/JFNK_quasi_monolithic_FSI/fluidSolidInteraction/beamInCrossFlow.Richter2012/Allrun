@@ -127,21 +127,22 @@ do
 
     # Print summary file
     echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+
+    # Create plots if gnuplot in installed
+    if command -v gnuplot &>/dev/null
+    then
+        # Copy gnuplot scripts (will overwrite for each new config)
+        \cp ../plotScripts/*gnuplot .
+
+        # Run all scripts
+        for f in *gnuplot
+        do
+            echo "Running gnuplot on $f"
+            gnuplot -c "$f" "${NAME}"
+        done
+    fi
 done
 
-# Create plots if gnuplot in installed
-if command -v gnuplot &>/dev/null
-then
-    # Copy gnuplot scripts
-    cp ../plotScripts/*gnuplot .
-
-    # Run all scripts
-    for f in *gnuplot
-    do
-        echo "Running gnuplot on $f"
-        gnuplot -c "$f" "${NAME}"
-    done
-fi
 
 # Exit the run directory
 cd ..
