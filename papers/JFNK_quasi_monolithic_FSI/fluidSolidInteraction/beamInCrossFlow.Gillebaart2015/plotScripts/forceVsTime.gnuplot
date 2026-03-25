@@ -17,8 +17,8 @@ cases = system(sprintf("ls -d %s.*/ 2>/dev/null", base))
 #set size ratio 1
 
 set grid
-set xrange [0:20]
-set yrange [1.2:1.4]
+set xrange [0:0.08]
+#set yrange [1.2:1.4]
 #set xtics add (25, 50, 100, 200)
 set ytics
 #set logscale x
@@ -34,5 +34,4 @@ set key right top
 
 plot for [c in cases] \
     sprintf("%s/postProcessing/fluid/forces/0/force.dat", c) \
-    u 1:2 w lp lw 2 title c, \
-    1.33 w l lw 2 dt 2 lc rgb "black" title "Richter (2012)"
+    u 1:2 w lp lw 2 title c

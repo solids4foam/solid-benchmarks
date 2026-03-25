@@ -1,0 +1,1 @@
+x-deflection        1.016 mm
