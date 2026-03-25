@@ -1,6 +1,6 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | solids4foam: solid mechanics and fluid-solid interaction simulations        |
-| Version:     v2.0                                                           |
+| Version:     v2.3                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
@@ -12,36 +12,14 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fluidProperties;
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-fluidModel    newtonIcoFluid;
+// Note: this decomposeParDict is not used but it must be present to keep
+// argList happy. Use instead the decomposeParDicts in system/fluid and
+// system/solid
 
-newtonIcoFluidCoeffs
-{
-    // Force an implicit flux
-    forceImplicitFlux yes;
-
-    // If the flux is explicit, specific the extrapolation approach
-    // This is not used if forceImplicitFlux is enabled
-    fluidFluxExtrapolationAlgorithm1 yes;
-
-    // Additional divU term which is meant to improve convergence
-    addDivPhiUDamping no;
-
-    // Scaling of pressure equation relative to the momentum
-    pressureScaleFactor 1.0;
-
-    // Pressure stabilisation approach
-    stabilisation
-    {
-        type RhieChow;
-        scaleFactor 1.0;
-
-        // type laplacian;
-        // omega omega [0 -2 1 0 0 0 0] 1.0;
-    }
-}
+numberOfSubdomains 4;
 
 // ************************************************************************* //

@@ -6,7 +6,7 @@ source solids4FoamScripts.sh
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/partitioned NAME=partitioned DT=0.1"
+    #"BASE=base/partitioned NAME=partitioned DT=0.1"
     "BASE=base/quasiMonolitic NAME=quasiMonolitic PETSC_FILE=petscOptions.lu DT=0.1"
 )
 

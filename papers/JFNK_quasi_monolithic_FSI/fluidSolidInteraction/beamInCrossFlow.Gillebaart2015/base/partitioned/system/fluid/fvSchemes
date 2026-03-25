@@ -1,6 +1,6 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | solids4foam: solid mechanics and fluid-solid interaction simulations        |
-| Version:     v2.0                                                           |
+| Version:     v2.3                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
@@ -12,36 +12,52 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fluidProperties;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-fluidModel    newtonIcoFluid;
-
-newtonIcoFluidCoeffs
+ddtSchemes
 {
-    // Force an implicit flux
-    forceImplicitFlux yes;
+    default            Euler;
+}
 
-    // If the flux is explicit, specific the extrapolation approach
-    // This is not used if forceImplicitFlux is enabled
-    fluidFluxExtrapolationAlgorithm1 yes;
+gradSchemes
+{
+    default            leastSquares;
+}
 
-    // Additional divU term which is meant to improve convergence
-    addDivPhiUDamping no;
+divSchemes
+{
+    default            none;
+    div(phi,U)         Gauss linearUpwind cellLimited leastSquares 1;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+    div((nuEff*dev(T(grad(U))))) Gauss linear;
+}
 
-    // Scaling of pressure equation relative to the momentum
-    pressureScaleFactor 1.0;
+laplacianSchemes
+{
+    default none;
+    laplacian(nuEff,U) Gauss linear corrected;
+    laplacian((1|A(U)),p) Gauss linear corrected;
+    laplacian(diffusivity,cellMotionU) Gauss linear corrected;
+    laplacian(rAU,p)   Gauss linear corrected;
+}
 
-    // Pressure stabilisation approach
-    stabilisation
-    {
-        type RhieChow;
-        scaleFactor 1.0;
+interpolationSchemes
+{
+    default            linear;
+    interpolate(U)     skewCorrected linear;
+}
 
-        // type laplacian;
-        // omega omega [0 -2 1 0 0 0 0] 1.0;
-    }
+snGradSchemes
+{
+    default            corrected;
+}
+
+fluxRequired
+{
+    default            no;
+    p;
 }
 
 // ************************************************************************* //

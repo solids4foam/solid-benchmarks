@@ -1,6 +1,6 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | solids4foam: solid mechanics and fluid-solid interaction simulations        |
-| Version:     v2.0                                                           |
+| Version:     v2.3                                                           |
 | Web:         https://solids4foam.github.io                                  |
 | Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
 |              producer and distributor of the OpenFOAM software via          |
@@ -12,35 +12,40 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fluidProperties;
+    location    "system";
+    object      fvSolution;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-fluidModel    newtonIcoFluid;
-
-newtonIcoFluidCoeffs
+solvers
 {
-    // Force an implicit flux
-    forceImplicitFlux yes;
-
-    // If the flux is explicit, specific the extrapolation approach
-    // This is not used if forceImplicitFlux is enabled
-    fluidFluxExtrapolationAlgorithm1 yes;
-
-    // Additional divU term which is meant to improve convergence
-    addDivPhiUDamping no;
-
-    // Scaling of pressure equation relative to the momentum
-    pressureScaleFactor 1.0;
-
-    // Pressure stabilisation approach
-    stabilisation
+    D
     {
-        type RhieChow;
-        scaleFactor 1.0;
+        solver    petsc;
 
-        // type laplacian;
-        // omega omega [0 -2 1 0 0 0 0] 1.0;
+        options
+        {
+            snes_type newtonls;
+            snes_linesearch_type basic;
+            snes_rtol "1e-6";
+            snes_stol "1e-6";
+            snes_max_it "100";
+            snes_monitor;
+            snes_converged_reason;
+
+            snes_mf;
+            snes_mf_operator;
+
+            ksp_type lgmres;
+            ksp_gmres_restart "100";
+            ksp_converged_reason;
+
+            pc_type bjacobi;
+            sub_pc_type lu;
+
+            snes_lag_preconditioner_persists true;
+            snes_lag_preconditioner "-2";
+        }
     }
 }
 

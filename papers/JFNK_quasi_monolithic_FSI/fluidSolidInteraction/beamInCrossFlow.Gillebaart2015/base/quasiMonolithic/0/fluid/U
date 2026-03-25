@@ -11,25 +11,56 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      solidProperties;
+    class       volVectorField;
+    object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel    nonLinearGeometryTotalLagrangianVelocity;
+dimensions      [0 1 -1 0 0 0 0];
 
-nonLinearGeometryTotalLagrangianVelocityCoeffs
+internalField   uniform (0 0 0);
+
+boundaryField
 {
-    linearElasticFormulation no;
-
-    // Damp the solid to help convergence to steady-state
-    dampingCoeff [0 0 -1 0 0 0 0] 1e4;
-
-    stabilisation
+    interface
     {
-        scaleFactor 0.025;
+        //type            newMovingWallVelocity;
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    inlet
+    {
+        type            paraboloidInletVelocity;
+        maxVelocity     0.3;
+        yWidth          0.2;
+        zWidth          0.4;
+        timeVaryingEndTime 1.0;
+        timeAtMaxVelocity 1.0;
+        value           uniform (0 0 0);
+    }
+    bottom
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    top
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    left
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+    symmetry
+    {
+        type            symmetry;
     }
 }
-
 
 // ************************************************************************* //

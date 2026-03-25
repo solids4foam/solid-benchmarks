@@ -12,36 +12,43 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fluidProperties;
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-fluidModel    newtonIcoFluid;
-
-newtonIcoFluidCoeffs
+d2dt2Schemes
 {
-    // Force an implicit flux
-    forceImplicitFlux yes;
+    default            backward;
+}
 
-    // If the flux is explicit, specific the extrapolation approach
-    // This is not used if forceImplicitFlux is enabled
-    fluidFluxExtrapolationAlgorithm1 yes;
+ddtSchemes
+{
+    default            backward;
+}
 
-    // Additional divU term which is meant to improve convergence
-    addDivPhiUDamping no;
+gradSchemes
+{
+    default            leastSquaresS4f;
+}
 
-    // Scaling of pressure equation relative to the momentum
-    pressureScaleFactor 1.0;
+divSchemes
+{
+    default            Gauss linear;
+}
 
-    // Pressure stabilisation approach
-    stabilisation
-    {
-        type RhieChow;
-        scaleFactor 1.0;
+laplacianSchemes
+{
+    default            Gauss linear corrected;
+}
 
-        // type laplacian;
-        // omega omega [0 -2 1 0 0 0 0] 1.0;
-    }
+snGradSchemes
+{
+    default            corrected;
+}
+
+interpolationSchemes
+{
+    default            linear;
 }
 
 // ************************************************************************* //
