@@ -4,40 +4,43 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
-# Working only with .com version
+# Not working with extend version
 solids4Foam::caseDoesNotRunWithFoamExtend
-solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# solids4Foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the manucafturedSolution library
 (cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/snes NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/snes NAME=tet.unstruct_v2.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/snes NAME=poly.struct.hypre-snes GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
-    "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/segregated NAME=poly.struct.seg GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 N=1 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 N=2 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 N=3 Nn=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    # "BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    # "BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    # "BASE=base/snes NAME=tet.unstruct_v1.hypre-snes GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    # "BASE=base/snes NAME=tet.unstruct_v2.hypre-snes GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    # "BASE=base/snes NAME=poly.struct.hypre-snes GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    # "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
+    # "BASE=base/segregated NAME=poly.struct.seg GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 order=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 order=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 order=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 order=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 order=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 order=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 order=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 order=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 order=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 order=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 order=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 order=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 order=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 order=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 order=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
 )
 
 # SNES segregated approach
@@ -104,24 +107,24 @@ do
 
         # GMSH Mesh generation
         if [[ "$GMSH_FILE" == "poly-structured" ]]
-	then
-	    # Special prcedure for generating polyhedral mesh
+        then
+            # Special prcedure for generating polyhedral mesh
             cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
             solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
             solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
-	    mv 0/ 0.tmp
-	    solids4Foam::runApplication polyDualMesh 30 -overwrite
-	    solids4Foam::runApplication combinePatchFaces 45 -overwrite
-	    solids4Foam::runApplication extrudeMesh
-	    solids4Foam::runApplication createPatch -overwrite
-	    mv 0.tmp/ 0
-	else
-	    # Other types of meshes
-	    cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+            mv 0/ 0.tmp
+            solids4Foam::runApplication polyDualMesh 30 -overwrite
+            solids4Foam::runApplication combinePatchFaces 45 -overwrite
+            solids4Foam::runApplication extrudeMesh
+            solids4Foam::runApplication createPatch -overwrite
+            mv 0.tmp/ 0
+        else
+            # Other types of meshes
+            cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
             solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
             solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
             solids4Foam::runApplication changeDictionary
-	fi
+        fi
 
         # Optional mesh distortion
         if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
@@ -136,21 +139,21 @@ do
         fi
 
         # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        if [ -n "${order}" ]; then
+            sed -i "/^\s*order /s|^.*|        order ${order};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
@@ -175,7 +178,7 @@ do
 
         else
             solids4Foam::runApplication solids4Foam
-	fi
+        fi
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"

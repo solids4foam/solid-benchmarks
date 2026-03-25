@@ -74,7 +74,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
         // Get interpolation order
         const dictionary& hoDict = solidModelDict().subDict("highOrderCoeffs");
 
-        const label N = readInt(hoDict.subDict("LRECoeffs").lookup("N"));
+        const label N = readInt(hoDict.lookup("order"));
 
         Info<<"Body force is integrated exactly for polynomials of order: "
             << N << endl;
@@ -144,6 +144,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
 
                 // Get triangle quadrature points and their weight
                 const triQuadrature tq(triangle, N);
+
                 const List<point>& triangleQP = tq.points();
                 const List<scalar>& triangleQPweights = tq.weights();
 
