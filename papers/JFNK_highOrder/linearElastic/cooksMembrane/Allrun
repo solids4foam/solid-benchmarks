@@ -8,9 +8,9 @@ source solids4FoamScripts.sh
 configs=(
     #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
     "BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
-    "BASE=base/highOrder NAME=tet.ho.N1 N=1 Nn=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N2 N=2 Nn=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N3 N=3 Nn=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N1 order=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N2 order=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N3 order=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
 )
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
@@ -107,24 +107,24 @@ do
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
 
         # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        if [ -n "${order}" ]; then
+            sed -i "/^\s*order /s|^.*|        order ${order};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        if [ -n "${extraNeiCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraNeiCells};|" constant/solidProperties
         fi
 
         # Run the solver
