@@ -4,6 +4,9 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
+# Not working with extend version
+solids4Foam::caseDoesNotRunWithFoamExtend
+
 # Define configurations as space-separated strings
 configs=(
     #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
@@ -123,8 +126,8 @@ do
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${extraNeiCells}" ]; then
-            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraNeiCells};|" constant/solidProperties
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
         # Run the solver

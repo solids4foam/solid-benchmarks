@@ -115,8 +115,8 @@ do
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${extraNeiCells}" ]; then
-            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraNeiCells};|" constant/solidProperties
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated
