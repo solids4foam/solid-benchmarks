@@ -31,15 +31,18 @@ linearGeometryTotalDisplacementCoeffs
         highOrderJacobian false;
         highOrderResidual true;
 
-        order 3;
-        faceStencilExtraCells 10;
-
-        weightFunctionCoeffs
+        displacement
         {
-            type radiallySymmetricExponential;
-            k 6;
+            polynomialOrder 2;
+            faceStencilExtraCells 10;
+
+            weightFunctionCoeffs
+            {
+                type radiallySymmetricExponential;
+                k 6;
+            }
+            calcConditionNumber false;
         }
-        calcConditionNumber false;
     }
 
     stabilisation
