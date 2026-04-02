@@ -11,9 +11,9 @@ solids4Foam::caseDoesNotRunWithFoamExtend
 configs=(
     #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
     "BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
-    "BASE=base/highOrder NAME=tet.ho.N1 order=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N2 order=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N3 order=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N1 polyOrder=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N2 polyOrder=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.ho.N3 polyOrder=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
 )
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
@@ -121,8 +121,8 @@ do
         fi
 
         # Update the order in the LRECoeffs
-        if [ -n "${order}" ]; then
-            sed -i "/^\s*order /s|^.*|        order ${order};|" constant/solidProperties
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
