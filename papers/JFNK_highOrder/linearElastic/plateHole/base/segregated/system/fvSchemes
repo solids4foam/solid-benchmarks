@@ -36,9 +36,7 @@ divSchemes
 
 laplacianSchemes
 {
-    default            none;
-    laplacian(DD,D)    Gauss linear corrected;
-    laplacian(DDD,DD)  Gauss linear corrected;
+    default           Gauss linear corrected;
 }
 
 snGradSchemes

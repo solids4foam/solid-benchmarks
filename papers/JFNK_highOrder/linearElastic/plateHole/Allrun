@@ -4,9 +4,10 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
-# Working only with .com version
+# Not working with extend version
 solids4Foam::caseDoesNotRunWithFoamExtend
-solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+(cd  analyticalPlateHole  && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
@@ -17,15 +18,15 @@ configs=(
     #"BASE=base/segregated NAME=hex.seg USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     #"BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     #"BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
-    #"BASE=base/highOrder NAME=hex.ho.N1 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    #"BASE=base/highOrder NAME=hex.ho.N2 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    #"BASE=base/highOrder NAME=hex.ho.N3 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    #"BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    #"BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    #"BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=hex.ho.N1 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=hex.ho.N2 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=hex.ho.N3 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
 )
 
 # Define start and end mesh indices
@@ -118,21 +119,21 @@ do
         fi
 
         # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
