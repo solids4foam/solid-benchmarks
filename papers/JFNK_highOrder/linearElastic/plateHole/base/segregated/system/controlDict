@@ -16,6 +16,9 @@ FoamFile
 
 application     solids4Foam;
 
+
+
+libs            ("libanalyticalPlateHole.so");
 startFrom       startTime;
 
 startTime       0;
@@ -48,7 +51,7 @@ functions
 {
     analyticalSolution
     {
-        type          plateHoleAnalyticalSolution;
+        type          analyticalPlateHole;
         farFieldTractionX 1e6;
         holeRadius    0.5;
         E             200e+9;
