@@ -1,0 +1,12 @@
+sinclude $(SOLIDS4FOAM_DIR)/etc/wmake-options
+sinclude $(SOLIDS4FOAM_DIR)/../etc/wmake-options
+
+EXE_INC = \
+    $(VERSION_SPECIFIC_INC) \
+    -I$(SOLIDS4FOAM_DIR)/src/solids4FoamModels/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude
+
+LIB_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools
