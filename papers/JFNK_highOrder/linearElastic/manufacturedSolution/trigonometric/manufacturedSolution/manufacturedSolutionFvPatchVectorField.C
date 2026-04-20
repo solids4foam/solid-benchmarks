@@ -122,10 +122,15 @@ void manufacturedSolutionFvPatchVectorField::updateCoeffs()
 
 autoPtr<CompactListList<vector>>
 manufacturedSolutionFvPatchVectorField::evaluateQuadrature
-(
-    const CompactListList<point>& faceQuadPoints
-) const
+() const
 {
+    const fvMesh& mesh = patch().boundaryMesh().mesh();
+    const solidModel& solMod = lookupSolidModel(mesh);
+
+    // faceQuadPoints is list for the  whole mesh
+    const CompactListList<point>& faceQuadPoints =
+        solMod.displacementMLS().quadrature().faceQuadPoints();
+
     // faceQuadPoints is list for whole mesh.
     labelList nQpPerFace(this->size(), 0);
     const label start = this->patch().start();

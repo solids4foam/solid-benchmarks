@@ -19,9 +19,7 @@ License
 
 #include "manufacturedSolution.H"
 #include "mathematicalConstants.H"
-#include "tetPoints.H"
-#include "tetQuadrature.H"
-#include "polyMeshTetDecomposition.H"
+#include "lookupSolidModel.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -67,123 +65,28 @@ void Foam::manufacturedSolution::calcBodyForces() const
 
     if (highOrderIntegration_)
     {
-        // Get interpolation order
-        const dictionary& hoDict = solidModelDict().subDict("highOrderCoeffs");
+        const solidModel& solMod = lookupSolidModel(mesh);
+        const fvMeshQuadrature& quadrature =
+            solMod.displacementMLS().quadrature();
+        const CompactListList<point>& cellQuadPoints =
+            quadrature.cellQuadPoints();
+        const CompactListList<scalar>& cellQuadWeights =
+            quadrature.cellQuadWeights();
+        const scalarField& cellVolumes = mesh.V();
 
-        const label N = readInt(hoDict.subDict("LRECoeffs").lookup("N"));
-
-        const fvMesh& mesh = mesh_;
-        const List<cell>& cells = mesh.cells();
-        const pointField& pts = mesh.points();
-        //const scalarField& V = mesh.V();
-
-        // Loop over cells
-        forAll (cells, cellI)
+        forAll(bodyForcesI, cellI)
         {
-            const cellShape& shape = mesh.cellShapes()[cellI];
+            const List<point>& quadPoints = cellQuadPoints[cellI];
+            const List<scalar>& quadWeights = cellQuadWeights[cellI];
 
-            // Get the vertices (points) of the current cell
-            const labelList& cellPoints = mesh.cellPoints()[cellI];
-            const point& cellC = mesh.C()[cellI];
-            const cell& c = mesh.cells()[cellI];
-
-            // Handle tetrahedral cells
-            if (shape.model() == cellModel::ref(cellModel::TET))
+            forAll(quadPoints, pointI)
             {
-                const tetPoints tet =
-                    tetPoints
-                    (
-                        pts[cellPoints[0]],
-                        pts[cellPoints[1]],
-                        pts[cellPoints[2]],
-                        pts[cellPoints[3]]
-                     );
-
-                // Get tet quadrature points and their weight
-                const tetQuadrature tq(tet, N);
-                const List<point>& tetQP = tq.points();
-                const List<scalar>& tetQW = tq.weights();
-
-                // Loop over quadrature points and calculate contribution to
-                // cell body force vector
-                forAll(tetQP, i)
-                {
-                     const vector& quadPoint = tetQP[i];
-                     const scalar& weight = tetQW[i];
-                     const vector bodyForce = calculateBodyForce(quadPoint);
-
-                     bodyForcesI[cellI] += weight * bodyForce;
-                }
+                bodyForcesI[cellI] +=
+                    quadWeights[pointI]
+                   *calculateBodyForce(quadPoints[pointI]);
             }
-            else
-            {
-                scalar cellV = 0.0;
 
-                // Storage for per-cell tets
-                DynamicList<tetPoints> cellTets;
-
-                // Loop over faces of the cell
-                forAll(c, fI)
-                {
-                    const label faceI = c[fI];
-                    const face& f = mesh.faces()[faceI];
-                    const label nTri = f.nTriangles();
-
-                    faceList triFaces(nTri);
-                    label t2 = 0;
-                    const label t1 = f.triangles(mesh.points(), t2, triFaces);
-
-                    if (nTri != t1 || nTri != t2)
-                    {
-                        FatalErrorInFunction
-                            << "Face triangulation mismatch on cell " << cellI
-                            << exit(FatalError);
-                    }
-
-                    // For each triangular face, make a tet with the cell centroid
-                    forAll(triFaces, triI)
-                    {
-                        const face& triF = triFaces[triI];
-
-                        // Build tet: (cell centroid + triangle)
-                        tetPoints t
-			(
-			    cellC,
-			    mesh.points()[triF[0]],
-			    mesh.points()[triF[1]],
-			    mesh.points()[triF[2]]
-			);
-                        tetPointRef tet(t);
-                        cellV += mag(tet.mag());
-
-                        cellTets.append(t);
-                    }
-                }
-
-                // Now integrate over quadrature points inside each tet
-                forAll(cellTets, tetI)
-                {
-                    const tetPoints& subTet = cellTets[tetI];
-                    tetPointRef subRef(subTet);
-
-                    tetQuadrature tq(subTet, N);
-                    const List<point>& tetQP = tq.points();
-                    const List<scalar>& tetQW = tq.weights();
-
-                    // Scale weights by tet volume relative to cell volume
-                    //const scalar scaleW = subTet.mag() / cellV;
-                    const scalar scaleW = mag(subRef.mag()) / cellV;
-
-                    forAll(tetQP, i)
-                    {
-                        const vector& quadPoint = tetQP[i];
-                        const scalar& weight = tetQW[i];
-                        const vector bodyForce = calculateBodyForce(quadPoint);
-
-                        bodyForcesI[cellI] += scaleW * weight * bodyForce;
-                    }
-                }
-            }
+            bodyForcesI[cellI] /= cellVolumes[cellI];
         }
     }
     else
@@ -223,17 +126,6 @@ Foam::manufacturedSolution::manufacturedSolution
     mu_(E_/(2.0*(1.0 + nu_))),
     lambda_((E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_))),
     highOrderIntegration_(highOrderIntegration),
-    solidProperties_
-    (
-        IOobject
-        (
-            "solidProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-     ),
      bodyForcesPtr_(nullptr)
 {
     if (E_ < SMALL || nu_ < SMALL)
@@ -263,17 +155,6 @@ Foam::manufacturedSolution::manufacturedSolution
     (
         dict.lookupOrDefault<Switch>("highOrderIntegration", false)
     ),
-    solidProperties_
-    (
-        IOobject
-        (
-            "solidProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-     ),
     bodyForcesPtr_(nullptr)
 {
     if (E_ < SMALL || nu_ < SMALL)

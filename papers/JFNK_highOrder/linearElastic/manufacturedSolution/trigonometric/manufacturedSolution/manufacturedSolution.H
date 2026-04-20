@@ -91,9 +91,6 @@ class manufacturedSolution
         //- High order volume integration for body force calculation
         const Switch highOrderIntegration_;
 
-        //- Solid properties dictionary
-        mutable IOdictionary solidProperties_;
-
         //- Body forces
         mutable autoPtr<volVectorField> bodyForcesPtr_;
 
@@ -101,20 +98,6 @@ class manufacturedSolution
 
         //- Calculate the body forces field
         void calcBodyForces() const;
-
-        //- Return reference to solid properties dictionary
-        const dictionary& solidProperties() const
-        {
-            return solidProperties_;
-        }
-
-        //- Return reference to solidModelCoeffs dictionary
-        const dictionary& solidModelDict() const
-        {
-            const word t = word(solidProperties().lookup("solidModel"));
-
-            return solidProperties().subDict(t + "Coeffs");
-        }
 
         //- Disallow default bitwise copy construct
         manufacturedSolution

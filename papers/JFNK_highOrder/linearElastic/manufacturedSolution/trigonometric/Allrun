@@ -6,7 +6,10 @@ source solids4FoamScripts.sh
 
 # Working only with .com version
 solids4Foam::caseDoesNotRunWithFoamExtend
-solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# solids4Foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the manucafturedSolution library
 (cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
@@ -20,18 +23,18 @@ configs=(
     "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     "BASE=base/segregated NAME=poly.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
 )
 
 # Define start and end mesh indices
@@ -97,8 +100,11 @@ do
         solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
         solids4Foam::runApplication createPatch -overwrite
         if [ "$USE_DUALMESH" -eq 1 ]; then
+            cp 0 0.org
             solids4Foam::runApplication polyDualMesh 30 -overwrite
             solids4Foam::runApplication combinePatchFaces 45 -overwrite
+            rm -rf 0
+            mv 0.org 0
         fi
 
         # Optional mesh distortion
@@ -115,21 +121,21 @@ do
         fi
 
         # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
@@ -166,7 +172,7 @@ do
             CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
         fi
 
-	if grep -q "Maximum resident" log.solids4Foam; then
+        if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"
