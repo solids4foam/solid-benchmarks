@@ -32,10 +32,20 @@ linearGeometryTotalDisplacementCoeffs
     //optionsFile petscOptions.ilu;
     //optionsFile petscOptions.seg.hypre;
 
+    // Stabilisation
     stabilisation
     {
-        type        RhieChow;
-        scaleFactor 0.1;
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+
+        pressure
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
     }
 }
 

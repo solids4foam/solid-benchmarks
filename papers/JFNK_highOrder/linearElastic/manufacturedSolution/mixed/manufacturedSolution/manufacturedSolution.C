@@ -19,6 +19,7 @@ License
 
 #include "manufacturedSolution.H"
 #include "mathematicalConstants.H"
+#include "lookupSolidModel.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -71,94 +72,31 @@ void Foam::manufacturedSolution::calcBodyForces() const
                 << abort(FatalError);
         }
 
-        // Get interpolation order
-        const dictionary& hoDict = solidModelDict().subDict("highOrderCoeffs");
-
-        const label N = readInt(hoDict.lookup("order"));
+        const solidModel& solMod = lookupSolidModel(mesh);
+        const fvMeshQuadrature& quadrature =
+            solMod.displacementMLS().quadrature();
+        const CompactListList<point>& cellQuadPoints =
+            quadrature.cellQuadPoints();
+        const CompactListList<scalar>& cellQuadWeights =
+            quadrature.cellQuadWeights();
+        const scalarField& cellVolumes = mesh.V();
 
         Info<<"Body force is integrated exactly for polynomials of order: "
-            << N << endl;
+            << quadrature.cellOrder() << endl;
 
-        const fvMesh& mesh = mesh_;
-        const pointField& pts = mesh.points();
-        const faceList& faces = mesh.faces();
-        const surfaceVectorField Sn(mesh.Sf()/mesh.magSf());
-
-        // Loop over cells
-        forAll (mesh.cells(), cellI)
+        forAll(bodyForcesI, cellI)
         {
-            const cell& c = mesh.cells()[cellI];
+            const List<point>& quadPoints = cellQuadPoints[cellI];
+            const List<scalar>& quadWeights = cellQuadWeights[cellI];
 
-            // Get index of face with positive z normal
-            label faceI = -1;
-            forAll(c, i)
+            forAll(quadPoints, pointI)
             {
-                label faceIndex = c[i];
-
-                if (faceIndex > mesh.nInternalFaces())
-                {
-                    const label patchID =
-                        mesh.boundaryMesh().whichPatch(faceIndex);
-
-                    if (mesh.boundaryMesh()[patchID].type() == "empty")
-                    {
-                        faceI = faceIndex;
-                        break;
-                    }
-                }
-            }
-            if (faceI == -1)
-            {
-                FatalErrorInFunction
-                    << "Inavalid face index, something went wrong!"
-                    << exit(FatalError);
+                bodyForcesI[cellI] +=
+                    quadWeights[pointI]
+                   *calculateBodyForce(quadPoints[pointI]);
             }
 
-            const scalar& faceArea = mag(mesh.faceAreas()[faceI]);
-            const face& f = faces[faceI];
-            const label nTri = f.nTriangles();
-
-            // Have face triangulate itself (results in faceList)
-            faceList triFaces(nTri);
-            label nTmp = 0;
-
-            f.triangles(pts, nTmp, triFaces);
-
-            // Loop over face triangles
-            forAll(triFaces, triFaceI)
-            {
-                const face& triF = triFaces[triFaceI];
-
-                // Triangle points, forcing z=0 becouse we can have face on
-                // poitive or negative empty direction
-                const point a = point(pts[triF[0]].x(), pts[triF[0]].y(), 0.0);
-                const point b = point(pts[triF[1]].x(), pts[triF[1]].y(), 0.0);
-                const point c = point(pts[triF[2]].x(), pts[triF[2]].y(), 0.0);
-
-                // Construct triPoints (triangle)
-                const triPoints triangle = triPoints(a, b, c);
-
-                const scalar triArea = triangle.mag();
-
-                const scalar scaleW = triArea / faceArea;
-
-                // Get triangle quadrature points and their weight
-                const triQuadrature tq(triangle, N);
-
-                const List<point>& triangleQP = tq.points();
-                const List<scalar>& triangleQPweights = tq.weights();
-
-                // Loop over quadrature points and calculate contribution to
-                // cell body force vector
-                forAll(triangleQP, i)
-                {
-                     const vector& quadPoint = triangleQP[i];
-                     const scalar& weight = triangleQPweights[i];
-                     const vector bodyForce = calculateBodyForce(quadPoint);
-
-                     bodyForcesI[cellI] += scaleW * weight * bodyForce;
-                }
-            }
+            bodyForcesI[cellI] /= cellVolumes[cellI];
         }
     }
     else
@@ -193,17 +131,7 @@ Foam::manufacturedSolution::manufacturedSolution
     mu_(E_/(2.0*(1.0 + nu_))),
     lambda_((E_*nu_)/((1.0 + nu_)*(1.0 - 2.0*nu_))),
     highOrderIntegration_(highOrderIntegration),
-    solidProperties_
-    (
-        IOobject
-        (
-            "solidProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    )
+    bodyForcesPtr_(nullptr)
 {
     if (E_ < SMALL || nu_ < SMALL)
     {
@@ -229,17 +157,7 @@ Foam::manufacturedSolution::manufacturedSolution
     (
         dict.lookupOrDefault<Switch>("highOrderIntegration", false)
     ),
-    solidProperties_
-    (
-        IOobject
-        (
-            "solidProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ,
-            IOobject::NO_WRITE
-        )
-    )
+    bodyForcesPtr_(nullptr)
 {
     if (E_ < SMALL || nu_ < SMALL)
     {
