@@ -83,9 +83,9 @@ plot \
     (5e-3 * x)           w l ls 1 title "1^{st} order", \
     (0.35e-5 * x**2)     w l ls 2 title "2^{nd} order", \
     (0.2e-8 * x**3)      w l ls 3 title "3^{rd} order", \
-    "poly.struct.ho.N1.summary.txt" u (1*(1/$4)**0.5*1e3):($7) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
-    "poly.struct.ho.N1.summary.txt" u (1*(1/$4)**0.5*1e3):($8) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
-    "poly.struct.ho.N2.summary.txt" u (1*(1/$4)**0.5*1e3):($7) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
-    "poly.struct.ho.N2.summary.txt" u (1*(1/$4)**0.5*1e3):($8) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
-    "poly.struct.ho.N3.summary.txt" u (1*(1/$4)**0.5*1e3):($7) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
-    "poly.struct.ho.N3.summary.txt" u (1*(1/$4)**0.5*1e3):($8) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"
+    "poly.struct.ho.N1.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($7) w lp ls 11  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=1)", \
+    "poly.struct.ho.N1.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($8) w lp ls 12  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=1)", \
+    "poly.struct.ho.N2.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($7) w lp ls 21  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=2)", \
+    "poly.struct.ho.N2.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($8) w lp ls 22  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=2)", \
+    "poly.struct.ho.N3.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($7) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
+    "poly.struct.ho.N3.summary.txt" u ((4*(1/$4)/pi)**0.5*1e3):($8) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"

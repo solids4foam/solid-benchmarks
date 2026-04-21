@@ -7,6 +7,11 @@ source solids4FoamScripts.sh
 # Not working with extend version
 solids4Foam::caseDoesNotRunWithFoamExtend
 
+# solids4Foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
+
+# Compile the analyticalPlateHole library
 (cd  analyticalPlateHole  && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
