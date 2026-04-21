@@ -38,6 +38,7 @@ Author
 
 #include "fixedDisplacementFvPatchVectorField.H"
 #include "manufacturedSolution.H"
+#include "lookupSolidModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -143,9 +144,7 @@ public:
             //- Return face quadrature values.
             // Used for high order solvers, input is position of points
             virtual autoPtr<CompactListList<vector>> evaluateQuadrature
-            (
-                const CompactListList<point>& faceQuadPoints
-            ) const;
+            () const;
 
 };
 

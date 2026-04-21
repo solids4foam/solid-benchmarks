@@ -100,7 +100,7 @@ do
         solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
         solids4Foam::runApplication createPatch -overwrite
         if [ "$USE_DUALMESH" -eq 1 ]; then
-            cp 0 0.org
+            cp -r 0 0.org
             solids4Foam::runApplication polyDualMesh 30 -overwrite
             solids4Foam::runApplication combinePatchFaces 45 -overwrite
             rm -rf 0
