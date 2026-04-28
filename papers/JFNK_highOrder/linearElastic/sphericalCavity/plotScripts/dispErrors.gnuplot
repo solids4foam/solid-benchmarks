@@ -46,7 +46,8 @@ plot \
     "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($5) w lp ls 31  title "{/Times-Italic L}_{ 2} ({/Times-Italic p}_{ }=3)", \
     "tet.unstruct.ho.N3.summary.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($6) w lp ls 32  title "{/Times-Italic L}_{ ∞} ({/Times-Italic p}_{ }=3)"
 
-set output "sphericalCavity_dispErrors_poly.pdf"
+set output "sphericalCavity_dispErrors_poly.pdf
+set xrange [15:80]
 plot \
     (5e-12 * x**2)   w l ls 1 title "2^{nd} order",\
     (0.8e-14 * x**3) w l ls 2 title "3^{rd} order",\

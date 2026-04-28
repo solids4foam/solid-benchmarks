@@ -1,4 +1,4 @@
-3;170;20M#!/bin/bash
+#!/bin/bash
 
 # Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions

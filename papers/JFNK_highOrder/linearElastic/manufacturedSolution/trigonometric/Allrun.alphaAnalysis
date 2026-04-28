@@ -6,7 +6,6 @@ source solids4FoamScripts.sh
 
 # Working only with .com version
 solids4Foam::caseDoesNotRunWithFoamExtend
-solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
 # Compile the manucafturedSolution library
 (cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
@@ -121,26 +120,26 @@ do
 
         # Update the order in the LRECoeffs
         if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${N};|" constant/solidProperties
         fi
 
         # Update number of stencil cells in the LRECoeffs
         if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${Nn};|" constant/solidProperties
         fi
         scaleFactor 0.1;
 
-	# Update alpha factor
+        # Update alpha factor
         if [ -n "${ALPHA}" ]; then
             sed -i "/^\s*scaleFactor /s|^.*|        scaleFactor ${ALPHA};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
@@ -177,7 +176,7 @@ do
             CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
         fi
 
-	if grep -q "Maximum resident" log.solids4Foam; then
+        if grep -q "Maximum resident" log.solids4Foam; then
             MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"

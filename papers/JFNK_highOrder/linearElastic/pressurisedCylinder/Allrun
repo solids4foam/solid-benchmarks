@@ -95,12 +95,12 @@ do
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-        # Update the order in the LRECoeffs
+        # Update the order
         if [ -n "${polyOrder}" ]; then
             sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
-        # Update number of stencil cells in the LRECoeffs
+        # Update number of stencil cells
         if [ -n "${extraCells}" ]; then
             sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
