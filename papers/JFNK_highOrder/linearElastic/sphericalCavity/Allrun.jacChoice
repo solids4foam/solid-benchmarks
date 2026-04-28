@@ -3,6 +3,8 @@
 # Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
+# Extend version not supported
+solids4Foam::caseDoesNotRunWithFoamExtend
 
 # Define configurations as space-separated strings
 configs=(
@@ -54,7 +56,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE N Nn HOJAC HORES
+    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES
 
     # Parse the configuration string
     eval $config

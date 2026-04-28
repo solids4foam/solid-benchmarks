@@ -5,11 +5,12 @@
 
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
+# Extend version not supported
+solids4Foam::caseDoesNotRunWithFoamExtend
 
 # Use tet (1) or hex (0) volumes
 USE_TET=1
 
-solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
 # Create the mesh

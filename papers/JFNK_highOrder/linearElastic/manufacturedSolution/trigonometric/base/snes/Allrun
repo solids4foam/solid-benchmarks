@@ -5,6 +5,8 @@
 
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
+# Extend version not supported
+solids4Foam::caseDoesNotRunWithFoamExtend
 
 # Use structural type (1) or unstructural type (0) of mesh
 USE_STRUCTURAL_MESH=1
@@ -12,7 +14,6 @@ USE_STRUCTURAL_MESH=1
 # Use tet (1) or hex (0) volumes
 USE_TET=1
 
-solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
 # Create the mesh

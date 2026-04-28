@@ -3,8 +3,7 @@
 # Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
-
-# Not working with foam-extend
+# Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
 # Compile the cantileverBeam library
