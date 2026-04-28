@@ -99,7 +99,7 @@ plot \
     "poly.struct.ho.N3.summary.txt" u 2:($7*1e-6) w lp ls 31  title "{/Times-Italic p}_{ }=3"
 
 set output "mms_3D_memoryEfficiency_hex_struct.pdf"
-set xrange [0.1:10]
+set xrange [0.05:10]
 set xlabel "Memory (in MB)"
 
 plot \

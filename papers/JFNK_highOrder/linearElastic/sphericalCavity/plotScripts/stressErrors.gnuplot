@@ -49,6 +49,7 @@ plot \
     "tet.unstruct.ho.N3.summary.zeroTraction.txt" u ((8.48528*(volume/$4))**(1.0/3.0)*1e3):($7*1e-6) w lp ls 50 title "{/Times-Italic L}_{ 2} ({/Times-Italic p}^{_*}_{ }=3)"
 
 set output "sphericalCavity_stressErrors_poly.pdf"
+set xrange [15:80]
 plot \
     (5e-4 * x)      w l ls 1 title "1^{st} order",\
     (11e-7 * x**2)  w l ls 2 title "2^{nd} order",\

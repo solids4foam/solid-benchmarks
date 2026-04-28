@@ -20,6 +20,9 @@ License
 #include "manufacturedSolution.H"
 #include "mathematicalConstants.H"
 #include "lookupSolidModel.H"
+#include "tetPoints.H"
+#include "tetQuadrature.H"
+#include "polyMeshTetDecomposition.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -72,7 +75,6 @@ void Foam::manufacturedSolution::calcBodyForces() const
             quadrature.cellQuadPoints();
         const CompactListList<scalar>& cellQuadWeights =
             quadrature.cellQuadWeights();
-        const scalarField& cellVolumes = mesh.V();
 
         forAll(bodyForcesI, cellI)
         {
@@ -82,11 +84,8 @@ void Foam::manufacturedSolution::calcBodyForces() const
             forAll(quadPoints, pointI)
             {
                 bodyForcesI[cellI] +=
-                    quadWeights[pointI]
-                   *calculateBodyForce(quadPoints[pointI]);
+                    quadWeights[pointI]*calculateBodyForce(quadPoints[pointI]);
             }
-
-            bodyForcesI[cellI] /= cellVolumes[cellI];
         }
     }
     else

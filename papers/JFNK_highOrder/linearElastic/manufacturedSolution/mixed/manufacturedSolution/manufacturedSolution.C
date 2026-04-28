@@ -79,7 +79,6 @@ void Foam::manufacturedSolution::calcBodyForces() const
             quadrature.cellQuadPoints();
         const CompactListList<scalar>& cellQuadWeights =
             quadrature.cellQuadWeights();
-        const scalarField& cellVolumes = mesh.V();
 
         Info<<"Body force is integrated exactly for polynomials of order: "
             << quadrature.cellOrder() << endl;
@@ -92,11 +91,8 @@ void Foam::manufacturedSolution::calcBodyForces() const
             forAll(quadPoints, pointI)
             {
                 bodyForcesI[cellI] +=
-                    quadWeights[pointI]
-                   *calculateBodyForce(quadPoints[pointI]);
+                    quadWeights[pointI]*calculateBodyForce(quadPoints[pointI]);
             }
-
-            bodyForcesI[cellI] /= cellVolumes[cellI];
         }
     }
     else
