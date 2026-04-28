@@ -5,7 +5,7 @@
 
 # Source solids4Foam scripts
 source solids4FoamScripts.sh
-
+# Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 

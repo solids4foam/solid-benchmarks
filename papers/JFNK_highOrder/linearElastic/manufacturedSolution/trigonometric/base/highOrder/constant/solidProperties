@@ -24,7 +24,7 @@ linearGeometryTotalDisplacementCoeffs
     // Solution algorithm
     //solutionAlgorithm implicitCoupled;
     solutionAlgorithm PETScSNES;
-    optionsFile petscOptions.ksponly;
+    optionsFile petscOptions.lu;
 
     highOrderCoeffs
     {

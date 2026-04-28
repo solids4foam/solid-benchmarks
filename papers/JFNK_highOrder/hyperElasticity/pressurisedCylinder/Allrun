@@ -3,12 +3,14 @@
 # Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
+# Extend version not supported
+solids4Foam::caseDoesNotRunWithFoamExtend
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=1 Nn=10 TOL=0.6"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=2 Nn=10 TOL=0.4"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true N=3 Nn=10 TOL=0.3"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true order=1 extraCells=10 TOL=0.6"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true order=2 extraCells=10 TOL=0.4"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true order=3 extraCells=10 TOL=0.3"
 )
 
 # Define start and end mesh indices
@@ -76,29 +78,29 @@ do
         solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
         solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
         solids4Foam::runApplication changeDictionary
-	solids4Foam::runApplication checkMesh
+        solids4Foam::runApplication checkMesh
 
         # Update the PETSc options file
         if [ -n "${PETSC_FILE}" ]; then
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-        # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        # Update the order
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
-        # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        # Update number of stencil cells
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi
@@ -126,19 +128,19 @@ do
             solids4Foam::runApplication solids4Foam
         fi
 
-	solids4Foam::runApplication postProcess -func sampleDict -latestTime
+        solids4Foam::runApplication postProcess -func sampleDict -latestTime
 
-	if ! command -v python3 &> /dev/null
-	then
-	    echo "python3 not found. Load python environment, aborting..."
-	    exit 1
-	fi
+        if ! command -v python3 &> /dev/null
+        then
+            echo "python3 not found. Load python environment, aborting..."
+            exit 1
+        fi
 
-	INPUT_FILE="postProcessing/sampleDict/100/line_D_sigma:Transformed.xy"
-	OUTPUT_FILE="../filteredSigmaTransformed_p${N}.$i.dat"
-	./filterHoopAndRadialStress.py "$INPUT_FILE" "$OUTPUT_FILE" --tol "$TOL"
+        INPUT_FILE="postProcessing/sampleDict/100/line_D_sigma:Transformed.xy"
+        OUTPUT_FILE="../filteredSigmaTransformed_p${N}.$i.dat"
+        ./filterHoopAndRadialStress.py "$INPUT_FILE" "$OUTPUT_FILE" --tol "$TOL"
 
-	# Extract results from solver log and append them to a summary file
+        # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
         if grep -q "gtime/time" log.solids4Foam; then
             CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
