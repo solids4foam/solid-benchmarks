@@ -1,35 +1,54 @@
-# Idealised Ventricle
+# Idealised Ventricle Inflation Stabilisation Sweep
 
-## Overview
-This 3-D problem consists of the inflation of an idealisde ventricle, as
-proposed in the Land et al. (2015) benchmark article.
+This case is a stabilisation-framework-compatible copy of the idealised
+ventricle inflation benchmark.  The original `../base` case is left unchanged.
 
-## Instructions
+The sweep uses the SNES mixed pressure-displacement formulation with the new
+dictionary form:
 
-### Compile `extractIdealisedVentricleResults` Utilty
-The `extractIdealisedVentricleResults` utility is used to extract results from
-the idealised ventricle case.
-The `extractIdealisedVentricleResults` utility can be compiled with
-```bash
-wmake extractIdealisedVentricleResults
+```text
+stabilisation
+{
+    momentum
+    {
+        type        diffStencilLaplacian;
+        scaleFactor 0.1;
+    }
+
+    pressure
+    {
+        type                <method>;
+        scaleFactor         <value>;
+        scaleFactorJacobian <value>;
+    }
+}
 ```
 
-### Run the Cases
-The `Allrun` runs the a mesh study for various mesh and solution procedure
-configurations. The configurations are defined near the top of the `Allrun` script:
+The case provides pressure stabilisation dictionaries for `RhieChow`,
+`laplacian`, `JamesonSchmidtTurkel`, and `generalisedEvenOrderLaplacian` with
+`laplacianPower` values `0`, `1`, and `2`.
+
+The default `Allrun` sweep runs the methods currently validated on mesh 1 for
+this transient inflation case: `RhieChow`, `JamesonSchmidtTurkel`, and
+`generalisedEvenOrderLaplacian` with `laplacianPower 1`.  The `laplacian`,
+`evenlap_m0`, and `evenlap_m2` dictionaries are included for follow-up tuning,
+but they are not part of the default sweep because they showed pressure-block
+linear-solver issues with the supplied PETSc options.
+
+The default mesh sweep is meshes `1` to `4`, matching the original benchmark.
+For a quick check, run for one mesh:
+
 ```bash
-configs=(
-    "BASE=base/snes NAME=poly.hypre PETSC_FILE=petscOptions.hypre"
-    "BASE=base/segregated NAME=poly.seg"
-e"
-)
+START_MESH=1 END_MESH=1 ./Allrun
 ```
-where various flags are used to specify meshing and solution procedure options.
-The `Allrun` script is executed as
+
+To force a specific method or include the full method set:
+
 ```bash
-./Allrun
+STABS=laplacian START_MESH=1 END_MESH=1 ./Allrun
+STABS=all START_MESH=1 END_MESH=1 ./Allrun
 ```
-which creates a directory for the cases called `run_<CPU_NAME>_<DATE_TIME>`, for
-example, `run_Apple_M1_Ultra_20250118_151956`. When the `Allrun` script
-completes, pdf plots will be available in the directory, if `gnuplot` is
-installed.
+
+The script compiles `../extractIdealisedVentricleResults` if it is not already
+available, extracts `midLineDeformed.txt` for each case, and creates midline,
+runtime, and linear-iteration plots when `gnuplot` is installed.

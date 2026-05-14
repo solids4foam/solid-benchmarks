@@ -1,0 +1,63 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.3                                                           |
+| Web:         https://solids4foam.github.io                                  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       pointVectorField;
+    object      D;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    plate
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    outlet
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    cylinder
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    bottom
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    top
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    frontAndBackPlanes
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

@@ -1,0 +1,8 @@
+# Cell Count Approx Cell Spacing (mm) Vertical Displacement (m) Vertical Displacement (mm) CPU run time (s)
+9 1.26E+01 0.012177 1.22E+01 
+36 6.32E+00 0.013424 1.34E+01 
+144 3.16E+00 0.0143401 1.43E+01 
+576 1.58E+00 0.0146183 1.46E+01 
+2304 7.91E-01 0.0146976 1.47E+01 
+9216 3.95E-01 0.0147205 1.47E+01 
+36864 1.98E-01 0.0147273 1.47E+01 77

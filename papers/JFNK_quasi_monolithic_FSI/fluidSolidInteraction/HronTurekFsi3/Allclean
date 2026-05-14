@@ -1,0 +1,5 @@
+#!/bin/bash
+# Remove generated run directories and stray logs.
+
+rm -rf run_*
+rm -f log.Allrun.* log.HronTurekFsi3_*.err log.HronTurekFsi3_*.out

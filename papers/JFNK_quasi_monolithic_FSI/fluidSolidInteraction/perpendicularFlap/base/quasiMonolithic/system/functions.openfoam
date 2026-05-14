@@ -1,0 +1,29 @@
+functions
+{
+    tipDisplacement
+    {
+        type                solidPointDisplacement;
+        region              solid;
+        point               (0 1 0);
+    }
+    fluidForces
+    {
+        type                forces;
+        region              fluid;
+        libs                ( "libforces.so" );
+        writeControl        timeStep;
+        writeInterval       1;
+        patches             (flap);
+        "pName|p"           p;
+        "UName|U"           U;
+        "rhoName|rho"       rhoInf;
+        log                 true;
+        rhoInf              1000;
+        CofR                (0.5 0.1 0);
+    }
+    solidForces
+    {
+        type                solidForces;
+        historyPatch        interface;
+    }
+}

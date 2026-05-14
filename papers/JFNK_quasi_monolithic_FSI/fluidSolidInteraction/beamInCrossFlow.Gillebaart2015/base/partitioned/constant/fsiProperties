@@ -17,16 +17,18 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 //fluidSolidInterface    fixedRelaxation;
-fluidSolidInterface    Aitken;
-//fluidSolidInterface    IQNILS;
+//fluidSolidInterface    Aitken;
+fluidSolidInterface    IQNILS;
 
 "fixedRelaxationCoeffs|AitkenCoeffs|IQNILSCoeffs"
 {
-    // Solid interface patch list
+    // Interface patches
     solidPatch interface;
-
-    // Fluid interface patch list
     fluidPatch interface;
+
+    // Predictors at the start of a new time step
+    predictor            yes;
+    predictSolid         yes;
 
     // Under-relaxation factor for passing the solid interface
     // displacement/velocity to the fluid interface
@@ -35,54 +37,42 @@ fluidSolidInterface    Aitken;
     // then it adaptively changes
     // For IQNILS, this value is used for the first two iterations each
     // time-step, then the IQNILS procedure is used
-    relaxationFactor 0.4;
+    relaxationFactor 0.1;
 
     // Tolerance for the FSI loop within each time-step
-    outerCorrTolerance 1e-4; //6;
+    outerCorrTolerance 1e-6;
 
     // Maximum number of outer FSI loop correctors within each time-step
-    nOuterCorr 30;
+    nOuterCorr 50;
 
     // Enable/disable coupling from the start
     coupled yes;
 
     // Method for transferring information between the interfaces
     interfaceTransferMethod directMap;
-    //interfaceTransferMethod RBF;
-    //interfaceTransferMethod GGI;
-
-    // Write fsi residuals to file
-    writeResidualsToFile yes;
-
-    // Move the fluid interface to the solid interface at the end of each time
-    // step
-    additionalMeshCorrection yes;
-
-    // Optional: if coupled is set to "no", then the couplingStartTime allows
-    // you to enable coupling at a specified time
-    // Defaults to 0.0
-    // couplingStartTime    2.0;
 
     // Optional (only for IQNILS): re-use modes from previous time-steps.
     // The number of modes to be re-used is specified
     // Defaults to 0 modes
-    // couplingReuse 0;
+    couplingReuse 0;
+    minSignificant 1e-12;
+    // Optional: relative QR2-style filtering of older secant modes
+    relMinSignificant 1e-2;
+    // Optional: normalize secant columns before the IQN-ILS QR solve
+    normalizeCouplingColumns yes;
+    // Optional: reuse the previous time step's secants only in iteration 1
+    reusePreviousStepModes yes;
+    // Optional: cap the reused iteration-1 IQN correction relative to |r|
+    maxReuseUpdateNormRatio 0.5;
+    // Optional: assemble one aligned LS system across all interfaces
+    // combinedCouplingSystem yes;
+    // Optional: relative cutoff for the QR back-substitution
+    //qrSolveTolerance 1e-10;
+    // Optional: apply a second orthogonalization correction in the QR build
+    //reorthogonalizeCouplingColumns yes;
 
-    // Optional: if any point on the fluid interface moves greater than the
-    // interfaceDeformationLimit then the entire fluid mesh is updated; if not
-    // then only the interface points are moved and the remaining fluid mesh is
-    // not. Note that interfaceDeformationLimit is a relative motion: it is the
-    // point displacement normalised with respect to the local cell size (delta
-    // coeffs are used)
-    // Defaults to 0.0 i.e. the fluid mesh is always updated
-    // interfaceDeformationLimit 0.0;
-
-    // Frequency of time-step at which the fluid-solid interface interpolation
-    // weights are updated
-    // 0 means there will be no interpolator update during simulation, whereas
-    // 10 means the interpolator will be updated every 10 time-steps
-    // Defaults to 0
-    // interpolatorUpdateFrequency 0;
+    // Write fsi residuals to file
+    writeResidualsToFile yes;
 }
 
 // ************************************************************************* //

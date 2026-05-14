@@ -22,12 +22,22 @@ nonLinearGeometryTotalLagrangianVelocityCoeffs
 {
     linearElasticFormulation no;
 
-    // Damp the solid to help convergence to steady-state
+    // Damping used by the transient benchmark setup
     dampingCoeff [0 0 -1 0 0 0 0] 1e4;
 
     stabilisation
     {
-        scaleFactor 0.025;
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.025;
+        }
+
+        pressure
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.025;
+        }
     }
 }
 

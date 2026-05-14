@@ -25,7 +25,7 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         200;
+endTime         10000;
 
 deltaT          0.5;
 
@@ -70,6 +70,28 @@ functions
     {
         type                solidPointDisplacement;
         point               (4 -1 0.5);
+    }
+    steadyState
+    {
+        type                fsiSteadyStateControl;
+        point               (4 -1 0.5);
+        forcesObject        forces;
+        solidRegion         solid;
+        displacementComponent 1;
+        forceComponent      1;
+        minTime             20;
+        nSamples            10;
+        nConsecutive        3;
+        displacementRelTol  1e-5;
+        displacementAbsTol  1e-8;
+        forceRelTol         1e-5;
+        forceAbsTol         1e-7;
+        displacementRefMin  1e-3;
+        forceRefMin         1e-3;
+        includeViscousForce yes;
+        includeInternalForce no;
+        writeAndEnd         yes;
+        log                 true;
     }
 }
 

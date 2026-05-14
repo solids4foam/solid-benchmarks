@@ -20,6 +20,8 @@ momentumSource
     fields          (D);
     E               200e9;
     nu              0.3;
+    // The analytical fields in controlDict use positive coefficients.
+    // The source uses the opposite sign for the current SNES residual convention.
     ax              2e-6;
     ay              4e-6;
     az              6e-6;

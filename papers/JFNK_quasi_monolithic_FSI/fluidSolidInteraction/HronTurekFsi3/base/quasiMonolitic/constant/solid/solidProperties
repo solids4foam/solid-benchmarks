@@ -1,0 +1,35 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.3                                                           |
+| Web:         https://solids4foam.github.io                                  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      solidProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solidModel    nonLinearGeometryTotalLagrangianVelocity;
+
+nonLinearGeometryTotalLagrangianVelocityCoeffs
+{
+    stabilisation
+    {
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.5;
+        }
+
+        pressure
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.5;
+        }
+    }
+}
+
+// ************************************************************************* //

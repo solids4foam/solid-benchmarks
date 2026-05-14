@@ -4,202 +4,328 @@
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
-# Define configurations as space-separated strings
-configs=(
-    "BASE=base/quasiMonolitic NAME=quasiMonolitic DT=10"
-    "BASE=base/partitioned NAME=iqnils DT=10"
-)
+set -u
 
-# Define start and end mesh indices
-# Mesh input files are defined from 1 to 4
-# END_MESH should be greater than START_MESH
-START_MESH=1
-END_MESH=1
+# Usage:
+#   ./Allrun [mesh|time|all|smoke]
+#
+# Environment overrides:
+#   METHODS="monolithic:default monolithic:schurTuned partitioned:IQNILS"
+#   MESH_LEVELS="1 2 3 4"
+#   DT_VALUES="0.5 1 2.5 5 10"
+#   END_TIME=10000
+#   STEADY_MIN_TIME=20
+#   STEADY_N_SAMPLES=10
+#   STEADY_N_CONSECUTIVE=3
 
+STUDY="${1:-${STUDY:-mesh}}"
+END_TIME="${END_TIME:-10000}"
+STEADY_MIN_TIME="${STEADY_MIN_TIME:-20}"
+STEADY_N_SAMPLES="${STEADY_N_SAMPLES:-10}"
+STEADY_N_CONSECUTIVE="${STEADY_N_CONSECUTIVE:-3}"
+STEADY_DISP_REL_TOL="${STEADY_DISP_REL_TOL:-1e-5}"
+STEADY_FORCE_REL_TOL="${STEADY_FORCE_REL_TOL:-1e-5}"
 
-# Detect the CPU type: we append this to the case name
+DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
+if [[ -v METHODS ]]
+then
+    USER_SET_METHODS=true
+else
+    USER_SET_METHODS=false
+    METHODS="$DEFAULT_METHODS"
+fi
+
+case "$STUDY" in
+    mesh)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3 4}"
+        DT_VALUES="${DT_VALUES:-0.5}"
+        ;;
+    time)
+        MESH_LEVELS="${MESH_LEVELS:-3}"
+        DT_VALUES="${DT_VALUES:-0.5 1 2.5 5 10 20 40}"
+        ;;
+    all)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3 4}"
+        DT_VALUES="${DT_VALUES:-0.5 1 2.5 5 10 20 40}"
+        ;;
+    smoke)
+        MESH_LEVELS="${MESH_LEVELS:-1}"
+        DT_VALUES="${DT_VALUES:-0.5}"
+        if ! $USER_SET_METHODS
+        then
+            METHODS="monolithic:default partitioned:IQNILS"
+        fi
+        ;;
+    *)
+        echo "Unknown study '$STUDY'; expected mesh, time, all, or smoke"
+        exit 1
+        ;;
+esac
+
+setControlEntry()
+{
+    local key="$1"
+    local value="$2"
+    local file="$3"
+
+    sed -i "/^[[:space:]]*${key}[[:space:]]/s|^.*|        ${key} ${value};|" "$file"
+}
+
+methodBase()
+{
+    local method="$1"
+
+    if [[ "$method" == "monolithic" ]]
+    then
+        echo "base/quasiMonolitic"
+    else
+        echo "base/partitioned"
+    fi
+}
+
+caseName()
+{
+    local method="$1"
+    local variant="$2"
+    local mesh="$3"
+    local dt="$4"
+
+    echo "${method}_${variant}.m${mesh}.dt${dt//./p}"
+}
+
+activateMethod()
+{
+    local method="$1"
+    local variant="$2"
+
+    if [[ "$method" == "monolithic" ]]
+    then
+        for file in $(find ./0 ./constant ./system -name '*.monolithic')
+        do
+            ln -vnsf "${file##*/}" "${file%.*}"
+        done
+
+        if [[ "$variant" != "default" ]]
+        then
+            local variantFile="system/fvSolution.monolithic.${variant}"
+
+            if [[ -f "$variantFile" ]]
+            then
+                ln -vnsf "fvSolution.monolithic.${variant}" system/fvSolution
+            else
+                echo "Cannot find $variantFile"
+                return 1
+            fi
+        fi
+    else
+        for file in $(find ./0 ./constant ./system -name '*.partitioned')
+        do
+            ln -vnsf "${file##*/}" "${file%.*}"
+        done
+
+        sed -i \
+            "/^[[:space:]]*fluidSolidInterface[[:space:]]/s|^.*|fluidSolidInterface    ${variant};|" \
+            constant/fsiProperties
+    fi
+}
+
+runSolver()
+{
+    if command -v gtime &> /dev/null
+    then
+        gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            solids4Foam &> log.solids4Foam
+    elif [ -x /usr/bin/time ]
+    then
+        /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            solids4Foam &> log.solids4Foam
+    else
+        solids4Foam &> log.solids4Foam
+    fi
+}
+
+appendSummary()
+{
+    local summary="$1"
+    local study="$2"
+    local method="$3"
+    local variant="$4"
+    local case="$5"
+    local mesh="$6"
+    local deltaX="$7"
+    local dt="$8"
+    local status="$9"
+
+    local clockTime="NaN"
+    local maxMemory="NaN"
+    local cellsFluid="NaN"
+    local cellsSolid="NaN"
+    local steadyTime="NaN"
+    local uy="NaN"
+    local fy="NaN"
+    local dispRel="NaN"
+    local forceRel="NaN"
+    local consecutive="NaN"
+
+    if grep -q "gtime/time" log.solids4Foam
+    then
+        clockTime=$(grep "gtime/time" log.solids4Foam | tail -1 | awk '{print $5}')
+    else
+        clockTime=$(grep "ClockTime" log.solids4Foam | tail -1 | awk '{print $7}')
+    fi
+
+    if grep -q "Maximum resident" log.solids4Foam
+    then
+        maxMemory=$(grep "Maximum resident" log.solids4Foam | tail -1 | awk '{print int($6 / 1000)}')
+    fi
+
+    if [[ -f log.checkMesh.fluid ]]
+    then
+        cellsFluid=$(grep "cells:" log.checkMesh.fluid | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -f log.checkMesh.solid ]]
+    then
+        cellsSolid=$(grep "cells:" log.checkMesh.solid | tail -1 | awk '{print $2}')
+    fi
+
+    local steadyFile="postProcessing/0/fsiSteadyStateControl.dat"
+
+    if [[ -f "$steadyFile" ]]
+    then
+        read -r steadyTime uy fy _ dispRel _ forceRel consecutive _ <<< \
+            "$(awk 'NF && $1 !~ /^#/ {line=$0} END {print line}' "$steadyFile")"
+    else
+        if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]
+        then
+            uy=$(awk 'NF && $1 !~ /^#/ {v=$3} END {print v}' \
+                postProcessing/0/solidPointDisplacement_pointDisp.dat)
+        fi
+
+        if [[ -f postProcessing/fluid/forces/0/force.dat ]]
+        then
+            fy=$(awk 'NF && $1 !~ /^#/ {v=$3} END {print v}' \
+                postProcessing/fluid/forces/0/force.dat)
+        fi
+    fi
+
+    echo "${study} ${method} ${variant} ${case} ${mesh} ${deltaX} ${dt} ${status} ${cellsFluid} ${cellsSolid} ${clockTime} ${maxMemory} ${steadyTime} ${uy} ${fy} ${dispRel} ${forceRel} ${consecutive}" \
+        >> "../${summary}"
+}
+
+# Detect the CPU type: append this to the run directory name
 if [[ "$OSTYPE" == "darwin"* ]]
 then
-    # macOS
     CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
 elif [[ -f /proc/cpuinfo ]]
 then
-    # Linux
     CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
 else
-    # Fallback if neither method works
     CPU_TYPE="Unknown_CPU"
 fi
 
-
-# Create timestamped working directory for this run
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
-RUN_DIR="run_${CPU_TYPE}_${DATE}"
+RUN_DIR="run_${STUDY}_${CPU_TYPE}_${DATE}"
+SUMMARY="campaignSummary.tsv"
+
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
-
-# Enter the run directory
 cd "${RUN_DIR}"
 
-# Iterate through configurations
-for config in "${configs[@]}"
+echo "# Study Method Variant Case Mesh DeltaX DeltaT Status CellsFluid CellsSolid WallTime MaxMemoryMb SteadyTime Uy Fy DisplacementRelChange ForceRelChange Consecutive" \
+    > "$SUMMARY"
+
+for methodVariant in $METHODS
 do
-    # Reset variables in the case some variable is not used
-    unset NAME
+    METHOD="${methodVariant%%:*}"
+    VARIANT="${methodVariant#*:}"
+    BASE="$(methodBase "$METHOD")"
 
-    # Parse the configuration string
-    eval $config
-    echo; echo "***************************************"
-    echo "Running configuration: $config"
-    echo "***************************************"
-
-    # Define results summary file name
-    SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh CellsNumberFluid CellsNumberSolid TimeStep Time Mem Dy" > "${SUMMARY}"
-
-    # Loop over mesh densities in each configuration
-    for i in `seq $START_MESH $END_MESH`
+    for mesh in $MESH_LEVELS
     do
-        CASE="${NAME}.${i}"
-        echo; echo "Processing case: $CASE"
+        # The supplied meshes are uniform h-refinements with level 1 matching
+        # Tukovic DeltaX ~= 0.1.
+        DELTAX=$(awk -v i="$mesh" 'BEGIN {printf "%.12g", 0.1/(2^(i - 1))}')
 
-        # Prepare the case
-        cp -rL "../${BASE}" "${CASE}"
-        cd "$CASE"
-
-        # Replace the solid blockMeshDict
-        if [[ ! -f "system/solid/blockMeshDict.$i" ]]
-        then
-            echo "Cannot find ${CASE}/system/solid/blockMeshDict.$i: please add it to ${BASE}/"; echo
-            exit 1;
-        else
-            echo "Copying ${CASE}/system/solid/blockMeshDict.$i to ${CASE}/system/solid/blockMeshDict"
-            \cp "system/solid/blockMeshDict.$i" system/solid/blockMeshDict
-        fi
-
-        # Replace the fluid blockMeshDict
-        if [[ ! -f "system/fluid/blockMeshDict.$i" ]]
-        then
-            echo "Cannot find ${CASE}/system/fluid/blockMeshDict.$i: please add it to ${BASE}/"; echo
-            exit 1;
-        else
-            echo "Copying ${CASE}/system/fluid/blockMeshDict.$i to ${CASE}/system/fluid/blockMeshDict"
-            \cp "system/fluid/blockMeshDict.$i" system/fluid/blockMeshDict
-        fi
-
-        # Create the mesh
-        solids4Foam::runApplication -s solid blockMesh -region solid
-        solids4Foam::runApplication -s fluid blockMesh -region fluid
-
-        solids4Foam::runApplication -s fluid checkMesh -region fluid
-        solids4Foam::runApplication -s solid checkMesh -region solid
-
-        if [[ $WM_PROJECT = "OpenFOAM" ]] && [[ $WM_PROJECT != *"v"* ]]
-        then
-            cd 0/fluid/ && ln -sf inlet.fixedProfile velocityInletProfile && cd ../..
-        else
-            cd 0/fluid/ && ln -sf inlet.parabolic velocityInletProfile && cd ../..
-        fi
-
-        # Set DT as a function of the mesh
-        # i=1 => DT=10
-        # i=2 => DT=5
-        # i=3 => DT=2.5
-        # ...
-        #DT=$(echo "scale=5; 10/(2^($i - 1))" | bc -l)
-
-        # Update time-step
-        echo "Setting deltaT = ${DT}"
-        sed -i "/^\s*deltaT /s|^.*|deltaT ${DT};|"  system/controlDict
-
-        # Set IQNILS - add as option for partitioned schemes
-        #echo "Setting IQNILS scheme"
-        #sed -i "/^\s*fluidSolidInterface /s|^.*|fluidSolidInterface IQNILS;|"  constant/fsiProperties
-
-        # Run the solver
-        if [[ "$1" == "parallel" ]]; then
-            # Run parallel
-            solids4Foam::runApplication -s fluid decomposePar -region fluid
-            solids4Foam::runApplication -s solid decomposePar -region solid
-            solids4Foam::runParallel solids4Foam
-            solids4Foam::runApplication -s fluid reconstructPar -region fluid
-            solids4Foam::runApplication -s solid reconstructPar -region solid
-        else
-            # If "gtime" is available (could be called "time" on Linux), use it to
-            # record the max memory usage
-            if command -v gtime &> /dev/null
-            then
-                echo "Running solids4Foam on ${CASE} with gtime"
-                gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
-
-            elif [ -x /usr/bin/time ]
-            then
-                echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-                /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" solids4Foam &> log.solids4Foam
-
-            elif command -v time &> /dev/null
-            then
-                echo "Running solids4Foam on ${CASE} with shell builtin time (no max memory)"
-                time solids4Foam &> log.solids4Foam
-
-            else
-                echo "Running solids4Foam on ${CASE}"
-                solids4Foam::runApplication solids4Foam
-            fi
-        fi
-
-        # Extract results from solver log and append them to a summary file
-        echo; echo "Appending results to ${SUMMARY}"
-        if grep -q "gtime/time" log.solids4Foam; then
-            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | awk '{print $5}')
-        else
-            # Record the time
-            CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
-        fi
-
-        # Extract results from solver log and append them to a summary file
-        if grep -q "Maximum resident" log.solids4Foam; then
-            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
-        else
-            MAX_MEMORY="NaN"
-        fi
-
-        # Number of cells
-        CELLS_FLUID=$(grep "cells:" log.checkMesh.fluid | awk '{print $2}')
-        CELLS_SOLID=$(grep "cells:" log.checkMesh.solid | awk '{print $2}')
-
-        # Point A deflection
-        DY=$(awk '{print $3}' postProcessing/0/solidPointDisplacement_pointDisp.dat | tail -1)
-
-        # Write data to file
-        echo "$i $CELLS_FLUID $CELLS_SOLID $DT $CLOCK_TIME $MAX_MEMORY $DY " >> ../"${SUMMARY}"
-
-        # Print summary file
-        echo; echo "${SUMMARY} file:"; cat ../"${SUMMARY}"; echo
-
-        cd ..
-    done
-
-    # Create plots if gnuplot in installed
-    if command -v gnuplot &>/dev/null
-    then
-        # Copy gnuplot scripts
-        cp ../plotScripts/*.gnuplot .
-
-        # Run all scripts
-        for f in *.gnuplot
+        for dt in $DT_VALUES
         do
-            echo "Running gnuplot on $f"
-            gnuplot -c "$f" "${NAME}"
-        done
-    fi
+            CASE="$(caseName "$METHOD" "$VARIANT" "$mesh" "$dt")"
 
+            echo
+            echo "***************************************"
+            echo "Processing case: $CASE"
+            echo "Method: $METHOD, variant: $VARIANT, mesh: $mesh, deltaT: $dt"
+            echo "***************************************"
+
+            cp -rL "../${BASE}" "$CASE"
+            cd "$CASE"
+
+            STATUS="failed"
+
+            if activateMethod "$METHOD" "$VARIANT"
+            then
+                cp "system/solid/blockMeshDict.${mesh}" system/solid/blockMeshDict
+                cp "system/fluid/blockMeshDict.${mesh}" system/fluid/blockMeshDict
+
+                sed -i "/^[[:space:]]*deltaT[[:space:]]/s|^.*|deltaT          ${dt};|" system/controlDict
+                sed -i "/^[[:space:]]*endTime[[:space:]]/s|^.*|endTime         ${END_TIME};|" system/controlDict
+                setControlEntry minTime "$STEADY_MIN_TIME" system/controlDict
+                setControlEntry nSamples "$STEADY_N_SAMPLES" system/controlDict
+                setControlEntry nConsecutive "$STEADY_N_CONSECUTIVE" system/controlDict
+                setControlEntry displacementRelTol "$STEADY_DISP_REL_TOL" system/controlDict
+                setControlEntry forceRelTol "$STEADY_FORCE_REL_TOL" system/controlDict
+
+                solids4Foam::runApplication -s solid blockMesh -region solid
+                solids4Foam::runApplication -s fluid blockMesh -region fluid
+                solids4Foam::runApplication -s fluid checkMesh -region fluid
+                solids4Foam::runApplication -s solid checkMesh -region solid
+
+                if [[ $WM_PROJECT = "OpenFOAM" ]] && [[ $WM_PROJECT != *"v"* ]]
+                then
+                    cd 0/fluid/ && ln -sf inlet.fixedProfile velocityInletProfile && cd ../..
+                else
+                    cd 0/fluid/ && ln -sf inlet.parabolic velocityInletProfile && cd ../..
+                fi
+
+                runSolver
+                SOLVER_STATUS=$?
+
+                if [[ $SOLVER_STATUS -ne 0 ]]
+                then
+                    STATUS="failed"
+                elif grep -q "steady state detected" log.solids4Foam
+                then
+                    STATUS="steady"
+                else
+                    STATUS="hitEndTime"
+                fi
+            fi
+
+            appendSummary "$SUMMARY" "$STUDY" "$METHOD" "$VARIANT" "$CASE" "$mesh" "$DELTAX" "$dt" "$STATUS"
+
+            echo
+            tail -n 5 "../${SUMMARY}"
+            cd ..
+        done
+    done
 done
 
-# Exit the run directory
+if command -v gnuplot &>/dev/null
+then
+    cp ../plotScripts/campaign*.gnuplot .
+
+    for f in campaign*.gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot -c "$f" "$SUMMARY"
+    done
+fi
+
 cd ..
 
-echo; echo; echo "Done!"; echo
-echo "View the PDF files in ${RUN_DIR}"
-echo; echo $(date)
-echo; echo
+echo
+echo "Done"
+echo "Run directory: ${RUN_DIR}"
+echo "Summary: ${RUN_DIR}/${SUMMARY}"
+echo
+echo "$(date)"

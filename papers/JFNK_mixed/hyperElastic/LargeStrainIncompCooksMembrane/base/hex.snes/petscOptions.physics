@@ -1,0 +1,37 @@
+-snes_type newtonls
+-snes_linesearch_type basic
+-snes_rtol 1e-6
+-snes_stol 1e-6
+-snes_max_it 1000
+-snes_monitor
+-snes_converged_reason
+-snes_mf
+-snes_mf_operator
+-snes_max_it 100
+
+#-ksp_type lgmres
+-ksp_type fgmres
+-ksp_gmres_restart 100
+#-ksp_rtol 1e-3
+#-ksp_monitor
+-ksp_converged_reason
+-ksp_rtol 1e-9
+
+-ksp_pc_side right
+#-ksp_norm_type unpreconditioned
+
+-pc_type physics
+
+#-pc_type none
+
+#-pc_type jacobi
+#-ksp_pc_side right
+#-ksp_norm_type unpreconditioned
+#-ksp_monitor_true_residual
+
+#-pc_type bjacobi
+#-sub_pc_type lu
+
+#-pc_type asm
+#-sub_pc_type ilu
+#-sub_pc_factor_levels 0

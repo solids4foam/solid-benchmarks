@@ -1,0 +1,419 @@
+#!/bin/bash
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+set -u
+
+# Usage:
+#   ./Allrun [mesh|time|all|smoke]
+#
+# Environment overrides:
+#   METHODS="monolithic:default partitioned:IQNILS"
+#   MESH_LEVELS="1 2 3"
+#   DT_VALUES="0.0025 0.005 0.01 0.02"
+#   END_TIME=5
+
+STUDY="${1:-${STUDY:-mesh}}"
+if [[ -n "${END_TIME+x}" ]]
+then
+    USER_SET_END_TIME=true
+else
+    USER_SET_END_TIME=false
+    END_TIME=5
+fi
+
+DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
+if [[ -n "${METHODS+x}" ]]
+then
+    USER_SET_METHODS=true
+else
+    USER_SET_METHODS=false
+    METHODS="$DEFAULT_METHODS"
+fi
+
+case "$STUDY" in
+    mesh)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3}"
+        DT_VALUES="${DT_VALUES:-0.01}"
+        ;;
+    time)
+        MESH_LEVELS="${MESH_LEVELS:-2}"
+        DT_VALUES="${DT_VALUES:-0.0025 0.005 0.01 0.02}"
+        ;;
+    all)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3}"
+        DT_VALUES="${DT_VALUES:-0.0025 0.005 0.01 0.02}"
+        ;;
+    smoke)
+        MESH_LEVELS="${MESH_LEVELS:-1}"
+        DT_VALUES="${DT_VALUES:-0.02}"
+        if ! $USER_SET_END_TIME
+        then
+            END_TIME=0.1
+        fi
+        if ! $USER_SET_METHODS
+        then
+            METHODS="monolithic:default partitioned:IQNILS"
+        fi
+        ;;
+    *)
+        echo "Unknown study '$STUDY'; expected mesh, time, all, or smoke"
+        exit 1
+        ;;
+esac
+
+setControlEntry()
+{
+    local key="$1"
+    local value="$2"
+    local file="$3"
+
+    sed -i "/^[[:space:]]*${key}[[:space:]]/s|^.*|${key}          ${value};|" "$file"
+}
+
+methodBase()
+{
+    local method="$1"
+
+    if [[ "$method" == "monolithic" ]]
+    then
+        echo "base/quasiMonolithic"
+    else
+        echo "base/partitioned"
+    fi
+}
+
+caseName()
+{
+    local method="$1"
+    local variant="$2"
+    local mesh="$3"
+    local dt="$4"
+
+    echo "${method}_${variant}.m${mesh}.dt${dt//./p}"
+}
+
+activateMethod()
+{
+    local method="$1"
+    local variant="$2"
+
+    if [[ "$method" == "monolithic" ]]
+    then
+        for file in $(find ./0 ./constant ./system -name '*.monolithic')
+        do
+            ln -vnsf "${file##*/}" "${file%.*}"
+        done
+
+        if [[ "$variant" != "default" ]]
+        then
+            local variantFile="system/fvSolution.monolithic.${variant}"
+
+            if [[ -f "$variantFile" ]]
+            then
+                ln -vnsf "fvSolution.monolithic.${variant}" system/fvSolution
+            else
+                echo "Cannot find $variantFile"
+                return 1
+            fi
+        fi
+    else
+        for file in $(find ./0 ./constant ./system -name '*.partitioned')
+        do
+            ln -vnsf "${file##*/}" "${file%.*}"
+        done
+
+        sed -i \
+            "/^[[:space:]]*fluidSolidInterface[[:space:]]/s|^.*|fluidSolidInterface ${variant};|" \
+            constant/fsiProperties
+    fi
+}
+
+runSolver()
+{
+    if command -v gtime &> /dev/null
+    then
+        gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            solids4Foam &> log.solids4Foam
+    elif [ -x /usr/bin/time ]
+    then
+        /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            solids4Foam &> log.solids4Foam
+    else
+        solids4Foam &> log.solids4Foam
+    fi
+}
+
+latestDisplacementFile()
+{
+    find postProcessing -path '*solidPointDisplacement_tipDisplacement.dat' \
+        -type f 2>/dev/null | sort | tail -1
+}
+
+fluidForceFile()
+{
+    find postProcessing -path '*fluidForces*/force.dat' -type f 2>/dev/null \
+        | sort | tail -1
+}
+
+solidForceFile()
+{
+    find postProcessing -name 'solidForcesinterface.dat' -type f 2>/dev/null \
+        | sort | tail -1
+}
+
+lastDisplacement()
+{
+    local file="$1"
+
+    awk 'NF && $1 !~ /^#/ {gsub(/[()]/, ""); t=$1; ux=$2; uy=$3; uz=$4}
+        END {if (t != "") print t, ux, uy, uz; else print "NaN NaN NaN NaN"}' "$file"
+}
+
+displacementExtrema()
+{
+    local file="$1"
+
+    awk '
+        NF && $1 !~ /^#/ {
+            gsub(/[()]/, "");
+            uy=$3;
+            if (!seen || uy < minUy) minUy=uy;
+            if (!seen || uy > maxUy) maxUy=uy;
+            seen=1;
+        }
+        END {
+            if (seen) print minUy, maxUy;
+            else print "NaN NaN";
+        }' "$file"
+}
+
+lastFluidForce()
+{
+    local file="$1"
+
+    awk '
+        NF && $1 !~ /^#/ {
+            gsub(/[()]/, "");
+            t=$1;
+            if (NF >= 10)
+            {
+                fx=$2 + $5 + $8;
+                fy=$3 + $6 + $9;
+            }
+            else
+            {
+                fx=$2;
+                fy=$3;
+            }
+        }
+        END {
+            if (t != "") print t, fx, fy;
+            else print "NaN NaN NaN";
+        }' "$file"
+}
+
+fluidForceExtrema()
+{
+    local file="$1"
+
+    awk '
+        NF && $1 !~ /^#/ {
+            gsub(/[()]/, "");
+            if (NF >= 10)
+            {
+                fx=$2 + $5 + $8;
+                fy=$3 + $6 + $9;
+            }
+            else
+            {
+                fx=$2;
+                fy=$3;
+            }
+            if (!seen || fx < minFx) minFx=fx;
+            if (!seen || fx > maxFx) maxFx=fx;
+            if (!seen || fy < minFy) minFy=fy;
+            if (!seen || fy > maxFy) maxFy=fy;
+            seen=1;
+        }
+        END {
+            if (seen) print minFx, maxFx, minFy, maxFy;
+            else print "NaN NaN NaN NaN";
+        }' "$file"
+}
+
+lastSolidForce()
+{
+    local file="$1"
+
+    awk 'NF && $1 !~ /^#/ {t=$1; fx=$2; fy=$3; fz=$4; fn=$5}
+        END {if (t != "") print t, fx, fy, fz, fn; else print "NaN NaN NaN NaN NaN"}' "$file"
+}
+
+appendSummary()
+{
+    local summary="$1"
+    local study="$2"
+    local method="$3"
+    local variant="$4"
+    local case="$5"
+    local mesh="$6"
+    local dt="$7"
+    local status="$8"
+
+    local clockTime="NaN"
+    local maxMemory="NaN"
+    local cellsFluid="NaN"
+    local cellsSolid="NaN"
+    local dispTime="NaN"
+    local ux="NaN"
+    local uy="NaN"
+    local uz="NaN"
+    local minUy="NaN"
+    local maxUy="NaN"
+    local forceTime="NaN"
+    local fluidFx="NaN"
+    local fluidFy="NaN"
+    local minFluidFx="NaN"
+    local maxFluidFx="NaN"
+    local minFluidFy="NaN"
+    local maxFluidFy="NaN"
+    local solidForceTime="NaN"
+    local solidFx="NaN"
+    local solidFy="NaN"
+    local solidFz="NaN"
+    local solidFn="NaN"
+
+    if grep -q "gtime/time" log.solids4Foam
+    then
+        clockTime=$(grep "gtime/time" log.solids4Foam | tail -1 | awk '{print $5}')
+    else
+        clockTime=$(grep "ClockTime" log.solids4Foam | tail -1 | awk '{print $7}')
+    fi
+
+    if grep -q "Maximum resident" log.solids4Foam
+    then
+        maxMemory=$(grep "Maximum resident" log.solids4Foam | tail -1 | awk '{print int($6 / 1000)}')
+    fi
+
+    if [[ -f log.checkMesh.fluid ]]
+    then
+        cellsFluid=$(grep "cells:" log.checkMesh.fluid | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -f log.checkMesh.solid ]]
+    then
+        cellsSolid=$(grep "cells:" log.checkMesh.solid | tail -1 | awk '{print $2}')
+    fi
+
+    local dispFile
+    dispFile="$(latestDisplacementFile)"
+    if [[ -n "$dispFile" ]]
+    then
+        read -r dispTime ux uy uz <<< "$(lastDisplacement "$dispFile")"
+        read -r minUy maxUy <<< "$(displacementExtrema "$dispFile")"
+    fi
+
+    local fluidFile
+    fluidFile="$(fluidForceFile)"
+    if [[ -n "$fluidFile" ]]
+    then
+        read -r forceTime fluidFx fluidFy <<< "$(lastFluidForce "$fluidFile")"
+        read -r minFluidFx maxFluidFx minFluidFy maxFluidFy <<< "$(fluidForceExtrema "$fluidFile")"
+    fi
+
+    local solidFile
+    solidFile="$(solidForceFile)"
+    if [[ -n "$solidFile" ]]
+    then
+        read -r solidForceTime solidFx solidFy solidFz solidFn <<< "$(lastSolidForce "$solidFile")"
+    fi
+
+    echo "${study} ${method} ${variant} ${case} ${mesh} ${dt} ${status} ${cellsFluid} ${cellsSolid} ${clockTime} ${maxMemory} ${dispTime} ${ux} ${uy} ${uz} ${minUy} ${maxUy} ${forceTime} ${fluidFx} ${fluidFy} ${minFluidFx} ${maxFluidFx} ${minFluidFy} ${maxFluidFy} ${solidForceTime} ${solidFx} ${solidFy} ${solidFz} ${solidFn}" \
+        >> "../${summary}"
+}
+
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${STUDY}_${CPU_TYPE}_${DATE}"
+SUMMARY="campaignSummary.tsv"
+
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+cd "${RUN_DIR}"
+
+echo "# Study Method Variant Case MeshScale DeltaT Status CellsFluid CellsSolid WallTime MaxMemoryMb DispTime Ux Uy Uz MinUy MaxUy ForceTime FluidFx FluidFy MinFluidFx MaxFluidFx MinFluidFy MaxFluidFy SolidForceTime SolidFx SolidFy SolidFz SolidNormalForce" \
+    > "$SUMMARY"
+
+for methodVariant in $METHODS
+do
+    METHOD="${methodVariant%%:*}"
+    VARIANT="${methodVariant#*:}"
+    BASE="$(methodBase "$METHOD")"
+
+    for mesh in $MESH_LEVELS
+    do
+        for dt in $DT_VALUES
+        do
+            CASE="$(caseName "$METHOD" "$VARIANT" "$mesh" "$dt")"
+
+            echo
+            echo "***************************************"
+            echo "Processing case: $CASE"
+            echo "Method: $METHOD, variant: $VARIANT, mesh scale: $mesh, deltaT: $dt"
+            echo "***************************************"
+
+            cp -rL "../${BASE}" "$CASE"
+            cd "$CASE"
+
+            STATUS="failed"
+
+            if activateMethod "$METHOD" "$VARIANT"
+            then
+                cp "system/solid/blockMeshDict.${mesh}" system/solid/blockMeshDict
+                cp "system/fluid/blockMeshDict.${mesh}" system/fluid/blockMeshDict
+
+                setControlEntry deltaT "$dt" system/controlDict
+                setControlEntry endTime "$END_TIME" system/controlDict
+
+                solids4Foam::runApplication -s solid blockMesh -region solid
+                solids4Foam::runApplication -s fluid blockMesh -region fluid
+                solids4Foam::runApplication -s fluid checkMesh -region fluid
+                solids4Foam::runApplication -s solid checkMesh -region solid
+
+                runSolver
+                SOLVER_STATUS=$?
+
+                if [[ $SOLVER_STATUS -eq 0 ]]
+                then
+                    STATUS="completed"
+                fi
+            fi
+
+            appendSummary "$SUMMARY" "$STUDY" "$METHOD" "$VARIANT" "$CASE" "$mesh" "$dt" "$STATUS"
+
+            echo
+            tail -n 5 "../${SUMMARY}"
+            cd ..
+        done
+    done
+done
+
+cd ..
+
+echo
+echo "Done"
+echo "Run directory: ${RUN_DIR}"
+echo "Summary: ${RUN_DIR}/${SUMMARY}"
+echo
+echo "$(date)"

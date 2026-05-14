@@ -44,10 +44,22 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
         simplifiedEquation yes;
     }
     solvePressure true;
-    pressureSmoothingCoeff 1.0;
-    stabilisationType Mixed;
-    omega    omega [0 0 0 0 0 0 0] 0.125;
-    omegaTau    omegaTau [0 0 0 0 0 0 0] 0.0;
+    stabilisation
+    {
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+
+        pressure
+        {
+            type                laplacian;
+            scaleFactor         0.125;
+            scaleFactorJacobian 0.125;
+        }
+    }
+
     mu          mu [1 -1 -2 0 0 0 0] 2.62507e+07;
     lambda      lambda [1 -1 -2 0 0 0 0] 5.24856e+07;
     

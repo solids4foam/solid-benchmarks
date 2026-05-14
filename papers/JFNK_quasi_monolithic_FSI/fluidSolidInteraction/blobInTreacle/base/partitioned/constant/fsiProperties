@@ -1,0 +1,46 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.3                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM(R) and OpenCFD(R)  |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fsiProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+fluidSolidInterface    IQNILS;
+
+"fixedRelaxationCoeffs|AitkenCoeffs|IQNILSCoeffs"
+{
+    solidPatch interface;
+    fluidPatch cylinder;
+
+    predictor            yes;
+    predictSolid         yes;
+    relaxationFactor     0.01;
+
+    outerCorrTolerance   1e-6;
+    nOuterCorr           50;
+
+    coupled              yes;
+    interfaceTransferMethod directMap;
+
+    couplingReuse        0;
+    minSignificant       1e-12;
+    relMinSignificant    1e-2;
+    normalizeCouplingColumns yes;
+    reusePreviousStepModes yes;
+    maxReuseUpdateNormRatio 0.5;
+
+    writeResidualsToFile yes;
+}
+
+// ************************************************************************* //

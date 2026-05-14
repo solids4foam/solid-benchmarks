@@ -2,12 +2,13 @@
 # The default line search may sometimes fail; in that case, switch to "basic"
 -snes_type newtonls
 -snes_linesearch_type l2
--snes_linesearch_damping 0.2
+-snes_linesearch_damping 0.1
 -snes_rtol 1e-6
 -snes_stol 1e-6
 -snes_max_it 1000
 -snes_monitor
 -snes_converged_reason
+-snes_divergence_tolerance 1e12
 #-snes_test_jacobian
 #-snes_test_jacobian_view
 

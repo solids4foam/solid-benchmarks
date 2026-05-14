@@ -1,47 +1,65 @@
 #!/bin/bash
 
+# Source required functions
 . $WM_PROJECT_DIR/bin/tools/RunFunctions
 source solids4FoamScripts.sh
 
-# =========================
-# CONFIGS (unchanged style)
-# =========================
-configs=(
-    "BASE=base/hex.snes NAME=hex_snes__rc        SOLIDPROPS_TAG=rc        PETSC_FILE=petscOptions.split"
-    "BASE=base/hex.snes NAME=hex_snes__laplacian SOLIDPROPS_TAG=laplacian PETSC_FILE=petscOptions.split"
-    "BASE=base/hex.snes NAME=hex_snes__disp      SOLIDPROPS_TAG=disp      PETSC_FILE=petscOptions.hypre"
+BASE="base/hex.snes"
+NAME="hex_snes"
+
+# Displacement-only and pressure-stabilised mixed formulations using the new
+# stabilisation framework.
+stabilisations=(
+    "STAB=disp STAB_FILE=solidProperties.disp FORMULATION=displacement PETSC_FILE=petscOptions.hypre"
+    "STAB=rhiechow STAB_FILE=solidProperties.rhiechow FORMULATION=mixed PETSC_FILE=petscOptions.split"
+    "STAB=laplacian STAB_FILE=solidProperties.laplacian FORMULATION=mixed PETSC_FILE=petscOptions.split"
+    "STAB=jst STAB_FILE=solidProperties.jst FORMULATION=mixed PETSC_FILE=petscOptions.split"
+    "STAB=evenlap_m0 STAB_FILE=solidProperties.evenlap_m0 FORMULATION=mixed PETSC_FILE=petscOptions.split"
+    "STAB=evenlap_m1 STAB_FILE=solidProperties.evenlap_m1 FORMULATION=mixed PETSC_FILE=petscOptions.split"
+    "STAB=evenlap_m2 STAB_FILE=solidProperties.evenlap_m2 FORMULATION=mixed PETSC_FILE=petscOptions.split"
 )
 
-# =========================
-# NEW: ν sweep
-# =========================
-NU_VALUES=(0.30 0.35 0.40 0.45 0.48 0.49 0.495 0.499)
+# Run the stable baseline by default. Set, for example,
+# NU_VALUES_OVERRIDE="0.30 0.35 0.40 0.45 0.48 0.49 0.495 0.499"
+# to recover the full Poisson-ratio sweep from the original case.
+if [[ -n "${NU_VALUES_OVERRIDE:-}" ]]
+then
+    read -r -a NU_VALUES <<< "${NU_VALUES_OVERRIDE}"
+else
+    NU_VALUES=(0.30)
+fi
 
-START_MESH=2
-END_MESH=2
+# Mesh input files are defined from 1 to 8. The original limit-to-incompressible
+# benchmark uses mesh 2 by default, but these can be overridden for smoke tests.
+START_MESH=${START_MESH:-2}
+END_MESH=${END_MESH:-2}
 
-# =========================
-# CPU + run dir (unchanged)
-# =========================
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
-elif [[ -f /proc/cpuinfo ]]; then
+
+# Detect the CPU type: we append this to the case name
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string 2>/dev/null | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
     CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
 else
     CPU_TYPE="Unknown_CPU"
 fi
+[[ -z "${CPU_TYPE}" ]] && CPU_TYPE="Unknown_CPU"
 
+
+# Create timestamped working directory for this run
 DATE=$(date +%Y%m%d_%H%M%S)
 RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
-cd "${RUN_DIR}" || exit 1
+
+# Enter the run directory
+cd "${RUN_DIR}"
 
 MASTER_SUMMARY="all_results.csv"
-echo "formulation,config,stabilisation,nu,mesh,clock_time,max_memory_mb,disp,case,status" > "${MASTER_SUMMARY}"
+echo "formulation,stabilisation,nu,mesh,clock_time,max_memory_mb,disp,case,status" > "${MASTER_SUMMARY}"
 
-# =========================
-# NEW: safe ν setter
-# =========================
 set_nu()
 {
     local file="$1"
@@ -52,95 +70,96 @@ set_nu()
         "$file"
     rm -f "${file}.bak"
 }
-# =========================
-# CRITICAL: use correct solver binary
-# =========================
-if [[ -n "$FOAM_USER_APPBIN" && -x "$FOAM_USER_APPBIN/solids4Foam" ]]; then
+
+if [[ -n "$FOAM_USER_APPBIN" && -x "$FOAM_USER_APPBIN/solids4Foam" ]]
+then
     SOLVER_EXE="$FOAM_USER_APPBIN/solids4Foam"
 else
     SOLVER_EXE=$(which solids4Foam)
 fi
 
-echo "Using solver: $SOLVER_EXE"
-echo "WM_PROJECT_DIR: $WM_PROJECT_DIR"
+echo "Using solver: ${SOLVER_EXE}"
 
-# =========================
-# MAIN LOOPS
-# =========================
-for config in "${configs[@]}"; do
-    eval "$config"
+for stabConfig in "${stabilisations[@]}"
+do
+    eval $stabConfig
 
-    # Derive formulation
-    FORMULATION="mixed"
-    if [[ "$SOLIDPROPS_TAG" == "disp" ]]; then
-        FORMULATION="displacement"
+    if [[ -n "${STAB_FILTER:-}" && "${STAB}" != "${STAB_FILTER}" ]]
+    then
+        continue
     fi
 
-    for NU in "${NU_VALUES[@]}"; do
+    echo; echo "***************************************"
+    echo "Running formulation: ${FORMULATION}, stabilisation: ${STAB}"
+    echo "***************************************"
 
-        SUMMARY="${NAME}.nu_${NU}.summary.txt"
+    for NU in "${NU_VALUES[@]}"
+    do
+        if [[ -n "${NU_FILTER:-}" && "${NU}" != "${NU_FILTER}" ]]
+        then
+            continue
+        fi
+
+        SUMMARY="${NAME}__${STAB}.nu_${NU}.summary.txt"
+        ITERATIONS="${NAME}__${STAB}.nu_${NU}.iterations.txt"
         echo "# Mesh Time Mem D" > "${SUMMARY}"
+        echo "# Mesh SNESIts MaxLinearIts TotalLinearIts" > "${ITERATIONS}"
 
-        for i in $(seq $START_MESH $END_MESH); do
-
-            CASE="${NAME}.nu_${NU}.mesh_${i}"
-            echo "Processing case: $CASE"
+        for i in `seq $START_MESH $END_MESH`
+        do
+            CASE="${NAME}__${STAB}.nu_${NU}.mesh_${i}"
+            echo; echo "Processing case: $CASE"
 
             cp -r "../${BASE}" "${CASE}"
-            cd "${CASE}" || exit 1
+            cd "$CASE"
 
-            # =========================
-            # Solid properties swap (unchanged)
-            # =========================
-            if [[ -n "${SOLIDPROPS_TAG:-}" && "${SOLIDPROPS_TAG}" != "none" ]]; then
-                \cp "constant/solidProperties.${SOLIDPROPS_TAG}" constant/solidProperties
+            if [[ ! -f "constant/${STAB_FILE}" ]]
+            then
+                echo "ERROR: missing constant/${STAB_FILE} in $(pwd)"
+                exit 1
+            fi
+            cp "constant/${STAB_FILE}" constant/solidProperties
+
+            if [[ ! -f "system/blockMeshDict.$i" ]]
+            then
+                echo "Cannot find ${CASE}/system/blockMeshDict.$i"; echo
+                exit 1
+            else
+                echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
+                cp "system/blockMeshDict.$i" system/blockMeshDict
+                rm -f constant/polyMesh/blockMeshDict
             fi
 
-            # =========================
-            # Mesh setup (unchanged)
-            # =========================
-            \cp "system/blockMeshDict.$i" system/blockMeshDict
-            rm -f constant/polyMesh/blockMeshDict
-
-            # =========================
-            # NEW: set ν
-            # =========================
             set_nu "constant/mechanicalProperties" "${NU}"
 
-            # =========================
-            # PETSc options (unchanged)
-            # =========================
-            if [[ -n "${PETSC_FILE:-}" ]]; then
-                sed -i "" "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+            if [[ -n "${PETSC_FILE:-}" ]]
+            then
+                sed -i.bak "/^[[:space:]]*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+                rm -f constant/solidProperties.bak
             fi
 
-            # =========================
-            # Run blockMesh (UNCHANGED STYLE)
-            # =========================
             solids4Foam::runApplication blockMesh
 
             STATUS="OK"
 
-            # =========================
-            # CRITICAL FIX: NO mpirun
-            # =========================
-            echo "Running solids4Foam on ${CASE}"
-
-            if command -v gtime &> /dev/null; then
+            if command -v gtime &> /dev/null
+            then
+                echo "Running solids4Foam on ${CASE} with gtime"
                 gtime -f "Maximum resident set size (kbytes): %M" \
                     "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
-            elif command -v /usr/bin/time &> /dev/null; then
+            elif command -v /usr/bin/time &> /dev/null && /usr/bin/time -f "Maximum resident set size (kbytes): %M" true &> /dev/null
+            then
+                echo "Running solids4Foam on ${CASE} with /usr/bin/time"
                 /usr/bin/time -f "Maximum resident set size (kbytes): %M" \
                     "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
             else
+                echo "Running solids4Foam on ${CASE}"
                 "$SOLVER_EXE" &> log.solids4Foam || STATUS="FAILED"
             fi
 
-            # =========================
-            # Post-processing (unchanged)
-            # =========================
-            if grep -q "Maximum resident" log.solids4Foam; then
-                MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6/1000)}')
+            if grep -q "Maximum resident" log.solids4Foam
+            then
+                MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
             else
                 MAX_MEMORY="NaN"
             fi
@@ -148,7 +167,8 @@ for config in "${configs[@]}"; do
             CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
             [[ -z "$CLOCK_TIME" ]] && CLOCK_TIME="NaN"
 
-            if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]; then
+            if [[ -f postProcessing/0/solidPointDisplacement_pointDisp.dat ]]
+            then
                 DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
             else
                 DISP="NaN"
@@ -156,12 +176,43 @@ for config in "${configs[@]}"; do
 
             echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
 
-            echo "${FORMULATION},${NAME},${SOLIDPROPS_TAG},${NU},${i},${CLOCK_TIME},${MAX_MEMORY},${DISP},${CASE},${STATUS}" >> ../"${MASTER_SUMMARY}"
+            SNES_ITS=$(grep "Nonlinear solve converged" log.solids4Foam | tail -n 1 | awk '{print $NF}')
+            read MAX_LINEAR_ITS TOTAL_LINEAR_ITS <<< \
+                $(awk '/Linear solve/ && /iterations/ {sum += $NF; if ($NF > max) max = $NF} END {print max+0, sum+0}' log.solids4Foam)
+
+            echo "$i $SNES_ITS $MAX_LINEAR_ITS $TOTAL_LINEAR_ITS" >> ../"${ITERATIONS}"
+            echo "${FORMULATION},${STAB},${NU},${i},${CLOCK_TIME},${MAX_MEMORY},${DISP},${CASE},${STATUS}" >> ../"${MASTER_SUMMARY}"
+
+            if [[ "${STATUS}" != "OK" ]]
+            then
+                echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam"
+                exit 1
+            fi
 
             cd ..
         done
+
+        echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+        echo; echo "${ITERATIONS} file:"; cat "${ITERATIONS}"; echo
     done
 done
 
+# Create plots if gnuplot is installed
+if [[ "${RUN_PLOTS:-true}" != "false" ]] && command -v gnuplot &>/dev/null
+then
+    cp ../plotScripts/* .
+
+    for f in *gnuplot
+    do
+        echo "Running gnuplot on $f"
+        gnuplot "$f"
+    done
+fi
+
+# Exit the run directory
 cd ..
-echo "Done"
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo "Completed at" $(date +%Y%m%d_%H%M%S)
+echo; echo

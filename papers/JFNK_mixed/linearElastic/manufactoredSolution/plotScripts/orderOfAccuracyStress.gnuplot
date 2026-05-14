@@ -10,8 +10,6 @@ set xtics
 set xtics add (5, 25, 50)
 set ytics
 set logscale x
-#set logscale y
-#set ytics 0.002
 set xlabel "Average cell spacing (in mm)"
 set ylabel "Order of accuracy"
 set key bottom right
@@ -19,14 +17,17 @@ set key bottom right
 # Average mesh spacing of mesh1
 dx=0.04
 
-# Assume the mesh spacing is being halved for each succesive mesh
+# Assume the mesh spacing is being halved for each successive mesh
 plot \
-    "tet.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):4 skip 1 w lp pt 9 lc "green" t "L_2 - Tet", \
-    "tet.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):5 skip 1 w lp pt 8 lc "green" t "L_∞ - Tet", \
-    "poly.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):4 skip 1 w lp pt 15 lc "blue" t "L_2 - Poly", \
-    "poly.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):5 skip 1 w lp pt 14 lc "blue" t "L_∞ - Poly", \
-    "hex.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):4 skip 1 w lp pt 5 lc "red" t "L_2 - Hex", \
-    "hex.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):5 skip 1 w lp pt 4 lc "red" t "L_∞ - Hex", \
-    "distHex.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):4 skip 1 w lp pt 28 lc rgb "#800080" t "L_2 - Hex (distorted)", \
-    "distHex.hypre.orderOfAccuracy.txt" using (1e3*dx/(2**($0+1))):5 skip 1 w lp pt 27 lc rgb "#800080" t "L_∞ - Hex (distorted)", \
-
+    "rhiechow/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 5 lc rgb "#d7191c" t "L_2 - RhieChow", \
+    "rhiechow/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 4 lc rgb "#d7191c" t "L_inf - RhieChow", \
+    "laplacian/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 7 lc rgb "#2c7bb6" t "L_2 - Laplacian", \
+    "laplacian/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 6 lc rgb "#2c7bb6" t "L_inf - Laplacian", \
+    "jst/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 9 lc rgb "#fdae61" t "L_2 - JST", \
+    "jst/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 8 lc rgb "#fdae61" t "L_inf - JST", \
+    "evenlap_m0/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 11 lc rgb "#abd9e9" t "L_2 - EvenLap m0", \
+    "evenlap_m0/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 10 lc rgb "#abd9e9" t "L_inf - EvenLap m0", \
+    "evenlap_m1/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 13 lc rgb "#2ca25f" t "L_2 - EvenLap m1", \
+    "evenlap_m1/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 12 lc rgb "#2ca25f" t "L_inf - EvenLap m1", \
+    "evenlap_m2/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):4 w lp pt 15 lc rgb "#756bb1" t "L_2 - EvenLap m2", \
+    "evenlap_m2/hex.hypre.orderOfAccuracy.txt" u (1e3*dx/(2**($1))):5 w lp pt 14 lc rgb "#756bb1" t "L_inf - EvenLap m2"

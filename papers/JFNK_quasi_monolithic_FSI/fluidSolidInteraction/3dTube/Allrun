@@ -1,0 +1,283 @@
+#!/bin/bash
+
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+source solids4FoamScripts.sh
+
+set -u
+
+# Usage:
+#   ./Allrun [all|smoke]
+#
+# Environment overrides:
+#   METHODS="monolithic:default partitioned:iqnils partitioned:robin partitioned:compressible"
+#   END_TIME=0.02
+#   WRITE_INTERVAL=1e-3
+
+STUDY="${1:-${STUDY:-all}}"
+if [[ -n "${END_TIME+x}" ]]
+then
+    USER_SET_END_TIME=true
+else
+    USER_SET_END_TIME=false
+    END_TIME=0.02
+fi
+
+WRITE_INTERVAL="${WRITE_INTERVAL:-1e-3}"
+
+DEFAULT_METHODS="monolithic:default partitioned:iqnils partitioned:robin partitioned:compressible"
+if [[ -n "${METHODS+x}" ]]
+then
+    USER_SET_METHODS=true
+else
+    USER_SET_METHODS=false
+    METHODS="$DEFAULT_METHODS"
+fi
+
+case "$STUDY" in
+    all)
+        ;;
+    smoke)
+        if ! $USER_SET_END_TIME
+        then
+            END_TIME=0.005
+        fi
+        if ! $USER_SET_METHODS
+        then
+            METHODS="monolithic:default partitioned:iqnils"
+        fi
+        ;;
+    *)
+        echo "Unknown study '$STUDY'; expected all or smoke"
+        exit 1
+        ;;
+esac
+
+setControlEntry()
+{
+    local key="$1"
+    local value="$2"
+    local file="$3"
+
+    sed -i "/^[[:space:]]*${key}[[:space:]]/s|^.*|${key}         ${value};|" "$file"
+}
+
+variantBase()
+{
+    local method="$1"
+    local variant="$2"
+
+    if [[ "$method" == "monolithic" ]]
+    then
+        echo "base/monolithic"
+        return 0
+    fi
+
+    case "$variant" in
+        iqnils)
+            echo "base/partitioned.iqnils"
+            ;;
+        robin)
+            echo "base/partitioned.robin"
+            ;;
+        compressible)
+            echo "base/partitioned.compressible"
+            ;;
+        *)
+            echo "Unknown partitioned variant '$variant'" >&2
+            return 1
+            ;;
+    esac
+}
+
+caseName()
+{
+    local method="$1"
+    local variant="$2"
+
+    echo "${method}_${variant}"
+}
+
+runTimed()
+{
+    local logFile="$1"
+    local tmpLog="${logFile}.tmp"
+    shift
+    rm -f "$tmpLog"
+
+    if command -v gtime &> /dev/null
+    then
+        gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "$tmpLog"
+    elif [ -x /usr/bin/time ]
+    then
+        /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "$tmpLog"
+    else
+        "$@" &> "$tmpLog"
+    fi
+
+    local rc=$?
+    mv -f "$tmpLog" "$logFile"
+    return $rc
+}
+
+runSolver()
+{
+    runTimed log.solids4Foam solids4Foam
+}
+
+latestDisplacementFile()
+{
+    find postProcessing -path '*solidPointDisplacement_displacement.dat' -type f 2>/dev/null \
+        | sort | tail -1
+}
+
+fsiConvergenceFile()
+{
+    find postProcessing -path '*fsiConvergenceData.dat' -type f 2>/dev/null \
+        | sort | tail -1
+}
+
+appendSummary()
+{
+    local summary="$1"
+    local caseDir="$2"
+    local study="$3"
+    local method="$4"
+    local variant="$5"
+    local status="$6"
+
+    local clockTime="NaN"
+    local maxMemory="NaN"
+    local cellsFluid="NaN"
+    local cellsSolid="NaN"
+    local dispTime="NaN"
+    local radialDisp="NaN"
+    local axialDisp="NaN"
+    local fsiTime="NaN"
+    local fsiIterations="NaN"
+
+    if [[ -f "${caseDir}/log.solids4Foam" ]]
+    then
+        if grep -q "gtime/time" "${caseDir}/log.solids4Foam"
+        then
+            clockTime=$(grep "gtime/time" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print $5}')
+        else
+            clockTime=$(grep "ClockTime" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print $7}')
+        fi
+
+        if grep -q "Maximum resident" "${caseDir}/log.solids4Foam"
+        then
+            maxMemory=$(grep "Maximum resident" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print int($6 / 1000)}')
+        fi
+    fi
+
+    if [[ -f "${caseDir}/log.checkMesh.fluid" ]]
+    then
+        cellsFluid=$(grep "cells:" "${caseDir}/log.checkMesh.fluid" | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -f "${caseDir}/log.checkMesh.solid" ]]
+    then
+        cellsSolid=$(grep "cells:" "${caseDir}/log.checkMesh.solid" | tail -1 | awk '{print $2}')
+    fi
+
+    local dispFile
+    dispFile="$(find "${caseDir}/postProcessing" -path '*solidPointDisplacement_displacement.dat' -type f 2>/dev/null | sort | tail -1)"
+    if [[ -n "$dispFile" ]]
+    then
+        read -r dispTime radialDisp axialDisp _ <<< \
+            "$(awk 'NF && $1 !~ /^#/ {line=$0} END {print line}' "$dispFile")"
+    fi
+
+    local fsiFile
+    fsiFile="$(find "${caseDir}/postProcessing" -path '*fsiConvergenceData.dat' -type f 2>/dev/null | sort | tail -1)"
+    if [[ -n "$fsiFile" ]]
+    then
+        read -r fsiTime fsiIterations <<< \
+            "$(awk 'NF && $1 !~ /^#/ {line=$0} END {print line}' "$fsiFile")"
+    fi
+
+    echo "${study} ${method} ${variant} ${status} ${cellsFluid} ${cellsSolid} ${clockTime} ${maxMemory} ${dispTime} ${radialDisp} ${axialDisp} ${fsiTime} ${fsiIterations}" \
+        >> "${summary}"
+}
+
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${STUDY}_${CPU_TYPE}_${DATE}"
+SUMMARY="campaignSummary.tsv"
+
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+cd "${RUN_DIR}"
+
+echo "# Study Method Variant Status CellsFluid CellsSolid WallTime MaxMemoryMb DispTime RadialDisp AxialDisp FsiTime FsiIterations" \
+    > "$SUMMARY"
+
+for methodVariant in $METHODS
+do
+    METHOD="${methodVariant%%:*}"
+    VARIANT="${methodVariant#*:}"
+    BASE="$(variantBase "$METHOD" "$VARIANT")" || exit 1
+    CASE="$(caseName "$METHOD" "$VARIANT")"
+    CASE_DIR="${RUN_DIR}/${CASE}"
+
+    echo
+    echo "***************************************"
+    echo "Processing case: ${CASE}"
+    echo "Method: ${METHOD}, variant: ${VARIANT}"
+    echo "***************************************"
+
+    rm -rf "${CASE}"
+    mkdir -p "${CASE}"
+    cp -rL "../${BASE}/." "${CASE}"
+    cd "${CASE}"
+
+    STATUS="failed"
+
+    if setControlEntry endTime "$END_TIME" system/controlDict && \
+        setControlEntry writeInterval "$WRITE_INTERVAL" system/controlDict && \
+        solids4Foam::runApplication -s solid blockMesh -region solid && \
+        solids4Foam::runApplication -s fluid blockMesh -region fluid && \
+        solids4Foam::runApplication -s fluid checkMesh -region fluid && \
+        solids4Foam::runApplication -s solid checkMesh -region solid
+    then
+        runSolver
+        SOLVER_STATUS=$?
+
+        if [[ $SOLVER_STATUS -eq 0 ]]
+        then
+            STATUS="completed"
+        fi
+    fi
+
+    appendSummary "../${SUMMARY}" "$(pwd)" "$STUDY" "$METHOD" "$VARIANT" "$STATUS"
+
+    if command -v gnuplot &>/dev/null
+    then
+        gnuplot -p ../displacement.gnuplot &> /dev/null || true
+        gnuplot -p ../fsiConvergence.gnuplot &> /dev/null || true
+    fi
+
+    echo
+    tail -n 5 "../${SUMMARY}"
+    cd ..
+done
+
+cd ..
+
+echo
+echo "Done"
+echo "Run directory: ${RUN_DIR}"
+echo "Summary: ${RUN_DIR}/${SUMMARY}"
+echo
+echo "$(date)"

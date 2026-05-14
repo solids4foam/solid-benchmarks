@@ -17,12 +17,19 @@ export SOLIDS4FOAM_DIR=/Users/philipc/OpenFOAM/philipc-v2312/solids4foam
 ```
 The `manufacturedSolution` library can then be compiled with
 ```bash
-(cd manufacturedSolution && ./Allwmake -j -s)
+(cd ../manufacturedSolution && ./Allwmake -j -s)
 ```
 
 ### Run the Cases
-The `Allrun` runs the a mesh study for various mesh and solution procedure
-configurations. The configurations are defined near the top of the `Allrun` script:
+The `Allrun` runs a mesh study for each pressure stabilisation method used in
+the Cook's membrane study:
+
+```bash
+rhiechow laplacian jst evenlap_m0 evenlap_m1 evenlap_m2
+```
+
+The mesh and solution procedure configurations are defined near the top of the
+`Allrun` script:
 ```bash
 configs=(
     "BASE=base/snes NAME=hex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.hypre"
@@ -38,6 +45,7 @@ The `Allrun` script is executed as
 ./Allrun
 ```
 which creates a directory for the cases called `run_<CPU_NAME>_<DATE_TIME>`, for
-example, `run_Apple_M1_Ultra_20250118_151956`. When the `Allrun` script
-completes, pdf plots will be available in the directory, if `gnuplot` is
-installed.
+example, `run_Apple_M1_Ultra_20250118_151956`. The results for each pressure
+stabilisation are written in sub-directories named after the stabilisation
+method. When the `Allrun` script completes, pdf plots will be available in each
+method directory, if `gnuplot` is installed.

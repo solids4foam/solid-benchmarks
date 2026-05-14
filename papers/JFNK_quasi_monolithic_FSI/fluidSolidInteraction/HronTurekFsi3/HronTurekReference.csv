@@ -1,0 +1,11 @@
+# HronTurekFsi3 reference benchmark values.
+# Each scalar is reported as mean over the last full period before t = 20 s.
+# Displacements are in mm, forces in N (per the cited papers' convention).
+# Sources:
+#   [1] Turek & Hron (2006), FSI3 case in the elastic-plate-behind-cylinder benchmark.
+#   [2] Tukovic et al. (2018), Trans. Famena 42(3), 1-31, solids4foam reference run.
+#
+# columns:
+# source,ux_mean_mm,ux_amp_mm,ux_freq_Hz,uy_mean_mm,uy_amp_mm,uy_freq_Hz,Fx_mean_N,Fx_amp_N,Fx_freq_Hz,Fy_mean_N,Fy_amp_N,Fy_freq_Hz
+TurekHron,-2.69,2.53,10.9,1.48,34.38,5.3,457.3,22.66,10.9,2.22,149.78,5.3
+Tukovic,-2.72,2.58,11.07,1.67,33.84,5.53,459.18,24.86,11.07,1.59,155.9,5.53

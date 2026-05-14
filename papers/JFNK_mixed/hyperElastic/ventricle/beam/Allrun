@@ -1,0 +1,146 @@
+#!/bin/bash
+
+set -eo pipefail
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+
+# Mesh input files are defined from 1 to 7.  The finest meshes are expensive
+# when all stabilisation variants are swept, so override END_MESH for full runs.
+START_MESH="${START_MESH:-2}"
+END_MESH="${END_MESH:-5}"
+
+cases=(
+    "METHOD=displacement STAB_FILE=solidProperties.displacement"
+    "METHOD=rhiechow STAB_FILE=solidProperties.rhiechow"
+    "METHOD=laplacian STAB_FILE=solidProperties.laplacian"
+    "METHOD=jst STAB_FILE=solidProperties.jst"
+    "METHOD=evenlap_m0 STAB_FILE=solidProperties.evenlap_m0"
+    "METHOD=evenlap_m1 STAB_FILE=solidProperties.evenlap_m1"
+    "METHOD=evenlap_m2 STAB_FILE=solidProperties.evenlap_m2"
+)
+
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+DATE=$(date +%Y%m%d_%H%M%S)
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+cd "${RUN_DIR}"
+
+for caseConfig in "${cases[@]}"
+do
+    eval "${caseConfig}"
+
+    echo; echo "***************************************"
+    echo "Running formulation: ${METHOD}"
+    echo "***************************************"
+
+    mkdir "${METHOD}"
+    cd "${METHOD}"
+
+    SUMMARY="beam.summary.txt"
+    echo "# Mesh Time Mem Dz MagD SNESIts TotalLinearIts" > "${SUMMARY}"
+
+    for i in $(seq "${START_MESH}" "${END_MESH}")
+    do
+        CASE="mesh${i}"
+        echo; echo "Processing case: ${METHOD}/${CASE}"
+
+        cp -r "../../base/snes" "${CASE}"
+        cd "${CASE}"
+
+        cp "constant/${STAB_FILE}" "constant/solidProperties"
+
+        if [[ ! -f "system/blockMeshDict.${i}" ]]
+        then
+            echo "Cannot find ${CASE}/system/blockMeshDict.${i}: please add it to base/snes/system/"
+            exit 1
+        fi
+
+        cp "system/blockMeshDict.${i}" "system/blockMeshDict"
+
+        solids4Foam::runApplication blockMesh
+
+        if command -v gtime &> /dev/null
+        then
+            echo "Running solids4Foam on ${METHOD}/${CASE} with gtime"
+            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            SOLVER_STATUS=$?
+        elif command -v /usr/bin/time &> /dev/null && /usr/bin/time -f "Maximum resident set size (kbytes): %M" true &> /dev/null
+        then
+            echo "Running solids4Foam on ${METHOD}/${CASE} with time"
+            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
+            SOLVER_STATUS=$?
+        else
+            echo "Running solids4Foam on ${METHOD}/${CASE}"
+            mpirun -np 1 solids4Foam &> log.solids4Foam
+            SOLVER_STATUS=$?
+        fi
+
+        if [[ "${SOLVER_STATUS}" -ne 0 ]]
+        then
+            echo "solids4Foam failed for ${METHOD}/${CASE}; see ${PWD}/log.solids4Foam"
+            exit "${SOLVER_STATUS}"
+        fi
+
+        POINT_FILE="postProcessing/0/solidPointDisplacement_pointDisp.dat"
+        if [[ ! -f "${POINT_FILE}" ]]
+        then
+            echo "Cannot find ${POINT_FILE}; the solidPointDisplacement function object did not write data"
+            exit 1
+        fi
+
+        if grep -q "Maximum resident" log.solids4Foam
+        then
+            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | tail -n 1 | awk '{print int($6 / 1000)}')
+        else
+            MAX_MEMORY="NaN"
+        fi
+
+        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
+        DZ=$(awk 'END {print $4}' "${POINT_FILE}")
+        MAGD=$(awk 'END {print $5}' "${POINT_FILE}")
+        SNES_ITS=$(grep "Nonlinear solve converged" log.solids4Foam | tail -n 1 | awk '{print $NF}')
+        if [[ -z "${SNES_ITS}" ]]
+        then
+            SNES_ITS="NaN"
+        fi
+        TOTAL_LINEAR_ITS=$(awk '/Linear solve/ && /iterations/ {sum += $NF} END {print sum+0}' log.solids4Foam)
+
+        echo "${i} ${CLOCK_TIME} ${MAX_MEMORY} ${DZ} ${MAGD} ${SNES_ITS} ${TOTAL_LINEAR_ITS}" >> ../"${SUMMARY}"
+
+        cd ..
+    done
+
+    echo; echo "${METHOD}/${SUMMARY} file:"; cat "${SUMMARY}"; echo
+    cd ..
+done
+
+if command -v gnuplot &>/dev/null
+then
+    cp ../plotScripts/*.gnuplot .
+
+    for f in *.gnuplot
+    do
+        echo "Running gnuplot on ${f}"
+        gnuplot "${f}"
+    done
+fi
+
+cd ..
+
+echo; echo; echo "Done!"; echo
+echo "View the PDF files in ${RUN_DIR}"
+echo; echo "$(date)"
+echo; echo

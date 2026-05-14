@@ -12,23 +12,31 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
+    location    "constant";
     object      solidProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-//solidModel linearGeometry;
-solidModel linearGeometryTotalDisplacement;
-//solidModel nonLinearGeometryUpdatedLagrangian;
+//solidModel     linearGeometryTotalDisplacement;
+solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
-"linearGeometryCoeffs|linearGeometryTotalDisplacementCoeffs|nonLinearGeometryUpdatedLagrangianCoeffs"
+"linearGeometryTotalDisplacementCoeffs|nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs"
 {
+    // Solution algorithm
     solutionAlgorithm PETScSNES;
 
-    // Predict displacement field at the start of a time step using the velocity
-    //predictor               on;
+    // Predictor D at the start of a new time step using U and A
+    predictor yes;
 
-    // Damp the solid to help convergence to steady-state
-    dampingCoeff [0 0 -1 0 0 0 0] 1e4;
+    // Stabilisation
+    stabilisation
+    {
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+    }
 }
 
 // ************************************************************************* //
