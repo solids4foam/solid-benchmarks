@@ -30,7 +30,7 @@ SourceFiles
 
 Author
     Ivan Batistsic, UCD.
-    Philip Cardiff, UCD. All rights reserved.
+    Philip Cardiff, UCD.
 \*---------------------------------------------------------------------------*/
 
 #ifndef membraneRoofVelocity2dFvPatchVectorField_H
