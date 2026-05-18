@@ -1,0 +1,710 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+set -u
+
+# Usage:
+#   ./Allrun [mesh|time|all|smoke]
+#
+#  - smoke: small quick check, currently mesh 1, dt 0.005, reduced methods.
+#  - mesh: mesh-convergence study, currently meshes 1 2 3 at dt 0.005.
+#  - time: time-step study, currently mesh 1 with dt 0.01 0.005 0.0025.
+#  - all: all mesh levels and all time steps.
+#
+# Environment overrides:
+#   METHODS="quasiMonolithic:default quasiMonolithic:schurTuned partitioned:IQNILS"
+#   MESH_LEVELS="1 2 3"
+#   DT_VALUES="0.01 0.005 0.0025"
+#   END_TIME=2
+#   WRITE_INTERVAL=0.1
+#   TOTAL_CORES=10   # total MPI ranks available across all concurrent cases
+#   MESH_CORES=(1 4 10) # processor counts for mesh levels 1, 2, 3
+
+SOLIDS4FOAM_ROOT="${SOLIDS4FOAM_ROOT:-/Users/ivanbatistic/work/solids4foam-ib-monolitic-v2406}"
+SOLIDS4FOAM_SCRIPTS="${SOLIDS4FOAM_ROOT}/applications/scripts/solids4FoamScripts.sh"
+
+if [[ -f "$SOLIDS4FOAM_SCRIPTS" ]]
+then
+    source "$SOLIDS4FOAM_SCRIPTS"
+else
+    source solids4FoamScripts.sh
+fi
+
+TOTAL_CORES="${TOTAL_CORES:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
+MESH_CORES=(1 1 1)
+
+if ! [[ "$TOTAL_CORES" =~ ^[0-9]+$ ]] || [[ "$TOTAL_CORES" -lt 1 ]]
+then
+    echo "TOTAL_CORES must be a positive integer, got '$TOTAL_CORES'" >&2
+    exit 1
+fi
+
+STUDY="${1:-${STUDY:-mesh}}"
+if [[ -n "${END_TIME+x}" ]]
+then
+    USER_SET_END_TIME=true
+else
+    USER_SET_END_TIME=false
+    END_TIME=2
+fi
+if [[ -n "${WRITE_INTERVAL+x}" ]]
+then
+    USER_SET_WRITE_INTERVAL=true
+else
+    USER_SET_WRITE_INTERVAL=false
+    WRITE_INTERVAL=0.1
+fi
+
+DEFAULT_METHODS="quasiMonolithic:default quasiMonolithic:schurTuned quasiMonolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
+if [[ -n "${METHODS+x}" ]]
+then
+    USER_SET_METHODS=true
+else
+    USER_SET_METHODS=false
+    METHODS="$DEFAULT_METHODS"
+fi
+
+case "$STUDY" in
+    mesh)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3}"
+        DT_VALUES="${DT_VALUES:-0.005}"
+        ;;
+    time)
+        MESH_LEVELS="${MESH_LEVELS:-1}"
+        DT_VALUES="${DT_VALUES:-0.01 0.005 0.0025}"
+        ;;
+    all)
+        MESH_LEVELS="${MESH_LEVELS:-1 2 3}"
+        DT_VALUES="${DT_VALUES:-0.01 0.005 0.0025}"
+        ;;
+    smoke)
+        MESH_LEVELS="${MESH_LEVELS:-1}"
+        DT_VALUES="${DT_VALUES:-0.005}"
+        if ! $USER_SET_END_TIME
+        then
+            END_TIME=0.1
+        fi
+        if ! $USER_SET_WRITE_INTERVAL
+        then
+            WRITE_INTERVAL=0.1
+        fi
+        if ! $USER_SET_METHODS
+        then
+            METHODS="quasiMonolithic:default partitioned:Aitken"
+        fi
+        ;;
+    *)
+        echo "Unknown study '$STUDY'; expected mesh, time, all, or smoke"
+        exit 1
+        ;;
+esac
+
+setControlEntry()
+{
+    local key="$1"
+    local value="$2"
+    local file="$3"
+
+    sed -i "/^[[:space:]]*${key}[[:space:]]/s|^.*|${key}         ${value};|" "$file"
+}
+
+methodBase()
+{
+    local method="$1"
+
+    if [[ "$method" == "quasiMonolithic" ]]
+    then
+        echo "base/quasiMonolithic"
+    else
+        echo "base/partitioned"
+    fi
+}
+
+caseName()
+{
+    local method="$1"
+    local variant="$2"
+    local mesh="$3"
+    local dt="$4"
+
+    echo "${method}_${variant}.m${mesh}.dt${dt//./p}"
+}
+
+meshCores()
+{
+    local mesh="$1"
+    local index=$((mesh - 1))
+
+    if (( index < 0 || index >= ${#MESH_CORES[@]} ))
+    then
+        echo "No processor count configured for mesh level ${mesh}" >&2
+        return 1
+    fi
+
+    echo "${MESH_CORES[$index]}"
+}
+
+validatePositiveInteger()
+{
+    local name="$1"
+    local value="$2"
+
+    if ! [[ "$value" =~ ^[0-9]+$ ]] || [[ "$value" -lt 1 ]]
+    then
+        echo "${name} must be a positive integer, got '${value}'" >&2
+        return 1
+    fi
+}
+
+queueCase()
+{
+    local method="$1"
+    local variant="$2"
+    local mesh="$3"
+    local dt="$4"
+    local base="$5"
+    local caseName="$6"
+    local cores="$7"
+
+    QUEUE_METHODS+=("$method")
+    QUEUE_VARIANTS+=("$variant")
+    QUEUE_BASES+=("$base")
+    QUEUE_CASES+=("$caseName")
+    QUEUE_MESHES+=("$mesh")
+    QUEUE_DTS+=("$dt")
+    QUEUE_CORES+=("$cores")
+    QUEUE_DIRS+=("${RUN_ROOT}/${caseName}")
+    QUEUE_LOGS+=("${RUN_ROOT}/log.${caseName}")
+    QUEUE_STATUS_FILES+=("${RUN_ROOT}/${caseName}.status")
+}
+
+activateMethod()
+{
+    local method="$1"
+    local variant="$2"
+
+    if [[ "$method" == "quasiMonolithic" ]]
+    then
+        for file in $(find ./0 ./constant ./system -name '*.monolithic')
+        do
+            ln -vnsf "${file##*/}" "${file%.*}"
+        done
+
+        if [[ "$variant" != "default" ]]
+        then
+            local variantFile="system/fvSolution.monolithic.${variant}"
+
+            if [[ -f "$variantFile" ]]
+            then
+                ln -vnsf "fvSolution.monolithic.${variant}" system/fvSolution
+            else
+                echo "Cannot find $variantFile"
+                return 1
+            fi
+        fi
+    else
+        for file in $(find ./0 ./constant ./system -name '*.partitioned')
+        do
+            ln -vnsf "${file##*/}" "${file%.partitioned}"
+        done
+
+        sed -i \
+            "/^[[:space:]]*fluidSolidInterface[[:space:]]/s|^.*|fluidSolidInterface    ${variant};|" \
+            constant/fsiProperties
+    fi
+}
+
+setNumberOfSubdomains()
+{
+    local dict="$1"
+    local cores="$2"
+
+    if [[ ! -f "$dict" ]]
+    then
+        echo "Cannot find $dict"
+        return 1
+    fi
+
+    if ! grep -q "^[[:space:]]*numberOfSubdomains[[:space:]]" "$dict"
+    then
+        echo "Cannot find numberOfSubdomains in $dict"
+        return 1
+    fi
+
+    sed -i \
+        "/^[[:space:]]*numberOfSubdomains[[:space:]]/s|^.*|numberOfSubdomains ${cores};|" \
+        "$dict"
+}
+
+runTimed()
+{
+    local logFile="$1"
+    local tmpLog="${logFile}.tmp"
+    shift
+    rm -f "$tmpLog"
+
+    if command -v gtime &> /dev/null
+    then
+        gtime -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "$tmpLog"
+    elif [ -x /usr/bin/time ]
+    then
+        /usr/bin/time -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "$tmpLog"
+    else
+        "$@" &> "$tmpLog"
+    fi
+
+    local rc=$?
+    mv -f "$tmpLog" "$logFile"
+    return $rc
+}
+
+runSolver()
+{
+    runTimed log.solids4Foam solids4Foam
+}
+
+runParallelSolver()
+{
+    set +u
+    solids4Foam::runParallel solids4Foam
+    local rc=$?
+    set -u
+    return $rc
+}
+
+findForceFile()
+{
+    for candidate in \
+        postProcessing/fluid/forces/0/force.dat \
+        postProcessing/fluid/forces/0/forces.dat \
+        postProcessing/forces/0/force.dat \
+        postProcessing/forces/0/forces.dat
+    do
+        if [[ -f "$candidate" ]]
+        then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+extractSeriesStats()
+{
+    local file="$1"
+    local column="$2"
+
+    awk -v col="$column" '
+    NF && $1 !~ /^#/ {
+        gsub(/[()]/, "", $0)
+        value = $col
+        if (n == 0 || value < min) min = value
+        if (n == 0 || value > max) max = value
+        final = value
+        n++
+    }
+    END {
+        if (n == 0)
+        {
+            print "NaN NaN NaN"
+        }
+        else
+        {
+            print final, min, max
+        }
+    }' "$file"
+}
+
+appendSummary()
+{
+    local summary="$1"
+    local caseDir="$2"
+    local study="$3"
+    local method="$4"
+    local variant="$5"
+    local case="$6"
+    local mesh="$7"
+    local dt="$8"
+    local status="$9"
+
+    local clockTime="NaN"
+    local maxMemory="NaN"
+    local cellsFluid="NaN"
+    local cellsSolid="NaN"
+    local finalUx="NaN"
+    local minUx="NaN"
+    local maxUx="NaN"
+    local finalUy="NaN"
+    local minUy="NaN"
+    local maxUy="NaN"
+    local finalFx="NaN"
+    local minFx="NaN"
+    local maxFx="NaN"
+    local finalFy="NaN"
+    local minFy="NaN"
+    local maxFy="NaN"
+
+    if grep -q "gtime/time" "${caseDir}/log.solids4Foam" 2>/dev/null
+    then
+        clockTime=$(grep "gtime/time" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print $5}')
+    elif [[ -f "${caseDir}/log.solids4Foam" ]]
+    then
+        clockTime=$(grep "ClockTime" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print $7}')
+    fi
+
+    if grep -q "Maximum resident" "${caseDir}/log.solids4Foam" 2>/dev/null
+    then
+        maxMemory=$(grep "Maximum resident" "${caseDir}/log.solids4Foam" | tail -1 | awk '{print int($6 / 1000)}')
+    fi
+
+    if [[ -f "${caseDir}/log.checkMesh.fluid" ]]
+    then
+        cellsFluid=$(grep "cells:" "${caseDir}/log.checkMesh.fluid" | tail -1 | awk '{print $2}')
+    fi
+
+    if [[ -f "${caseDir}/log.checkMesh.solid" ]]
+    then
+        cellsSolid=$(grep "cells:" "${caseDir}/log.checkMesh.solid" | tail -1 | awk '{print $2}')
+    fi
+
+    local dispFile="${caseDir}/postProcessing/0/solidPointDisplacement_pointDisp.dat"
+
+    if [[ -f "$dispFile" ]]
+    then
+        read -r finalUx minUx maxUx <<< "$(extractSeriesStats "$dispFile" 2)"
+        read -r finalUy minUy maxUy <<< "$(extractSeriesStats "$dispFile" 3)"
+    fi
+
+    local forceFile
+
+    if forceFile=$(cd "$caseDir" && findForceFile)
+    then
+        forceFile="${caseDir}/${forceFile}"
+        read -r finalFx minFx maxFx <<< "$(extractSeriesStats "$forceFile" 2)"
+        read -r finalFy minFy maxFy <<< "$(extractSeriesStats "$forceFile" 3)"
+    fi
+
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+       "$study" "$method" "$variant" "$case" "$mesh" "$dt" "$status" \
+       "$cellsFluid" "$cellsSolid" "$clockTime" "$maxMemory" \
+       "$finalUx" "$minUx" "$maxUx" "$finalUy" "$minUy" "$maxUy" \
+       "$finalFx" "$minFx" "$maxFx" "$finalFy" "$minFy" "$maxFy" \
+       >> "$summary"
+}
+
+runCaseWorker()
+{
+    local caseDir="$1"
+    local logFile="$2"
+    local statusFile="$3"
+    local method="$4"
+    local variant="$5"
+    local mesh="$6"
+    local dt="$7"
+    local base="$8"
+    local caseName="$9"
+    local totalCores="${10}"
+
+    (
+        local caseStatus="failed"
+        local solverStatus=0
+        trap 'printf "%s\n" "${caseStatus}" > "${statusFile}"' EXIT
+
+        rm -rf "${caseDir}"
+        mkdir -p "${caseDir}"
+        cp -rL "../${base}/." "${caseDir}"
+
+        cd "${caseDir}" || exit 1
+
+        if activateMethod "$method" "$variant"
+        then
+            cp "system/solid/blockMeshDict.${mesh}" system/solid/blockMeshDict
+            cp "system/fluid/blockMeshDict.${mesh}" system/fluid/blockMeshDict
+
+            setControlEntry deltaT "$dt" system/controlDict
+            setControlEntry endTime "$END_TIME" system/controlDict
+            setControlEntry writeInterval "$WRITE_INTERVAL" system/controlDict
+
+            solids4Foam::runApplication -s solid blockMesh -region solid
+            solids4Foam::runApplication -s fluid blockMesh -region fluid
+
+            solids4Foam::runApplication -o -s fluid.1 setSet -batch setSet1.batch -region fluid
+            solids4Foam::runApplication -o -s fluid.1 refineMesh -region fluid -dict ./system/fluid/refineMeshDict.1 -overwrite
+            solids4Foam::runApplication -o -s fluid.2 setSet -batch setSet2.batch -region fluid
+            solids4Foam::runApplication -o -s fluid.2 refineMesh -region fluid -dict ./system/fluid/refineMeshDict.2 -overwrite
+
+            solids4Foam::runApplication -s fluid checkMesh -region fluid
+            solids4Foam::runApplication -s solid checkMesh -region solid
+
+            local cores
+            cores=$(meshCores "$mesh") || solverStatus=$?
+
+            if [[ "$solverStatus" -eq 0 ]]
+            then
+                validatePositiveInteger "core demand for mesh ${mesh}" "$cores" || solverStatus=$?
+            fi
+
+            if [[ "$solverStatus" -eq 0 ]]
+            then
+                if (( cores > totalCores ))
+                then
+                    echo "Case ${caseName} requires ${cores} cores, but TOTAL_CORES=${totalCores}"
+                    solverStatus=1
+                elif (( cores > 1 ))
+                then
+                    setNumberOfSubdomains system/decomposeParDict "$cores" || solverStatus=$?
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        setNumberOfSubdomains system/solid/decomposeParDict "$cores" || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        setNumberOfSubdomains system/fluid/decomposeParDict "$cores" || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        solids4Foam::runApplication -s fluid decomposePar -region fluid || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        solids4Foam::runApplication -s solid decomposePar -region solid || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        runParallelSolver || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        solids4Foam::runApplication -s fluid reconstructPar -region fluid || solverStatus=$?
+                    fi
+                    if [[ "$solverStatus" -eq 0 ]]
+                    then
+                        solids4Foam::runApplication -s solid reconstructPar -region solid || solverStatus=$?
+                    fi
+                else
+                    runSolver || solverStatus=$?
+                fi
+
+                if [[ "$solverStatus" -eq 0 ]]
+                then
+                    caseStatus="ranToEnd"
+                fi
+            fi
+        fi
+    ) > "${logFile}" 2>&1
+}
+
+reapFinishedJobs()
+{
+    local alivePids=()
+    local aliveCores=()
+    local pid core rc
+
+    for ((idx=0; idx<${#ACTIVE_PIDS[@]}; ++idx))
+    do
+        pid="${ACTIVE_PIDS[$idx]}"
+        core="${ACTIVE_CORES[$idx]}"
+
+        if kill -0 "${pid}" 2>/dev/null
+        then
+            alivePids+=("${pid}")
+            aliveCores+=("${core}")
+        else
+            wait "${pid}"
+            rc=$?
+            ACTIVE_CORE_USAGE=$((ACTIVE_CORE_USAGE - core))
+            if [[ "${rc}" -ne 0 ]]
+            then
+                ACTIVE_FAILURES=$((ACTIVE_FAILURES + 1))
+            fi
+        fi
+    done
+
+    if (( ${#alivePids[@]} > 0 ))
+    then
+        ACTIVE_PIDS=("${alivePids[@]}")
+    else
+        ACTIVE_PIDS=()
+    fi
+
+    if (( ${#aliveCores[@]} > 0 ))
+    then
+        ACTIVE_CORES=("${aliveCores[@]}")
+    else
+        ACTIVE_CORES=()
+    fi
+}
+
+waitForCoreBudget()
+{
+    local required="$1"
+
+    while true
+    do
+        reapFinishedJobs
+
+        if (( ACTIVE_CORE_USAGE + required <= TOTAL_CORES ))
+        then
+            return 0
+        fi
+
+        sleep 1
+    done
+}
+
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+echo "Compiling membraneRoof2d tutorial libraries"
+if ! (cd src && ./Allwmake)
+then
+    echo "Failed to compile membraneRoof2d tutorial libraries"
+    exit 1
+fi
+
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_${STUDY}_${CPU_TYPE}_${DATE}"
+SUMMARY="campaignSummary.tsv"
+QUEUE_METHODS=()
+QUEUE_VARIANTS=()
+QUEUE_BASES=()
+QUEUE_CASES=()
+QUEUE_MESHES=()
+QUEUE_DTS=()
+QUEUE_CORES=()
+QUEUE_DIRS=()
+QUEUE_LOGS=()
+QUEUE_STATUS_FILES=()
+ACTIVE_PIDS=()
+ACTIVE_CORES=()
+ACTIVE_CORE_USAGE=0
+ACTIVE_FAILURES=0
+
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+cd "${RUN_DIR}"
+RUN_ROOT="$(pwd)"
+
+printf "# Study\tMethod\tVariant\tCase\tMeshFactor\tDeltaT\tStatus\tCellsFluid\tCellsSolid\tWallTime\tMaxMemoryMb\tFinalUx\tMinUx\tMaxUx\tFinalUy\tMinUy\tMaxUy\tFinalFx\tMinFx\tMaxFx\tFinalFy\tMinFy\tMaxFy\n" \
+    > "$SUMMARY"
+
+for methodVariant in $METHODS
+do
+    METHOD="${methodVariant%%:*}"
+    VARIANT="${methodVariant#*:}"
+    BASE="$(methodBase "$METHOD")"
+
+    for mesh in $MESH_LEVELS
+    do
+        CORES=$(meshCores "$mesh") || exit 1
+        validatePositiveInteger "core demand for mesh ${mesh}" "$CORES" || exit 1
+        if (( CORES > TOTAL_CORES ))
+        then
+            echo "Case mesh ${mesh} requires ${CORES} cores, but TOTAL_CORES=${TOTAL_CORES}" >&2
+            exit 1
+        fi
+
+        for dt in $DT_VALUES
+        do
+            CASE="$(caseName "$METHOD" "$VARIANT" "$mesh" "$dt")"
+            queueCase "$METHOD" "$VARIANT" "$mesh" "$dt" "$BASE" "$CASE" "$CORES"
+        done
+    done
+done
+
+for idx in "${!QUEUE_CASES[@]}"
+do
+    CASE="${QUEUE_CASES[$idx]}"
+    METHOD="${QUEUE_METHODS[$idx]}"
+    VARIANT="${QUEUE_VARIANTS[$idx]}"
+    MESH="${QUEUE_MESHES[$idx]}"
+    DT="${QUEUE_DTS[$idx]}"
+    BASE="${QUEUE_BASES[$idx]}"
+    LOG_FILE="${QUEUE_LOGS[$idx]}"
+    STATUS_FILE="${QUEUE_STATUS_FILES[$idx]}"
+    CORES="${QUEUE_CORES[$idx]}"
+    CASE_DIR="${QUEUE_DIRS[$idx]}"
+
+    waitForCoreBudget "${CORES}"
+
+    echo
+    echo "***************************************"
+    echo "Launching case: ${CASE}"
+    echo "Method: ${METHOD}, variant: ${VARIANT}, mesh factor: ${MESH}, deltaT: ${DT}, endTime: ${END_TIME}, cores: ${CORES}"
+    echo "***************************************"
+
+    runCaseWorker "${CASE_DIR}" "${LOG_FILE}" "${STATUS_FILE}" "${METHOD}" "${VARIANT}" "${MESH}" "${DT}" "${BASE}" "${CASE}" "${TOTAL_CORES}" &
+    ACTIVE_PIDS+=("$!")
+    ACTIVE_CORES+=("${CORES}")
+    ACTIVE_CORE_USAGE=$((ACTIVE_CORE_USAGE + CORES))
+done
+
+while (( ${#ACTIVE_PIDS[@]} > 0 ))
+do
+    reapFinishedJobs
+
+    if (( ${#ACTIVE_PIDS[@]} > 0 ))
+    then
+        sleep 1
+    fi
+done
+
+FAILED_CASES=0
+for idx in "${!QUEUE_CASES[@]}"
+do
+    CASE="${QUEUE_CASES[$idx]}"
+    METHOD="${QUEUE_METHODS[$idx]}"
+    VARIANT="${QUEUE_VARIANTS[$idx]}"
+    MESH="${QUEUE_MESHES[$idx]}"
+    DT="${QUEUE_DTS[$idx]}"
+    STATUS_FILE="${QUEUE_STATUS_FILES[$idx]}"
+    CASE_DIR="${QUEUE_DIRS[$idx]}"
+    STATUS="failed"
+
+    if [[ -f "${STATUS_FILE}" ]]
+    then
+        read -r STATUS < "${STATUS_FILE}"
+    fi
+
+    if [[ -z "${STATUS}" ]]
+    then
+        STATUS="failed"
+    fi
+
+    appendSummary "$SUMMARY" "$CASE_DIR" "$STUDY" "$METHOD" "$VARIANT" "$CASE" "$MESH" "$DT" "$STATUS"
+
+    if [[ "$STATUS" != "ranToEnd" ]]
+    then
+        FAILED_CASES=$((FAILED_CASES + 1))
+    fi
+done
+
+if (( FAILED_CASES > 0 ))
+then
+    echo
+    echo "Completed with ${FAILED_CASES} failed case(s)"
+fi
+
+cd ..
+
+echo
+echo "Done"
+echo "Run directory: ${RUN_DIR}"
+echo "Summary: ${RUN_DIR}/${SUMMARY}"
+echo
+echo "To see summary in column aligned readable version use:"
+echo "column -t -s $'\t' ${RUN_DIR}/${SUMMARY}"
+echo
+echo "$(date)"

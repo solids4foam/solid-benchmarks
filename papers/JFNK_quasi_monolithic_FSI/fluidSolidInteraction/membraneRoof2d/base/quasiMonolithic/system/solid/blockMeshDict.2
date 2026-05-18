@@ -1,0 +1,98 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.3                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale 1;
+
+vertices
+(
+    // Membrane thickness is 0.002
+    // (0.6 0.198 -0.05)    //0
+    // (1 0.198 -0.05)      //1
+    // (1 0.2 -0.05)        //2
+    // (0.6 0.2 -0.05)      //3
+    // (0.6 0.198 0.05)     //4
+    // (1 0.198 0.05)       //5
+    // (1 0.2 0.05)         //6
+    // (0.6 0.2 0.05)       //7
+
+    // Membrane thickness is 0.005
+    (0.4 0.195 -0.05)   //0
+    (0.8 0.195 -0.05)   //1
+    (0.8 0.2 -0.05)     //2
+    (0.4 0.2 -0.05)     //3
+    (0.4 0.195 0.05)    //4
+    (0.8 0.195 0.05)    //5
+    (0.8 0.2 0.05)      //6
+    (0.4 0.2 0.05)      //7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (96 12 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    membrane-solid
+    {
+        type patch;
+        faces
+        (
+            (7 6 2 3)
+        );
+    }
+
+    bottom
+    {
+        type patch;
+        faces
+        (
+           (4 0 1 5)
+        );
+    }
+
+    sides
+    {
+        type patch;
+        faces
+        (
+            (4 7 3 0)
+            (5 1 2 6)
+        );
+    }
+
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (4 5 6 7)
+            (3 2 1 0)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //
