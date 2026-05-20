@@ -34,11 +34,11 @@ END_MESH="${END_MESH:-4}"
 
 if ! command -v extractIdealisedVentricleResults &>/dev/null
 then
-    if [[ -d "../extractIdealisedVentricleResults" ]]
+    if [[ -d "extractIdealisedVentricleResults" ]]
     then
         echo "Compiling extractIdealisedVentricleResults"
         (
-            cd ../extractIdealisedVentricleResults
+            cd extractIdealisedVentricleResults
             wmake
         )
     fi
@@ -47,7 +47,7 @@ fi
 if ! command -v extractIdealisedVentricleResults &>/dev/null
 then
     echo "ERROR: extractIdealisedVentricleResults is not available."
-    echo "Compile it with: cd ../extractIdealisedVentricleResults && wmake"
+    echo "Compile it with: (cd extractIdealisedVentricleResults && wmake)"
     exit 1
 fi
 

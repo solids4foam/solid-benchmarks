@@ -312,13 +312,15 @@ done
 
 if command -v gnuplot &>/dev/null
 then
-    cp ../plotScripts/campaign*.gnuplot .
+    cp ../plotScripts/*.gnuplot .
 
     for f in campaign*.gnuplot
     do
         echo "Running gnuplot on $f"
         gnuplot -c "$f" "$SUMMARY"
     done
+
+    gnuplot campaignSummary.gnuplot
 fi
 
 cd ..
