@@ -4,29 +4,32 @@ if (ARGC < 1) {
     print "usage: ", ARG0, " <campaignSummary.tsv>"
     exit
 }
-
 summary = ARG1
 
 set datafile commentschars "#"
-set key left top
+set key outside
 set grid
-set logscale x
-set xlabel "{/Symbol D}x (m)"
-set xrange [0.009:0.12]
-set format x "%g"
+set xlabel "Mesh scale"
+set xrange [0.5:*]
+set xtics 1
 
 methods = "monolithic.default monolithic.schurTuned monolithic.physicsPC partitioned.IQNILS partitioned.Aitken"
+ok(s) = (s eq "completed")
 
-set output "campaignMeshDisplacement.pdf"
-set ylabel "Steady vertical displacement (m)"
-plot "../TukovicDisplacements.csv" u 1:2 w p pt 7 ps 0.8 lc rgb "black" title "Tukovic", \
-    for [m in methods] summary \
-        u ((strcol(2).".".strcol(3) eq m && strcol(8) ne "failed") ? $6 : 1/0):14 \
-        w lp lw 2 ps 0.5 title m
+set output "campaignMeshUyExtrema.pdf"
+set ylabel "Tip U_y extrema (m)"
+plot for [m in methods] summary \
+        u ((strcol(2).".".strcol(3) eq m && ok(strcol(7))) ? $5 : 1/0):16 \
+        w lp lw 2 ps 0.5 title m." min", \
+     for [m in methods] summary \
+        u ((strcol(2).".".strcol(3) eq m && ok(strcol(7))) ? $5 : 1/0):17 \
+        w lp lw 2 ps 0.5 dt 2 title m." max"
 
-set output "campaignMeshForce.pdf"
-set ylabel "Steady vertical interface force (N/m)"
-plot "../TukovicForces.csv" u 1:($2*20.0) w p pt 7 ps 0.8 lc rgb "black" title "Tukovic x 20", \
-    for [m in methods] summary \
-        u ((strcol(2).".".strcol(3) eq m && strcol(8) ne "failed") ? $6 : 1/0):15 \
-        w lp lw 2 ps 0.5 title m
+set output "campaignMeshFluidFyExtrema.pdf"
+set ylabel "Fluid F_y extrema (N)"
+plot for [m in methods] summary \
+        u ((strcol(2).".".strcol(3) eq m && ok(strcol(7))) ? $5 : 1/0):23 \
+        w lp lw 2 ps 0.5 title m." min", \
+     for [m in methods] summary \
+        u ((strcol(2).".".strcol(3) eq m && ok(strcol(7))) ? $5 : 1/0):24 \
+        w lp lw 2 ps 0.5 dt 2 title m." max"

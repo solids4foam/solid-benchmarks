@@ -1,34 +1,44 @@
 set term pdfcairo dashed enhanced
-#set datafile separator " "
 
-if (ARGC < 1) {
-    print "Error: No input configuration name provided."
-    print "usage: ", ARG0, " <caseBaseName>"
-    exit
-} else {
-    base = ARG1
-}
+# Comparison slice defaults.
+methods = "monolithic_default partitioned_Aitken"
+timeStepMesh = "2"
+meshTimeStep = "dt0p01"
 
-set output base.".forceVsTime.pdf"
+# Method style: open circles for monolithic, open squares for Aitken.
+set style line 1 lc rgb "#2166ac" lw 2 pt 6
+set style line 2 lc rgb "#b2182b" lw 2 pt 4
+pointSize(i) = 0.5 + 0.25*(i - 1)
 
-# Find matching case directories
-cases = system(sprintf("ls -d %s.*/ 2>/dev/null", base))
-
-#set size ratio 1
+forceFile(c) = sprintf("%s/postProcessing/fluid/fluidForces/0/force.dat", c)
+timeStepCases(m) = system(sprintf("ls -d %s.m%s.dt*/ 2>/dev/null", m, timeStepMesh))
+meshCases(m) = system(sprintf("ls -d %s.m*.%s/ 2>/dev/null", m, meshTimeStep))
+selectedTimeStepCases = system(sprintf("for m in %s; do ls -d ${m}.m%s.dt*/ 2>/dev/null; done", methods, timeStepMesh))
+selectedMeshCases = system(sprintf("for m in %s; do ls -d ${m}.m*.%s/ 2>/dev/null; done", methods, meshTimeStep))
 
 set grid
-set xrange [0:200]
-set yrange [-5.5:-4.5]
-#set xtics add (25, 50, 100, 200)
-set ytics
-#set logscale x
-#set logscale y
-#set format y "10^{%L}"
-#set ytics 0.002
-set xlabel "Time (in s)"
-set ylabel "Force (in N)"
-set key right top
+set xlabel "Time (s)"
+set ylabel "Fluid interface F_y (N)"
+set key outside
 
-plot for [c in cases] \
-    sprintf("%s/postProcessing/fluid/forces/0/force.dat", c) \
-    u 1:3 w lp lw 2 ps 0.2 title c
+if (words(selectedTimeStepCases) > 0) {
+    set output "forceVsTime_timeSteps_m".timeStepMesh.".pdf"
+    plot for [i=1:words(methods)] \
+         for [j=1:words(timeStepCases(word(methods, i)))] \
+        forceFile(word(timeStepCases(word(methods, i)), j)) \
+        u 1:3 w lp ls i ps pointSize(j) \
+        title word(timeStepCases(word(methods, i)), j)
+} else {
+    print "Skipping force time-step comparison: no mesh m", timeStepMesh, " cases for ", methods
+}
+
+if (words(selectedMeshCases) > 0) {
+    set output "forceVsTime_meshes_".meshTimeStep.".pdf"
+    plot for [i=1:words(methods)] \
+         for [j=1:words(meshCases(word(methods, i)))] \
+        forceFile(word(meshCases(word(methods, i)), j)) \
+        u 1:3 w lp ls i ps pointSize(j) \
+        title word(meshCases(word(methods, i)), j)
+} else {
+    print "Skipping force mesh comparison: no ", meshTimeStep, " cases for ", methods
+}
