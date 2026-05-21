@@ -22,7 +22,7 @@ mechanical
 (
     rubber
     {
-        type        linearElastic;
+        type        StVenantKirchhoffElastic;
         rho         rho [1 -3 0 0 0 0 0] 3000;
         E           E [1 -1 -2 0 0 0 0] 4e6;
         nu          nu [0 0 0 0 0 0 0] 0.3;
