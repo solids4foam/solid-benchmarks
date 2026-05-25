@@ -13,14 +13,6 @@ solids4Foam::convertCaseFormat .
 solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
-if ! command -v surfaceToFMS &> /dev/null
-then
-    echo
-    echo "surfaceToFMS command not found, which is required for this case."
-    echo "cfMesh is not installed"
-    exit 0
-fi
-
 if ! command -v cartesianMesh &> /dev/null
 then
     echo
@@ -46,7 +38,7 @@ solids4Foam::runApplication surfaceToFMS wrench.stl
 solids4Foam::runApplication cartesianMesh
 
 # Set the symmetry patch type instead of wall
-sed -i '/^wrench-sym$/,/^}/{s/type[[:space:]]*wall;/type symmetryPlane;/}' \
+sed -i '/^wrench-sym$/,/^}/{s/type[[:space:]]*wall;/type symmetry;/}' \
     constant/polyMesh/boundary
 
 # Scale mesh
