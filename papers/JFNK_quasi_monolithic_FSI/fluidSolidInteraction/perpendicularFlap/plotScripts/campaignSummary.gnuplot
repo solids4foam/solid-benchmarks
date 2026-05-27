@@ -1,6 +1,6 @@
 set term pdfcairo dashed enhanced
 
-summary = (ARGC < 1) ? "campaignSummary.tsv" : ARG1
+summary = "campaignSummary.tsv"
 
 set datafile commentschars "#"
 set grid
@@ -25,12 +25,6 @@ plot summary \
 set xtics norotate
 set xlabel "Total cells"
 set xrange [0:*]
-set output "campaignSummaryCost.pdf"
-set ylabel "Wall time (s)"
-plot summary \
-    u ((ok(strcol(7))) ? ($8 + $9) : 1/0):10 \
-    w p pt 7 ps 0.7 title "Wall time"
-
 set output "campaignSummaryMemory.pdf"
 set ylabel "Maximum memory (MB)"
 plot summary \

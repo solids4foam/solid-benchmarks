@@ -13,7 +13,7 @@ set -u
 #   MESH_LEVELS="1 2 3"
 #   DT_VALUES="0.0025 0.005 0.01 0.02"
 #   END_TIME=5
-#   TOTAL_CORES=16        # total MPI ranks available across concurrent cases
+#   TOTAL_CORES=32        # total MPI ranks available across concurrent cases
 #   MESH_CORES="1 1 2"    # processor counts for mesh levels 1, 2, 3
 
 TOTAL_CORES="${TOTAL_CORES:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
