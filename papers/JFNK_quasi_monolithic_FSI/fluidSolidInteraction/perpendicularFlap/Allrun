@@ -6,18 +6,22 @@ source solids4FoamScripts.sh
 set -u
 
 # Usage:
-#   ./Allrun [mesh|time|all|smoke]
+#   ./Allrun [mesh|time|all|targeted|smoke]
 #
 # Environment overrides:
 #   METHODS="monolithic:default partitioned:IQNILS"
-#   MESH_LEVELS="1 2 3"
+#   MESH_LEVELS="1 2 3 4"
 #   DT_VALUES="0.0025 0.005 0.01 0.02"
-#   END_TIME=5
+#   DT_SWEEP_METHOD="monolithic:default"
+#   DT_SWEEP_MESH=3
+#   METHOD_SWEEP_MESH=4
+#   METHOD_SWEEP_DT=0.0001
+#   END_TIME=3
 #   TOTAL_CORES=32        # total MPI ranks available across concurrent cases
-#   MESH_CORES="1 1 2"    # processor counts for mesh levels 1, 2, 3
+#   MESH_CORES="1 1 4 12" # processor counts for mesh levels 1, 2, 3, 4
 
 TOTAL_CORES="${TOTAL_CORES:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)}"
-read -r -a MESH_CORE_COUNTS <<< "${MESH_CORES:-1 1 2}"
+read -r -a MESH_CORE_COUNTS <<< "${MESH_CORES:-1 1 4 12}"
 
 if ! [[ "$TOTAL_CORES" =~ ^[0-9]+$ ]] || [[ "$TOTAL_CORES" -lt 1 ]]
 then
@@ -31,10 +35,11 @@ then
     USER_SET_END_TIME=true
 else
     USER_SET_END_TIME=false
-    END_TIME=5
+    END_TIME=3
 fi
 
-DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
+#DEFAULT_METHODS="monolithic:default monolithic:schurTuned monolithic:physicsPC partitioned:IQNILS partitioned:Aitken"
+DEFAULT_METHODS="monolithic:default partitioned:Aitken"
 if [[ -n "${METHODS+x}" ]]
 then
     USER_SET_METHODS=true
@@ -56,6 +61,13 @@ case "$STUDY" in
         MESH_LEVELS="${MESH_LEVELS:-1 2 3}"
         DT_VALUES="${DT_VALUES:-0.0025 0.005 0.01 0.02}"
         ;;
+    targeted)
+        DT_SWEEP_METHOD="${DT_SWEEP_METHOD:-monolithic:default}"
+        DT_SWEEP_MESH="${DT_SWEEP_MESH:-3}"
+        METHOD_SWEEP_MESH="${METHOD_SWEEP_MESH:-4}"
+        METHOD_SWEEP_DT="${METHOD_SWEEP_DT:-0.00015625}"
+        DT_VALUES="${DT_VALUES:-0.000625 0.00125 0.0025 0.005 0.01}"
+        ;;
     smoke)
         MESH_LEVELS="${MESH_LEVELS:-1}"
         DT_VALUES="${DT_VALUES:-0.02}"
@@ -69,7 +81,7 @@ case "$STUDY" in
         fi
         ;;
     *)
-        echo "Unknown study '$STUDY'; expected mesh, time, all, or smoke"
+        echo "Unknown study '$STUDY'; expected mesh, time, all, targeted, or smoke"
         exit 1
         ;;
 esac
@@ -175,6 +187,30 @@ queueCase()
     QUEUE_STATUS_FILES+=("${RUN_ROOT}/${caseName}.status")
 }
 
+queueConfiguredCase()
+{
+    local method="$1"
+    local variant="$2"
+    local mesh="$3"
+    local dt="$4"
+    local base
+    local case
+    local cores
+
+    base="$(methodBase "$method")"
+    cores=$(meshCores "$mesh") || return 1
+    validatePositiveInteger "core demand for mesh ${mesh}" "$cores" || return 1
+
+    if (( cores > TOTAL_CORES ))
+    then
+        echo "Case mesh ${mesh} requires ${cores} cores, but TOTAL_CORES=${TOTAL_CORES}" >&2
+        return 1
+    fi
+
+    case="$(caseName "$method" "$variant" "$mesh" "$dt")"
+    queueCase "$method" "$variant" "$mesh" "$dt" "$base" "$case" "$cores"
+}
+
 activateMethod()
 {
     local method="$1"
@@ -184,6 +220,11 @@ activateMethod()
     then
         for file in $(find ./0 ./constant ./system -name '*.monolithic')
         do
+            if [[ "${file##*/}" == "decomposeParDict.monolithic" ]]
+            then
+                continue
+            fi
+
             ln -vnsf "${file##*/}" "${file%.*}"
         done
 
@@ -480,16 +521,29 @@ runCaseWorker()
 
         if activateMethod "$method" "$variant"
         then
-            cp "system/solid/blockMeshDict.${mesh}" system/solid/blockMeshDict
-            cp "system/fluid/blockMeshDict.${mesh}" system/fluid/blockMeshDict
+            if [[ ! -f "system/solid/blockMeshDict.${mesh}" ]]
+            then
+                echo "Cannot find system/solid/blockMeshDict.${mesh}"
+                solverStatus=1
+            elif [[ ! -f "system/fluid/blockMeshDict.${mesh}" ]]
+            then
+                echo "Cannot find system/fluid/blockMeshDict.${mesh}"
+                solverStatus=1
+            else
+                cp "system/solid/blockMeshDict.${mesh}" system/solid/blockMeshDict
+                cp "system/fluid/blockMeshDict.${mesh}" system/fluid/blockMeshDict
+            fi
 
-            setControlEntry deltaT "$dt" system/controlDict
-            setControlEntry endTime "$END_TIME" system/controlDict
+            if [[ "$solverStatus" -eq 0 ]]
+            then
+                setControlEntry deltaT "$dt" system/controlDict
+                setControlEntry endTime "$END_TIME" system/controlDict
 
-            solids4Foam::runApplication -s solid blockMesh -region solid
-            solids4Foam::runApplication -s fluid blockMesh -region fluid
-            solids4Foam::runApplication -s fluid checkMesh -region fluid
-            solids4Foam::runApplication -s solid checkMesh -region solid
+                solids4Foam::runApplication -s solid blockMesh -region solid
+                solids4Foam::runApplication -s fluid blockMesh -region fluid
+                solids4Foam::runApplication -s fluid checkMesh -region fluid
+                solids4Foam::runApplication -s solid checkMesh -region solid
+            fi
 
             local cores
             cores=$(meshCores "$mesh") || solverStatus=$?
@@ -507,34 +561,47 @@ runCaseWorker()
                     solverStatus=1
                 elif (( cores > 1 ))
                 then
-                    setNumberOfSubdomains system/decomposeParDict "$cores" || solverStatus=$?
-                    if [[ "$solverStatus" -eq 0 ]]
+                    if [[ "$method" == "monolithic" ]]
                     then
-                        setNumberOfSubdomains system/solid/decomposeParDict "$cores" || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        setNumberOfSubdomains system/fluid/decomposeParDict "$cores" || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s fluid decomposePar -region fluid || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s solid decomposePar -region solid || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        runParallelSolver || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s fluid reconstructPar -region fluid || solverStatus=$?
-                    fi
-                    if [[ "$solverStatus" -eq 0 ]]
-                    then
-                        solids4Foam::runApplication -s solid reconstructPar -region solid || solverStatus=$?
+                        setNumberOfSubdomains system/decomposeParDict "$cores" || solverStatus=$?
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            decomposeParMonolithic &> log.decomposeParMonolithic || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            runParallelSolver || solverStatus=$?
+                        fi
+                    else
+                        setNumberOfSubdomains system/decomposeParDict "$cores" || solverStatus=$?
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            setNumberOfSubdomains system/solid/decomposeParDict "$cores" || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            setNumberOfSubdomains system/fluid/decomposeParDict "$cores" || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s fluid decomposePar -region fluid || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s solid decomposePar -region solid || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            runParallelSolver || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s fluid reconstructPar -region fluid || solverStatus=$?
+                        fi
+                        if [[ "$solverStatus" -eq 0 ]]
+                        then
+                            solids4Foam::runApplication -s solid reconstructPar -region solid || solverStatus=$?
+                        fi
                     fi
                 else
                     runSolver || solverStatus=$?
@@ -643,29 +710,37 @@ RUN_ROOT="$(pwd)"
 echo "# Study Method Variant Case MeshScale DeltaT Status CellsFluid CellsSolid WallTime MaxMemoryMb DispTime Ux Uy Uz MinUy MaxUy ForceTime FluidFx FluidFy MinFluidFx MaxFluidFx MinFluidFy MaxFluidFy SolidForceTime SolidFx SolidFy SolidFz SolidNormalForce" \
     > "$SUMMARY"
 
-for methodVariant in $METHODS
-do
-    METHOD="${methodVariant%%:*}"
-    VARIANT="${methodVariant#*:}"
-    BASE="$(methodBase "$METHOD")"
+if [[ "$STUDY" == "targeted" ]]
+then
+    METHOD="${DT_SWEEP_METHOD%%:*}"
+    VARIANT="${DT_SWEEP_METHOD#*:}"
 
-    for mesh in $MESH_LEVELS
+    for dt in $DT_VALUES
     do
-        CORES=$(meshCores "$mesh") || exit 1
-        validatePositiveInteger "core demand for mesh ${mesh}" "$CORES" || exit 1
-        if (( CORES > TOTAL_CORES ))
-        then
-            echo "Case mesh ${mesh} requires ${CORES} cores, but TOTAL_CORES=${TOTAL_CORES}" >&2
-            exit 1
-        fi
+        queueConfiguredCase "$METHOD" "$VARIANT" "$DT_SWEEP_MESH" "$dt" || exit 1
+    done
 
-        for dt in $DT_VALUES
+    for methodVariant in $METHODS
+    do
+        METHOD="${methodVariant%%:*}"
+        VARIANT="${methodVariant#*:}"
+        queueConfiguredCase "$METHOD" "$VARIANT" "$METHOD_SWEEP_MESH" "$METHOD_SWEEP_DT" || exit 1
+    done
+else
+    for methodVariant in $METHODS
+    do
+        METHOD="${methodVariant%%:*}"
+        VARIANT="${methodVariant#*:}"
+
+        for mesh in $MESH_LEVELS
         do
-            CASE="$(caseName "$METHOD" "$VARIANT" "$mesh" "$dt")"
-            queueCase "$METHOD" "$VARIANT" "$mesh" "$dt" "$BASE" "$CASE" "$CORES"
+            for dt in $DT_VALUES
+            do
+                queueConfiguredCase "$METHOD" "$VARIANT" "$mesh" "$dt" || exit 1
+            done
         done
     done
-done
+fi
 
 for idx in "${!QUEUE_CASES[@]}"
 do
@@ -751,7 +826,7 @@ then
     do
         [[ -f "$f" ]] || continue
         echo "Running gnuplot on $f"
-        gnuplot -c "$f" "$SUMMARY"
+        gnuplot "$f"
     done
 
     if [[ -f displacementVsTime.gnuplot ]]
