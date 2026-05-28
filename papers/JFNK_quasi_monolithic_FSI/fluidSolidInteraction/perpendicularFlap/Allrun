@@ -220,11 +220,6 @@ activateMethod()
     then
         for file in $(find ./0 ./constant ./system -name '*.monolithic')
         do
-            if [[ "${file##*/}" == "decomposeParDict.monolithic" ]]
-            then
-                continue
-            fi
-
             ln -vnsf "${file##*/}" "${file%.*}"
         done
 
