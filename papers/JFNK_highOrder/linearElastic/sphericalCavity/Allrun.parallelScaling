@@ -1,0 +1,287 @@
+#!/bin/bash
+
+# Source required functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+source solids4FoamScripts.sh
+# Extend version not supported
+solids4Foam::caseDoesNotRunWithFoamExtend
+
+SCRIPT_DIR="$(cd "${0%/*}" && pwd -P)"
+export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../solids4foam-ib-2412}"
+
+# Compile local analytical library
+(cd src && ./Allwmake -s)
+
+# Defaults can be overridden, e.g.
+#     MESHES="3 4 5" NP_LIST="1 2 4 8" ./Allrun.parallelScaling
+MESHES="${MESHES:-4}"
+NP_LIST="${NP_LIST:-1 2 3}"
+MESH_FAMILIES="${MESH_FAMILIES:-tet}"
+
+set -- ${NP_LIST}
+if [ "$1" -ne 1 ]
+then
+    echo "NP_LIST must start with 1 so speedup and efficiency have a serial baseline"
+    exit 1
+fi
+
+configs=()
+for meshFamily in ${MESH_FAMILIES}
+do
+    if [[ "${meshFamily}" == "tet" ]]
+    then
+        configs+=("BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+        configs+=("BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+        configs+=("BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+    elif [[ "${meshFamily}" == "poly" ]]
+    then
+        configs+=("BASE=base/highOrder NAME=poly.unstruct.ho.N1 GMSH_FILE=poly polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+        configs+=("BASE=base/highOrder NAME=poly.unstruct.ho.N2 GMSH_FILE=poly polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+        configs+=("BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true")
+    else
+        echo "Unknown mesh family: ${meshFamily}"
+        echo "Supported values: tet poly"
+        exit 1
+    fi
+done
+
+runTimed()
+{
+    local logFile="$1"
+    shift
+
+    if command -v gtime &> /dev/null
+    then
+        gtime \
+            -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "${logFile}"
+        return $?
+    elif [ -x /usr/bin/time ] && /usr/bin/time -f "%e" true &> /dev/null
+    then
+        /usr/bin/time \
+            -f "gtime/time (wall clock) time: %e\nMaximum resident set size (kbytes): %M" \
+            "$@" &> "${logFile}"
+        return $?
+    else
+        local startTime endTime status
+        startTime=$(date +%s)
+        "$@" &> "${logFile}"
+        status=$?
+        endTime=$(date +%s)
+        echo "gtime/time (wall clock) time: $((endTime - startTime))" >> "${logFile}"
+        return ${status}
+    fi
+}
+
+extractOrNaN()
+{
+    local value="$1"
+
+    if [ -n "${value}" ]
+    then
+        echo "${value}"
+    else
+        echo "NaN"
+    fi
+}
+
+calcSpeedup()
+{
+    local serialTime="$1"
+    local currentTime="$2"
+
+    awk -v s="${serialTime}" -v t="${currentTime}" \
+        'BEGIN { if (s > 0 && t > 0) printf "%.6g", s/t; else printf "NaN" }'
+}
+
+calcEfficiency()
+{
+    local speedup="$1"
+    local nProc="$2"
+
+    awk -v sp="${speedup}" -v np="${nProc}" \
+        'BEGIN { if (sp > 0 && np > 0) printf "%.6g", sp/np; else printf "NaN" }'
+}
+
+# Compile projectPointsToSphere
+cd projectPointsToSphere
+wclean
+wmake
+cd ..
+
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    CPU_TYPE=$(sysctl -n machdep.cpu.brand_string | sed 's/[^a-zA-Z0-9]/_/g')
+elif [[ -f /proc/cpuinfo ]]
+then
+    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
+else
+    CPU_TYPE="Unknown_CPU"
+fi
+
+DATE=$(date +%Y-%m-%d_%H-%M-%S)
+RUN_DIR="run_parallelScaling_${CPU_TYPE}_${DATE}"
+echo "Creating ${RUN_DIR}"
+mkdir "${RUN_DIR}"
+
+cd "${RUN_DIR}"
+
+GLOBAL_SUMMARY="parallelScaling.summary.txt"
+echo "# Case Mesh Processors Time Speedup Efficiency Mem Cells D_L2 D_Linf S_L2 S_Linf Status" > "${GLOBAL_SUMMARY}"
+
+for config in "${configs[@]}"
+do
+    unset GMSH_FILE PETSC_FILE polyOrder extraCells HOJAC HORES
+
+    eval ${config}
+    echo; echo "***************************************"
+    echo "Running configuration: ${config}"
+    echo "Meshes: ${MESHES}"
+    echo "Processors: ${NP_LIST}"
+    echo "***************************************"
+
+    SUMMARY="${NAME}.parallelScaling.summary.txt"
+    echo "# Mesh Processors Time Speedup Efficiency Mem Cells D_L2 D_Linf S_L2 S_Linf Status" > "${SUMMARY}"
+
+    for i in ${MESHES}
+    do
+        MESH_CASE="${NAME}.${i}.mesh"
+        echo; echo "Preparing mesh case: ${MESH_CASE}"
+
+        cp -r "../${BASE}" "${MESH_CASE}"
+        cd "${MESH_CASE}"
+
+        if command -v gmsh &> /dev/null
+        then
+            mv 0 0.tmp
+
+            if [[ "${GMSH_FILE}" == "tet" ]]
+            then
+                cp "gmsh/tet-meshSpacing/meshSpacing${i}.geo" "gmsh/tet-meshSpacing/meshSpacing.geo"
+                solids4Foam::runApplication gmsh -3 -format msh2 gmsh/tet.geo
+                solids4Foam::runApplication gmshToFoam gmsh/tet.msh
+            fi
+
+            if [[ "${GMSH_FILE}" == "poly" ]]
+            then
+                cp "gmsh/poly-meshSpacing/meshSpacing${i}.geo" "gmsh/poly-meshSpacing/meshSpacing.geo"
+                solids4Foam::runApplication gmsh -3 -format msh2 gmsh/poly.geo
+                solids4Foam::runApplication gmshToFoam gmsh/poly.msh
+                solids4Foam::runApplication polyDualMesh 30 -overwrite
+                solids4Foam::runApplication combinePatchFaces 45 -overwrite
+            fi
+
+            solids4Foam::runApplication changeDictionary
+            solids4Foam::runApplication checkMesh
+            mv 0.tmp 0
+        else
+            echo; echo "Gmsh is required to run this case: please install it"
+            exit 1
+        fi
+
+        solids4Foam::runApplication projectPointsToSphere cavity "(0 0 0)" 0.2
+        mv 1/polyMesh/points constant/polyMesh/points
+        rm -rf 1/meshPhi 1/pointMotion 1/polyMesh
+
+        if [ -n "${PETSC_FILE}" ]; then
+            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+        fi
+
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
+        fi
+
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        if [ -n "${HOJAC}" ]; then
+            sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
+        fi
+
+        if [ -n "${HORES}" ]; then
+            sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
+        CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
+        cd ..
+
+        SERIAL_TIME="NaN"
+
+        for nProc in ${NP_LIST}
+        do
+            CASE="${NAME}.${i}.np${nProc}"
+            echo; echo "Processing case: ${CASE}"
+
+            cp -r "${MESH_CASE}" "${CASE}"
+            cd "${CASE}"
+
+            STATUS="OK"
+            if [ "${nProc}" -eq 1 ]
+            then
+                echo "Running solids4Foam on ${CASE}"
+                runTimed log.solids4Foam solids4Foam || STATUS="FAIL"
+            else
+                if ! command -v mpirun &> /dev/null
+                then
+                    echo "mpirun is required for parallel runs"
+                    STATUS="FAIL"
+                else
+                    sed -i "/^\s*numberOfSubdomains /s|^.*|numberOfSubdomains  ${nProc};|" system/decomposeParDict
+                    solids4Foam::runApplication decomposePar -force
+                    echo "Running solids4Foam on ${CASE} with ${nProc} processors"
+                    runTimed log.solids4Foam mpirun -np "${nProc}" solids4Foam -parallel || STATUS="FAIL"
+                fi
+            fi
+
+            CLOCK_TIME=$(grep "gtime/time" log.solids4Foam | tail -1 | awk '{print $5}')
+            CLOCK_TIME=$(extractOrNaN "${CLOCK_TIME}")
+
+            if grep -q "Maximum resident" log.solids4Foam
+            then
+                MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | tail -1 | awk '{print int($6 / 1000)}')
+            else
+                MAX_MEMORY="NaN"
+            fi
+
+            DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+            DISP_L2_ERROR=$(extractOrNaN "${DISP_L2_ERROR}")
+
+            DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+            DISP_LINF_ERROR=$(extractOrNaN "${DISP_LINF_ERROR}")
+
+            STRESS_L2_ERROR=$(grep "Component: 5" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+            STRESS_L2_ERROR=$(extractOrNaN "${STRESS_L2_ERROR}")
+
+            STRESS_LINF_ERROR=$(grep "Component: 5" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+            STRESS_LINF_ERROR=$(extractOrNaN "${STRESS_LINF_ERROR}")
+
+            if [ "${nProc}" -eq 1 ]
+            then
+                SERIAL_TIME="${CLOCK_TIME}"
+            fi
+
+            SPEEDUP=$(calcSpeedup "${SERIAL_TIME}" "${CLOCK_TIME}")
+            EFFICIENCY=$(calcEfficiency "${SPEEDUP}" "${nProc}")
+
+            echo "${i} ${nProc} ${CLOCK_TIME} ${SPEEDUP} ${EFFICIENCY} ${MAX_MEMORY} ${CELLS} ${DISP_L2_ERROR} ${DISP_LINF_ERROR} ${STRESS_L2_ERROR} ${STRESS_LINF_ERROR} ${STATUS}" >> ../"${SUMMARY}"
+            echo "${NAME} ${i} ${nProc} ${CLOCK_TIME} ${SPEEDUP} ${EFFICIENCY} ${MAX_MEMORY} ${CELLS} ${DISP_L2_ERROR} ${DISP_LINF_ERROR} ${STRESS_L2_ERROR} ${STRESS_LINF_ERROR} ${STATUS}" >> ../"${GLOBAL_SUMMARY}"
+
+            cd ..
+        done
+    done
+
+    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+done
+
+echo; echo "${GLOBAL_SUMMARY} file:"; cat "${GLOBAL_SUMMARY}"; echo
+if command -v gnuplot &> /dev/null
+then
+    cp ../plotScripts/parallelScaling.gnuplot .
+    gnuplot parallelScaling.gnuplot
+fi
+
+echo; echo; echo "Done!"; echo
+echo "View the results in ${RUN_DIR}"
+echo; echo $(date)
+echo; echo

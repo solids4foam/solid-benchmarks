@@ -6,6 +6,12 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
+SCRIPT_DIR="$(cd "${0%/*}" && pwd -P)"
+export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../solids4foam-ib-2412}"
+
+# Compile local analytical library
+(cd src && ./Allwmake -s)
+
 # Define configurations as space-separated strings
 configs=(
     #"BASE=base/snes NAME=tet.hypre PETSC_FILE=petscOptions.hypre GMSH_FILE=tet"

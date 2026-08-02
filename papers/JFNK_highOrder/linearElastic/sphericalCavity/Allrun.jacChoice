@@ -6,6 +6,12 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
+SCRIPT_DIR="$(cd "${0%/*}" && pwd -P)"
+export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../solids4foam-ib-2412}"
+
+# Compile local analytical library
+(cd src && ./Allwmake -s)
+
 # Define configurations as space-separated strings
 configs=(
     "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"

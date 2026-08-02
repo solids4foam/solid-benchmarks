@@ -9,6 +9,15 @@ source solids4FoamScripts.sh
 solids4Foam::caseDoesNotRunWithFoamExtend
 solids4Foam::caseDoesNotRunWithOpenFOAMOrg
 
+SCRIPT_DIR="$(cd "${0%/*}" && pwd -P)"
+export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../../../solids4foam-ib-2412}"
+
+# Compile local analytical library when running from the benchmark base case
+if [ -d ../../src ]
+then
+    (cd ../../src && ./Allwmake -s)
+fi
+
 # Use poly (1) or tet (0) volumes
 USE_POLY=0
 
