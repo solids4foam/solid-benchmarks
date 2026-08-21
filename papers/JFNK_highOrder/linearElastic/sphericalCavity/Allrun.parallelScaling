@@ -14,8 +14,8 @@ export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../solids4f
 
 # Defaults can be overridden, e.g.
 #     MESHES="3 4 5" NP_LIST="1 2 4 8" ./Allrun.parallelScaling
-MESHES="${MESHES:-4}"
-NP_LIST="${NP_LIST:-1 2 3}"
+MESHES="${MESHES:-4 5 6}"
+NP_LIST="${NP_LIST:-1 2 4 6 8 12}"
 MESH_FAMILIES="${MESH_FAMILIES:-tet}"
 
 set -- ${NP_LIST}
@@ -103,6 +103,23 @@ calcEfficiency()
         'BEGIN { if (sp > 0 && np > 0) printf "%.6g", sp/np; else printf "NaN" }'
 }
 
+copyCase()
+{
+    local source="$1"
+    local target="$2"
+    local brokenLinks
+
+    cp -aL "${source}" "${target}"
+
+    brokenLinks=$(find "${target}" -xtype l -print)
+    if [ -n "${brokenLinks}" ]
+    then
+        echo "Broken symbolic links remain in ${target}:"
+        echo "${brokenLinks}"
+        exit 1
+    fi
+}
+
 # Compile projectPointsToSphere
 cd projectPointsToSphere
 wclean
@@ -148,7 +165,7 @@ do
         MESH_CASE="${NAME}.${i}.mesh"
         echo; echo "Preparing mesh case: ${MESH_CASE}"
 
-        cp -r "../${BASE}" "${MESH_CASE}"
+        copyCase "../${BASE}" "${MESH_CASE}"
         cd "${MESH_CASE}"
 
         if command -v gmsh &> /dev/null
@@ -213,7 +230,7 @@ do
             CASE="${NAME}.${i}.np${nProc}"
             echo; echo "Processing case: ${CASE}"
 
-            cp -r "${MESH_CASE}" "${CASE}"
+            copyCase "${MESH_CASE}" "${CASE}"
             cd "${CASE}"
 
             STATUS="OK"
