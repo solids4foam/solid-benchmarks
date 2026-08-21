@@ -6,35 +6,39 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
+# solids4Foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
+
 # Compile the manucafturedSolution library
-(cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
+(cd src && wclean libso && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.001 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.001 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.001 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.01 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.0.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3.alpha.1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.01 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.01 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.0.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=0.1 TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3.alpha.1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true ALPHA=1 TYPE=movingLeastSquares"
 )
 
 # Define start and end mesh indices
@@ -72,7 +76,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES ALPHA
+    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES ALPHA TYPE
 
     # Parse the configuration string
     eval $config
@@ -131,6 +135,11 @@ do
         # Update alpha factor
         if [ -n "${ALPHA}" ]; then
             sed -i "/^\s*scaleFactor /s|^.*|        scaleFactor ${ALPHA};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated
