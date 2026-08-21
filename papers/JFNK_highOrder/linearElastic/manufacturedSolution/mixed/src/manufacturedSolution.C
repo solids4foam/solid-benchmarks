@@ -74,7 +74,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
 
         const solidModel& solMod = lookupSolidModel(mesh);
         const fvMeshQuadrature& quadrature =
-            solMod.displacementMLS().quadrature();
+            solMod.displacementLeastSquares().quadrature();
         const CompactListList<point>& cellQuadPoints =
             quadrature.cellQuadPoints();
         const CompactListList<scalar>& cellQuadWeights =
@@ -93,6 +93,8 @@ void Foam::manufacturedSolution::calcBodyForces() const
                 bodyForcesI[cellI] +=
                     quadWeights[pointI]*calculateBodyForce(quadPoints[pointI]);
             }
+
+            bodyForcesI[cellI] /= mesh_.V()[cellI];
         }
     }
     else

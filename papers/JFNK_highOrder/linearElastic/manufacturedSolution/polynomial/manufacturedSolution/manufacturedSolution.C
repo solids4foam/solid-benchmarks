@@ -71,7 +71,7 @@ void Foam::manufacturedSolution::calcBodyForces() const
     {
         const solidModel& solMod = lookupSolidModel(mesh);
         const fvMeshQuadrature& quadrature =
-            solMod.displacementMLS().quadrature();
+            solMod.displacementLeastSquares().quadrature();
         const CompactListList<point>& cellQuadPoints =
             quadrature.cellQuadPoints();
         const CompactListList<scalar>& cellQuadWeights =

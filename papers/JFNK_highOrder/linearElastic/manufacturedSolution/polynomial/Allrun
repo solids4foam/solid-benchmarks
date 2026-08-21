@@ -7,7 +7,7 @@ source solids4FoamScripts.sh
 solids4Foam::caseDoesNotRunWithFoamExtend
 
 # solids4Foam location path
-export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412
 echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the manucafturedSolution library

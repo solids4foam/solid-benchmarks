@@ -22,9 +22,7 @@ solidModel     linearGeometryTotalDisplacement;
 linearGeometryTotalDisplacementCoeffs
 {
     // Solution algorithm
-    //solutionAlgorithm implicitCoupled;
     solutionAlgorithm PETScSNES;
-    optionsFile petscOptions.ksponly;
 
     highOrderCoeffs
     {
@@ -33,6 +31,8 @@ linearGeometryTotalDisplacementCoeffs
 
         displacement
         {
+            type movingLeastSquares;
+
             polynomialOrder 2;
             faceStencilExtraCells 10;
 
