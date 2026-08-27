@@ -7,11 +7,11 @@ source solids4FoamScripts.sh
 solids4Foam::caseDoesNotRunWithFoamExtend
 
 # solids4Foam location path
-export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
 echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the manucafturedSolution library
-(cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
+(cd src  && wclean libso && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
@@ -23,25 +23,25 @@ configs=(
     # "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=poly.seg GMSH_FILE=tet-unstructured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=25 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=25 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-     "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=25 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-     "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-     "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=25 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+     "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+     "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=poly.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=poly.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=poly.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 12
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=4 # 12
+END_MESH=8
 
 
 # Detect the CPU type: we append this to the case name
@@ -71,6 +71,9 @@ cd "${RUN_DIR}"
 # Iterate through configurations
 for config in "${configs[@]}"
 do
+    # Reset variables in case a variable is not used
+    unset GMSH_FILE PETSC_FILE polyOrder extraCells HOJAC HORES TYPE
+
     # Parse the configuration string
     eval $config
     echo; echo "***************************************"
@@ -122,6 +125,11 @@ do
         # Update number of stencil cells in the LRECoeffs
         if [ -n "${extraCells}" ]; then
             sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated

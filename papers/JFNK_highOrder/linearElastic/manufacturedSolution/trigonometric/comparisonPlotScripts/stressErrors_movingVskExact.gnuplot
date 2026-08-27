@@ -41,12 +41,12 @@ set style line 31 lc rgb "violet" pt 9 ps 0.5 lw 1
 set style line 32 lc rgb "violet" pt 8 ps 0.5 lw 1
 
 # Moving-least-squares data use the same colours with 50% transparency
-set style line 111 lc rgb "#80ff0000" pt 7 ps 0.5 lw 1
-set style line 112 lc rgb "#80ff0000" pt 6 ps 0.5 lw 1
-set style line 121 lc rgb "#800000ff" pt 5 ps 0.5 lw 1
-set style line 122 lc rgb "#800000ff" pt 4 ps 0.5 lw 1
-set style line 131 lc rgb "#80ee82ee" pt 9 ps 0.5 lw 1
-set style line 132 lc rgb "#80ee82ee" pt 8 ps 0.5 lw 1
+set style line 111 lc rgb "#B3ff0000" pt 7 ps 0.5 lw 1
+set style line 112 lc rgb "#B3ff0000" pt 6 ps 0.5 lw 1
+set style line 121 lc rgb "#B30000ff" pt 5 ps 0.5 lw 1
+set style line 122 lc rgb "#B30000ff" pt 4 ps 0.5 lw 1
+set style line 131 lc rgb "#B3ee82ee" pt 9 ps 0.5 lw 1
+set style line 132 lc rgb "#B3ee82ee" pt 8 ps 0.5 lw 1
 
 set output "mms_3D_stressErrors_hex_struct_movingVskExact.pdf"
 plot \

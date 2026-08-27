@@ -33,6 +33,7 @@ linearGeometryTotalDisplacementCoeffs
 
         displacement
         {
+            type movingLeastSquares;
             polynomialOrder 2;
             faceStencilExtraCells 10;
 

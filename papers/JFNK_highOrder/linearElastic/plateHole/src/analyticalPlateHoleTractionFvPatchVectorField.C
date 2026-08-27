@@ -17,35 +17,49 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "analyticalSphericalCavityTractionFvPatchVectorField.H"
+#include "analyticalPlateHoleTractionFvPatchVectorField.H"
 #include "addToRunTimeSelectionTable.H"
 #include "volFields.H"
-#include "sphericalCavityStressDisplacement.H"
+#include "mechanicalModel.H"
+#include "volFields.H"
+#include "fvc.H"
+#include "fixedValueFvPatchFields.H"
 #include "lookupSolidModel.H"
+#include "plateHoleAnalyticalFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
 
+// * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * * * //
+
+symmTensor analyticalPlateHoleTractionFvPatchVectorField::plateHoleSolution
+(
+    const vector& C
+) const
+{
+    return plateHoleAnalyticalFields::stress(C, T_, holeR_);
+}
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalPlateHoleTractionFvPatchVectorField::
+analyticalPlateHoleTractionFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     solidTractionFvPatchVectorField(p, iF),
-    T0_(0.0),
-    cavityR_(0.0),
-    nu_(0.0)
+    T_(0.0),
+    holeR_(0.0)
 {}
 
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalPlateHoleTractionFvPatchVectorField::
+analyticalPlateHoleTractionFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
@@ -53,58 +67,54 @@ analyticalSphericalCavityTractionFvPatchVectorField
 )
 :
     solidTractionFvPatchVectorField(p, iF),
-    T0_(readScalar(dict.lookup("farFieldTractionZ"))),
-    cavityR_(readScalar(dict.lookup("cavityRadius"))),
-    nu_(readScalar(dict.lookup("nu")))
+    T_(readScalar(dict.lookup("farFieldTractionX"))),
+    holeR_(readScalar(dict.lookup("holeRadius")))
 {}
 
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalPlateHoleTractionFvPatchVectorField::
+analyticalPlateHoleTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf,
+    const analyticalPlateHoleTractionFvPatchVectorField& stpvf,
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     solidTractionFvPatchVectorField(stpvf, p, iF, mapper),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    T_(stpvf.T_),
+    holeR_(stpvf.holeR_)
 {}
 
 #ifndef OPENFOAM_ORG
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalPlateHoleTractionFvPatchVectorField::
+analyticalPlateHoleTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf
+    const analyticalPlateHoleTractionFvPatchVectorField& stpvf
 )
 :
     solidTractionFvPatchVectorField(stpvf),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    T_(stpvf.T_),
+    holeR_(stpvf.holeR_)
 {}
 #endif
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalPlateHoleTractionFvPatchVectorField::
+analyticalPlateHoleTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf,
+    const analyticalPlateHoleTractionFvPatchVectorField& stpvf,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     solidTractionFvPatchVectorField(stpvf, iF),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    T_(stpvf.T_),
+    holeR_(stpvf.holeR_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void analyticalSphericalCavityTractionFvPatchVectorField::autoMap
+void analyticalPlateHoleTractionFvPatchVectorField::autoMap
 (
     const fvPatchFieldMapper& m
 )
@@ -114,7 +124,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::autoMap
 
 
 // Reverse-map the given fvPatchField onto this fvPatchField
-void analyticalSphericalCavityTractionFvPatchVectorField::rmap
+void analyticalPlateHoleTractionFvPatchVectorField::rmap
 (
     const fvPatchVectorField& ptf,
     const labelList& addr
@@ -125,7 +135,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::rmap
 
 
 // Update the coefficients associated with the patch field
-void analyticalSphericalCavityTractionFvPatchVectorField::updateCoeffs()
+void analyticalPlateHoleTractionFvPatchVectorField::updateCoeffs()
 {
     if (updated())
     {
@@ -144,19 +154,27 @@ void analyticalSphericalCavityTractionFvPatchVectorField::updateCoeffs()
 
     forAll(traction(), faceI)
     {
+        vector curC(Cf[faceI].x(), Cf[faceI].y(), 0);
+        vector curN = n[faceI];
+
+        if (patch().name() == "hole")
+        {
+            curC /= mag(curC);
+            curC *= holeR_;
+
+            curN = -curC/mag(curC);
+        }
+
         trac[faceI] =
-            (
-                n[faceI] & sphericalCavityStress(T0_, nu_, cavityR_, Cf[faceI])
-            );
-       }
+            plateHoleAnalyticalFields::traction(curC, curN, T_, holeR_);
+    }
 
     solidTractionFvPatchVectorField::updateCoeffs();
 }
 
-
 #ifndef FOAMEXTEND
 autoPtr<CompactListList<vector>>
-analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
+analyticalPlateHoleTractionFvPatchVectorField::evaluateQuadrature() const
 {
     const fvMesh& mesh = patch().boundaryMesh().mesh();
     const solidModel& solMod = lookupSolidModel(mesh);
@@ -197,7 +215,13 @@ analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
         {
             const point quadPoint = faceQuadPoints[globalFaceID][pointI];
             quadPointsValue[faceI][pointI] =
-                n[faceI] & sphericalCavityStress(T0_, nu_, cavityR_, quadPoint);
+                plateHoleAnalyticalFields::traction
+                (
+                    quadPoint,
+                    n[faceI],
+                    T_,
+                    holeR_
+                );
         }
     }
 
@@ -207,18 +231,15 @@ analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
 
 
 // Write
-void analyticalSphericalCavityTractionFvPatchVectorField::write(Ostream& os) const
+void analyticalPlateHoleTractionFvPatchVectorField::write(Ostream& os) const
 {
     solidTractionFvPatchVectorField::write(os);
 
-    os.writeKeyword("farFieldTractionZ")
-        << T0_ << token::END_STATEMENT << nl;
+    os.writeKeyword("farFieldTractionX")
+        << T_ << token::END_STATEMENT << nl;
 
-    os.writeKeyword("cavityRadius")
-        << cavityR_ << token::END_STATEMENT << nl;
-
-    os.writeKeyword("nu")
-        << nu_ << token::END_STATEMENT << nl;
+    os.writeKeyword("holeRadius")
+        << holeR_ << token::END_STATEMENT << nl;
 }
 
 
@@ -227,7 +248,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::write(Ostream& os) con
 makePatchTypeField
 (
     fvPatchVectorField,
-    analyticalSphericalCavityTractionFvPatchVectorField
+    analyticalPlateHoleTractionFvPatchVectorField
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -16,47 +16,31 @@ License
     along with solids4foam.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    sphericalCavityAnalyticalSolution
+    cantileverAnalyticalSolution
 
 Description
-    FunctionObject that generates the analytical displacement and stress fields
-    for the spherical cavity (radius = a) in an infinite linear elastic solid
-    (Young's modulus of E and Poisson's ration of nu) subjected to a distant
-    uniaxial stress T0 applied in the positive Z direction.
+    FunctionObject that generates the analytical fields for the bending slender
+    cantilever problem.
 
-    The analytical solution requires the following inputs:
-        - farFieldTractionZ : far-field traction in the positive Z direction
-        - cavityRadius : radius of the cavity centred on the origin
-        - E : Young's modulus
-        - nu : Poisson's ratio
+    The solution is taken from:
+    C.E. Augarde, A.J. Deeks, The use of Timoshenko’s exact solution for a
+    cantilever beam in adaptive analysis. Finite Elements in Analysis and
+    Design, 44, 2008, 595–601, 10.1016/j.finel.2008.01.010.
 
-    The analytical solution for stress is taken from:
+    It is assumed that the origin is at the centre of the fixed patch.
 
-    R.V. Southwell M.A. F.R.S. & H.J. Gough M.B.E. B.Sc. (1926) VI. On the
-    concentration of stress in the neighbourhood of a small spherical flaw;
-    and on the propagation of fatigue fractures in “Statistically Isotropic”
-    materials , The London, Edinburgh, and Dublin Philosophical Magazine and
-    Journal of Science: Series 7, 1:1, 71-97, DOI: 10.1080/14786442608633614
-
-    The analytical solution for displacement is taken from:
-
-    Allan F. Bower (2009) Applied Mechanics of Solids, CRC Press, Taylor and
-    Francis Group.
-
-    Note: Bower also gives the stress solutions but they seem to have errors
-    as the axial (zz) stress formula does not provide the correct stress
-    concentration factor at the edge of the cavity.
+    The beam is L long and D deep (thick).
 
 Author
-    Philip Cardiff, UCD.
+    Philip Cardiff, UCD. All rights reserved.
 
 SourceFiles
-    sphericalCavityAnalyticalSolution.C
+    cantileverAnalyticalSolution.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef sphericalCavityAnalyticalSolution_H
-#define sphericalCavityAnalyticalSolution_H
+#ifndef cantileverAnalyticalSolution_H
+#define cantileverAnalyticalSolution_H
 
 #include "functionObject.H"
 #include "dictionary.H"
@@ -69,10 +53,10 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class sphericalCavityAnalyticalSolution Declaration
+                        Class cantileverAnalyticalSolution Declaration
 \*---------------------------------------------------------------------------*/
 
-class sphericalCavityAnalyticalSolution
+class cantileverAnalyticalSolution
 :
     public functionObject
 {
@@ -83,6 +67,24 @@ class sphericalCavityAnalyticalSolution
 
         //- Reference to main object registry
         const Time& time_;
+
+        //- Load applied in the minus y direction at the other end of the beam
+        const scalar P_;
+
+        //- Young's modulus
+        const scalar E_;
+
+        //- Poisson's ratio
+        const scalar nu_;
+
+        //- Length of the beam
+        const scalar L_;
+
+        //- Depth of the beam
+        const scalar D_;
+
+        //- Second moment of area
+        const scalar I_;
 
         //- Calculate cell displacement fields
         const Switch cellDisplacement_;
@@ -95,22 +97,6 @@ class sphericalCavityAnalyticalSolution
 
         //- Calculate point stress fields
         const Switch pointStress_;
-
-        //- Optional history file for writing the errors
-        autoPtr<OFstream> historyFilePtr_;
-
-        //- Far field traction
-        //  It is assumed that it acts in the positive Z direction
-        const scalar T0_;
-
-        //- Cavity radius
-        const scalar cavityR_;
-
-        //- Young's modulus
-        const scalar E_;
-
-        //- Poisson's ratio
-        const scalar nu_;
 
 
     // Private Member Functions
@@ -127,25 +113,25 @@ class sphericalCavityAnalyticalSolution
         bool writeData();
 
         //- Disallow default bitwise copy construct
-        sphericalCavityAnalyticalSolution
+        cantileverAnalyticalSolution
         (
-            const sphericalCavityAnalyticalSolution&
+            const cantileverAnalyticalSolution&
         );
 
         //- Disallow default bitwise assignment
-        void operator=(const sphericalCavityAnalyticalSolution&);
+        void operator=(const cantileverAnalyticalSolution&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("sphericalCavityAnalyticalSolution");
+    TypeName("cantileverAnalyticalSolution");
 
 
     // Constructors
 
         //- Construct from components
-        sphericalCavityAnalyticalSolution
+        cantileverAnalyticalSolution
         (
             const word& name,
             const Time&,
@@ -159,7 +145,7 @@ public:
         virtual bool start();
 
         //- execute is called at each ++ or += of the time-loop
-#if FOAMEXTEND
+#ifdef FOAMEXTEND
         virtual bool execute(const bool forceWrite);
 #else
         virtual bool execute();
@@ -177,7 +163,9 @@ public:
 #ifdef OPENFOAM_NOT_EXTEND
         //- Write
         virtual bool write();
-#else
+#endif
+
+#ifndef OPENFOAM_NOT_EXTEND
         //- Update for changes of mesh
         virtual void updateMesh(const mapPolyMesh&)
         {}

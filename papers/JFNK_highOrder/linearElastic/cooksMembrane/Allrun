@@ -6,13 +6,17 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
+# solids4foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
+
 # Define configurations as space-separated strings
 configs=(
     #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
-    "BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
-    "BASE=base/highOrder NAME=tet.ho.N1 polyOrder=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N2 polyOrder=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.ho.N3 polyOrder=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
+    "BASE=base/highOrder NAME=tet.ho.N1 polyOrder=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.ho.N2 polyOrder=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.ho.N3 polyOrder=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
 )
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
@@ -50,7 +54,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE N Nn
+    unset GMSH_FILE PETSC_FILE N Nn TYPE
 
     # Parse the configuration string
     eval $config
@@ -107,6 +111,11 @@ do
         # Update the PETSc options file
         if [ -n "${PETSC_FILE}" ]; then
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated

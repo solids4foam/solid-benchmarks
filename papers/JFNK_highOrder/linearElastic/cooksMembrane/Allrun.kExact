@@ -6,24 +6,25 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
-# Compile the src  library
-(cd  src  && ./Allwmake -j -s)
+# solids4foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/highOrder NAME=hex.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/snes NAME=hex.lu PETSC_FILE=petscOptions.lu"
+    #"BASE=base/segregated NAME=tet.seg GMSH_FILE=tet-unstructured"
+    "BASE=base/highOrder NAME=tet.ho.N1 polyOrder=1 extraCells=7  GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.ho.N2 polyOrder=2 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.ho.N3 polyOrder=3 extraCells=10 GMSH_FILE=tet-unstructured PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
 )
+# SNES segregated approach
+#    "BASE=base/snes NAME=hex.seg.lu PETSC_FILE=petscOptions.seg.lu"
 
 # Define start and end mesh indices
-# Mesh input files are defined from 1 to 6
-# END_MESH should be greater than START_MESH
+# Mesh input files are defined from 1 to 8
 START_MESH=1
-END_MESH=5
+END_MESH=8
 
 
 # Detect the CPU type: we append this to the case name
@@ -40,10 +41,9 @@ else
     CPU_TYPE="Unknown_CPU"
 fi
 
-
 # Create timestamped working directory for this run
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
-RUN_DIR="run_interpolationConditioning_${CPU_TYPE}_${DATE}"
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
 
@@ -54,7 +54,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE N Nn
+    unset GMSH_FILE PETSC_FILE N Nn TYPE
 
     # Parse the configuration string
     eval $config
@@ -64,7 +64,7 @@ do
 
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem CellsNumber D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem CellsNumber D" > "${SUMMARY}"
 
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
@@ -73,33 +73,38 @@ do
         echo; echo "Processing case: $CASE"
 
         # Prepare the case
-        cp -rL "../${BASE}" "${CASE}"
+        cp -r "../${BASE}" "${CASE}"
         cd "$CASE"
 
-        # Create mesh
-        if [[ "$GMSH_FILE" == "tet-structured" || "$GMSH_FILE" == "tet-unstructured" ]]
-        then
-            if command -v gmsh &>/dev/null; then
-                # GMSH Mesh generation
+        # Create the mesh
+        if [ -n "${GMSH_FILE}" ]; then
+            if command -v gmsh &> /dev/null
+            then
+                # Remporarily rename 0 to avoid issues
+                mv 0 0.tmp
                 cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
                 solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
                 solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
                 solids4Foam::runApplication changeDictionary
-                if [ "$USE_DUALMESH" -eq 1 ]; then
-                    solids4Foam::runApplication polyDualMesh 30 -overwrite
-                    solids4Foam::runApplication combinePatchFaces 45 -overwrite
-                fi
+                # Move 0 back
+                mv 0.tmp 0
+            else
+                # Fail silently
+                echo; echo "Gmsh is required for tet meshes: please install it"
+                exit 0
             fi
         else
-            cp "system/blockMeshDict.$i" "system/blockMeshDict"
+            # Replace the blockMeshDict
+            if [[ ! -f "system/blockMeshDict.$i" ]]
+            then
+                echo "Cannot find ${CASE}/system/blockMeshDict.$i: please add it to ${BASE}/meshes/"; echo
+                exit 1;
+            else
+                echo "Copying ${CASE}/system/blockMeshDict.$i to ${CASE}/system/blockMeshDict"
+                \cp "system/blockMeshDict.$i" system/blockMeshDict
+                rm -f constant/polyMesh/blockMeshDict
+            fi
             solids4Foam::runApplication blockMesh
-        fi
-
-        # Optional mesh distortion
-        if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
-        then
-            solids4Foam::runApplication perturbMeshPoints
-            mv 0/polyMesh/* constant/polyMesh/.
         fi
         solids4Foam::runApplication checkMesh
 
@@ -108,14 +113,9 @@ do
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-        # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
-        fi
-
-        # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated
@@ -126,6 +126,16 @@ do
         # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
+        fi
+
+        # Update the order
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
+        fi
+
+        # Update number of stencil cells
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
         fi
 
         # Run the solver
@@ -170,20 +180,11 @@ do
         # Number of cells
         CELLS=$(grep "cells:" log.checkMesh | awk '{print $2}')
 
-        # Extract the L2 (average) error for displacement
-        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
-
-        # Extract the LInfinity (max) error for displacement
-        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
-         # Extract the L2 (average) error for mag(sigma)
-        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
-        # Extract the LInfinity (max) error for mag(sigma)
-        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        # Extract the reference point vertical displacement
+        DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
 
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $CELLS $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $CELLS $DISP" >> ../"${SUMMARY}"
 
         cd ..
     done
@@ -196,7 +197,7 @@ done
 if command -v gnuplot &>/dev/null
 then
     # Copy gnuplot scripts
-    cp ../plotScripts/*gnuplot .
+    cp ../plotScripts/* .
 
     # Run all scripts
     for f in *gnuplot
@@ -206,7 +207,10 @@ then
     done
 fi
 
+# Exit the run directory
+cd ..
+
 echo; echo; echo "Done!"; echo
 echo "View the PDF files in ${RUN_DIR}"
-echo; echo $(date)
+echo; echo $(date +%Y%m%d_%H%M%S)
 echo; echo

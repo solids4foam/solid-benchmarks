@@ -6,17 +6,31 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
-# Compile the src  library
-(cd  src  && ./Allwmake -j -s)
+# solids4Foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
+
+# Compile the analyticalPlateHole library
+(cd src && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/highOrder NAME=hex.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/snes NAME=tet.struct.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/snes NAME=poly.hypre-snes GMSH_FILE=tet-structured USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/snes NAME=tet.unstruct.hypre-snes GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/segregated NAME=hex.seg USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/highOrder NAME=hex.ho.N1 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    #"BASE=base/highOrder NAME=hex.ho.N2 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    #"BASE=base/highOrder NAME=hex.ho.N3 USE_TET=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=kExactLeastSquares"
 )
 
 # Define start and end mesh indices
@@ -43,7 +57,7 @@ fi
 
 # Create timestamped working directory for this run
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
-RUN_DIR="run_interpolationConditioning_${CPU_TYPE}_${DATE}"
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
 
@@ -54,7 +68,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE N Nn
+    unset GMSH_FILE PETSC_FILE N Nn TYPE
 
     # Parse the configuration string
     eval $config
@@ -108,14 +122,19 @@ do
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-        # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        # Update the order
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
-        # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        # Update number of stencil cells
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated

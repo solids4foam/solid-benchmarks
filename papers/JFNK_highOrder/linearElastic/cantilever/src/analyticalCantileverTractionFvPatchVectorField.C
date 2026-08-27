@@ -17,11 +17,10 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "analyticalSphericalCavityTractionFvPatchVectorField.H"
+#include "analyticalCantileverTractionFvPatchVectorField.H"
 #include "addToRunTimeSelectionTable.H"
 #include "volFields.H"
-#include "sphericalCavityStressDisplacement.H"
-#include "lookupSolidModel.H"
+#include "cantileverStressDisplacement.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -30,22 +29,20 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalCantileverTractionFvPatchVectorField::
+analyticalCantileverTractionFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     solidTractionFvPatchVectorField(p, iF),
-    T0_(0.0),
-    cavityR_(0.0),
-    nu_(0.0)
+    dict_()
 {}
 
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalCantileverTractionFvPatchVectorField::
+analyticalCantileverTractionFvPatchVectorField
 (
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
@@ -53,58 +50,50 @@ analyticalSphericalCavityTractionFvPatchVectorField
 )
 :
     solidTractionFvPatchVectorField(p, iF),
-    T0_(readScalar(dict.lookup("farFieldTractionZ"))),
-    cavityR_(readScalar(dict.lookup("cavityRadius"))),
-    nu_(readScalar(dict.lookup("nu")))
+    dict_(dict)
 {}
 
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalCantileverTractionFvPatchVectorField::
+analyticalCantileverTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf,
+    const analyticalCantileverTractionFvPatchVectorField& stpvf,
     const fvPatch& p,
     const DimensionedField<vector, volMesh>& iF,
     const fvPatchFieldMapper& mapper
 )
 :
     solidTractionFvPatchVectorField(stpvf, p, iF, mapper),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    dict_(stpvf.dict_)
 {}
 
 #ifndef OPENFOAM_ORG
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalCantileverTractionFvPatchVectorField::
+analyticalCantileverTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf
+    const analyticalCantileverTractionFvPatchVectorField& stpvf
 )
 :
     solidTractionFvPatchVectorField(stpvf),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    dict_(stpvf.dict_)
 {}
 #endif
 
-analyticalSphericalCavityTractionFvPatchVectorField::
-analyticalSphericalCavityTractionFvPatchVectorField
+analyticalCantileverTractionFvPatchVectorField::
+analyticalCantileverTractionFvPatchVectorField
 (
-    const analyticalSphericalCavityTractionFvPatchVectorField& stpvf,
+    const analyticalCantileverTractionFvPatchVectorField& stpvf,
     const DimensionedField<vector, volMesh>& iF
 )
 :
     solidTractionFvPatchVectorField(stpvf, iF),
-    T0_(stpvf.T0_),
-    cavityR_(stpvf.cavityR_),
-    nu_(stpvf.nu_)
+    dict_(stpvf.dict_)
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-void analyticalSphericalCavityTractionFvPatchVectorField::autoMap
+void analyticalCantileverTractionFvPatchVectorField::autoMap
 (
     const fvPatchFieldMapper& m
 )
@@ -114,7 +103,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::autoMap
 
 
 // Reverse-map the given fvPatchField onto this fvPatchField
-void analyticalSphericalCavityTractionFvPatchVectorField::rmap
+void analyticalCantileverTractionFvPatchVectorField::rmap
 (
     const fvPatchVectorField& ptf,
     const labelList& addr
@@ -125,7 +114,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::rmap
 
 
 // Update the coefficients associated with the patch field
-void analyticalSphericalCavityTractionFvPatchVectorField::updateCoeffs()
+void analyticalCantileverTractionFvPatchVectorField::updateCoeffs()
 {
     if (updated())
     {
@@ -137,16 +126,21 @@ void analyticalSphericalCavityTractionFvPatchVectorField::updateCoeffs()
 
     // Patch face centres
     const vectorField& Cf = patch().Cf();
+    const scalar P(readScalar(dict_.lookup("P")));
+    const scalar E(readScalar(dict_.lookup("E")));
+    const scalar nu(readScalar(dict_.lookup("nu")));
+    const scalar L(readScalar(dict_.lookup("L")));
+    const scalar D(readScalar(dict_.lookup("D")));
+    const scalar I(Foam::pow(D, 3.0)/12.0);
 
     // Set the patch traction
-
     vectorField& trac = traction();
 
     forAll(traction(), faceI)
     {
         trac[faceI] =
             (
-                n[faceI] & sphericalCavityStress(T0_, nu_, cavityR_, Cf[faceI])
+                n[faceI] & cantileverStress(Cf[faceI], P, E, nu, L, D, I)
             );
        }
 
@@ -154,9 +148,9 @@ void analyticalSphericalCavityTractionFvPatchVectorField::updateCoeffs()
 }
 
 
-#ifndef FOAMEXTEND
 autoPtr<CompactListList<vector>>
-analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
+analyticalCantileverTractionFvPatchVectorField::evaluateQuadrature
+() const
 {
     const fvMesh& mesh = patch().boundaryMesh().mesh();
     const solidModel& solMod = lookupSolidModel(mesh);
@@ -165,6 +159,7 @@ analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
     const CompactListList<point>& faceQuadPoints =
         solMod.displacementLeastSquares().quadrature().faceQuadPoints();
 
+    // faceQuadPoints is list for whole mesh.
     labelList nQpPerFace(this->size(), 0);
     const label start = this->patch().start();
     forAll(nQpPerFace, faceI)
@@ -181,9 +176,17 @@ analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
     // Get a reference to the actual data for easier access
     CompactListList<vector>& quadPointsValue = tQuadPointsValue();
 
+    const scalar P(readScalar(dict_.lookup("P")));
+    const scalar E(readScalar(dict_.lookup("E")));
+    const scalar nu(readScalar(dict_.lookup("nu")));
+    const scalar L(readScalar(dict_.lookup("L")));
+    const scalar D(readScalar(dict_.lookup("D")));
+    const scalar I(Foam::pow(D, 3.0)/12.0);
+
     // Patch unit normals
     vectorField n(patch().nf());
 
+    // Loop over faces
     forAll(*this, faceI)
     {
         const label globalFaceID = faceI + start;
@@ -191,34 +194,38 @@ analyticalSphericalCavityTractionFvPatchVectorField::evaluateQuadrature() const
         // Get the number of quadrature points for this face
         const label nPoints = faceQuadPoints[globalFaceID].size();
 
-        // Assign the same value to all quadrature points on this face
-        // We assume constant distribution of traction!
+        // Assign the values to face quadrature points
         for (label pointI = 0; pointI < nPoints; ++pointI)
         {
             const point quadPoint = faceQuadPoints[globalFaceID][pointI];
             quadPointsValue[faceI][pointI] =
-                n[faceI] & sphericalCavityStress(T0_, nu_, cavityR_, quadPoint);
+                n[faceI] & cantileverStress(quadPoint, P, E, nu, L, D, I);
         }
     }
 
     return tQuadPointsValue;
 }
-#endif
 
 
 // Write
-void analyticalSphericalCavityTractionFvPatchVectorField::write(Ostream& os) const
+void analyticalCantileverTractionFvPatchVectorField::write(Ostream& os) const
 {
     solidTractionFvPatchVectorField::write(os);
 
-    os.writeKeyword("farFieldTractionZ")
-        << T0_ << token::END_STATEMENT << nl;
+    os.writeKeyword("P")
+        << dict_.lookup("P") << token::END_STATEMENT << nl;
 
-    os.writeKeyword("cavityRadius")
-        << cavityR_ << token::END_STATEMENT << nl;
+    os.writeKeyword("E")
+        << dict_.lookup("E") << token::END_STATEMENT << nl;
 
     os.writeKeyword("nu")
-        << nu_ << token::END_STATEMENT << nl;
+        << dict_.lookup("nu") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("L")
+        << dict_.lookup("L") << token::END_STATEMENT << nl;
+
+    os.writeKeyword("D")
+        << dict_.lookup("D") << token::END_STATEMENT << nl;
 }
 
 
@@ -227,7 +234,7 @@ void analyticalSphericalCavityTractionFvPatchVectorField::write(Ostream& os) con
 makePatchTypeField
 (
     fvPatchVectorField,
-    analyticalSphericalCavityTractionFvPatchVectorField
+    analyticalCantileverTractionFvPatchVectorField
 );
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

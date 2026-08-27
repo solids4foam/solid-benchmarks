@@ -6,24 +6,31 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
-# Compile the src  library
+# solids4foam location path
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
+echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
+
+# Compile the cantileverBeam library
 (cd  src  && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
-    "BASE=base/highOrder NAME=hex.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=1 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N2 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=2 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=hex.Nn20.ho.N3 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 N=3 Nn=20 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    #"BASE=base/snes NAME=hex.struct.hypre-snes GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.lu"
+    #"BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
+    "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    #"BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=20 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.snes HOJAC=false HORES=true TYPE=kExactLeastSquares"
 )
 
 # Define start and end mesh indices
 # Mesh input files are defined from 1 to 6
 # END_MESH should be greater than START_MESH
 START_MESH=1
-END_MESH=5
+END_MESH=6
 
 
 # Detect the CPU type: we append this to the case name
@@ -43,7 +50,7 @@ fi
 
 # Create timestamped working directory for this run
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
-RUN_DIR="run_interpolationConditioning_${CPU_TYPE}_${DATE}"
+RUN_DIR="run_${CPU_TYPE}_${DATE}"
 echo "Creating ${RUN_DIR}"
 mkdir "${RUN_DIR}"
 
@@ -53,8 +60,8 @@ cd "${RUN_DIR}"
 # Iterate through configurations
 for config in "${configs[@]}"
 do
-    # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE N Nn
+    # Reset variables in case a variable is not used
+    unset GMSH_FILE PETSC_FILE polyOrder extraCells HOJAC HORES TYPE
 
     # Parse the configuration string
     eval $config
@@ -76,30 +83,16 @@ do
         cp -rL "../${BASE}" "${CASE}"
         cd "$CASE"
 
-        # Create mesh
-        if [[ "$GMSH_FILE" == "tet-structured" || "$GMSH_FILE" == "tet-unstructured" ]]
-        then
-            if command -v gmsh &>/dev/null; then
-                # GMSH Mesh generation
-                cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
-                solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
-                solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
-                solids4Foam::runApplication changeDictionary
-                if [ "$USE_DUALMESH" -eq 1 ]; then
-                    solids4Foam::runApplication polyDualMesh 30 -overwrite
-                    solids4Foam::runApplication combinePatchFaces 45 -overwrite
-                fi
-            fi
-        else
-            cp "system/blockMeshDict.$i" "system/blockMeshDict"
-            solids4Foam::runApplication blockMesh
-        fi
+        # GMSH Mesh generation
+        cp "gmsh/meshSpacing/meshSpacing$i.geo" "gmsh/meshSpacing/meshSpacing.geo"
+        solids4Foam::runApplication gmsh -3 -format msh2 gmsh/"${GMSH_FILE}.geo"
+        solids4Foam::runApplication gmshToFoam gmsh/"${GMSH_FILE}.msh"
+        solids4Foam::runApplication changeDictionary
 
         # Optional mesh distortion
         if [ "$USE_PERTURBMESHPOINTS" -eq 1 ]
         then
             solids4Foam::runApplication perturbMeshPoints
-            mv 0/polyMesh/* constant/polyMesh/.
         fi
         solids4Foam::runApplication checkMesh
 
@@ -108,14 +101,19 @@ do
             sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
         fi
 
-        # Update the order in the LRECoeffs
-        if [ -n "${N}" ]; then
-            sed -i "/^\s*N /s|^.*|            N ${N};|" constant/solidProperties
+        # Update the order
+        if [ -n "${polyOrder}" ]; then
+            sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
-        # Update number of stencil cells in the LRECoeffs
-        if [ -n "${Nn}" ]; then
-            sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
+        # Update number of stencil cells
+        if [ -n "${extraCells}" ]; then
+            sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated
@@ -176,7 +174,7 @@ do
         # Extract the LInfinity (max) error for displacement
         DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
-         # Extract the L2 (average) error for mag(sigma)
+        # Extract the L2 (average) error for mag(sigma)
         STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
 
         # Extract the LInfinity (max) error for mag(sigma)
@@ -190,6 +188,7 @@ do
 
     # Print summary file
     echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
+
 done
 
 # Create plots if gnuplot in installed

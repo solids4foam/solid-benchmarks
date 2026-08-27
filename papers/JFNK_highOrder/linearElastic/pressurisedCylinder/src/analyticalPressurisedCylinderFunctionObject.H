@@ -16,47 +16,21 @@ License
     along with solids4foam.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    sphericalCavityAnalyticalSolution
+    analyticalPressurisedCylinder
 
 Description
-    FunctionObject that generates the analytical displacement and stress fields
-    for the spherical cavity (radius = a) in an infinite linear elastic solid
-    (Young's modulus of E and Poisson's ration of nu) subjected to a distant
-    uniaxial stress T0 applied in the positive Z direction.
-
-    The analytical solution requires the following inputs:
-        - farFieldTractionZ : far-field traction in the positive Z direction
-        - cavityRadius : radius of the cavity centred on the origin
-        - E : Young's modulus
-        - nu : Poisson's ratio
-
-    The analytical solution for stress is taken from:
-
-    R.V. Southwell M.A. F.R.S. & H.J. Gough M.B.E. B.Sc. (1926) VI. On the
-    concentration of stress in the neighbourhood of a small spherical flaw;
-    and on the propagation of fatigue fractures in “Statistically Isotropic”
-    materials , The London, Edinburgh, and Dublin Philosophical Magazine and
-    Journal of Science: Series 7, 1:1, 71-97, DOI: 10.1080/14786442608633614
-
-    The analytical solution for displacement is taken from:
-
-    Allan F. Bower (2009) Applied Mechanics of Solids, CRC Press, Taylor and
-    Francis Group.
-
-    Note: Bower also gives the stress solutions but they seem to have errors
-    as the axial (zz) stress formula does not provide the correct stress
-    concentration factor at the edge of the cavity.
+    FunctionObject that generates analytical solution for pressurised cylinder.
 
 Author
-    Philip Cardiff, UCD.
+    Ivan Batistic, UCD.
 
 SourceFiles
-    sphericalCavityAnalyticalSolution.C
+    analyticalPressurisedCylinderFunctionObject.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef sphericalCavityAnalyticalSolution_H
-#define sphericalCavityAnalyticalSolution_H
+#ifndef analyticalPressurisedCylinderFunctionObject_H
+#define analyticalPressurisedCylinderFunctionObject_H
 
 #include "functionObject.H"
 #include "dictionary.H"
@@ -69,10 +43,10 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class sphericalCavityAnalyticalSolution Declaration
+         Class analyticalPressurisedCylinderFunctionObject Declaration
 \*---------------------------------------------------------------------------*/
 
-class sphericalCavityAnalyticalSolution
+class analyticalPressurisedCylinderFunctionObject
 :
     public functionObject
 {
@@ -83,6 +57,27 @@ class sphericalCavityAnalyticalSolution
 
         //- Reference to main object registry
         const Time& time_;
+
+        //- Axis, i.e. z coordinate
+        vector axis_;
+
+        //- Polar coordinate system origin
+        const vector origin_;
+
+        //- Pressure
+        const scalar p_;
+
+        //- Inner radius
+        const scalar Ri_;
+
+        //- Outer radius
+        const scalar Ro_;
+
+        //- Young's modulus
+        const scalar E_;
+
+        //- Poisson's ratio
+        const scalar nu_;
 
         //- Calculate cell displacement fields
         const Switch cellDisplacement_;
@@ -96,24 +91,14 @@ class sphericalCavityAnalyticalSolution
         //- Calculate point stress fields
         const Switch pointStress_;
 
-        //- Optional history file for writing the errors
-        autoPtr<OFstream> historyFilePtr_;
-
-        //- Far field traction
-        //  It is assumed that it acts in the positive Z direction
-        const scalar T0_;
-
-        //- Cavity radius
-        const scalar cavityR_;
-
-        //- Young's modulus
-        const scalar E_;
-
-        //- Poisson's ratio
-        const scalar nu_;
-
 
     // Private Member Functions
+
+        //- Analitical displacement for point
+        vector displacement(const vector& pos) const;
+
+        //- Analytical stress for point
+        symmTensor stress(const vector& pos) const;
 
         //- Calculate analytical cell displacement using the selected
         //  reconstruction semantics
@@ -127,25 +112,25 @@ class sphericalCavityAnalyticalSolution
         bool writeData();
 
         //- Disallow default bitwise copy construct
-        sphericalCavityAnalyticalSolution
+        analyticalPressurisedCylinderFunctionObject
         (
-            const sphericalCavityAnalyticalSolution&
+            const analyticalPressurisedCylinderFunctionObject&
         );
 
         //- Disallow default bitwise assignment
-        void operator=(const sphericalCavityAnalyticalSolution&);
+        void operator=(const analyticalPressurisedCylinderFunctionObject&);
 
 
 public:
 
     //- Runtime type information
-    TypeName("sphericalCavityAnalyticalSolution");
+    TypeName("analyticalPressurisedCylinder");
 
 
     // Constructors
 
         //- Construct from components
-        sphericalCavityAnalyticalSolution
+        analyticalPressurisedCylinderFunctionObject
         (
             const word& name,
             const Time&,

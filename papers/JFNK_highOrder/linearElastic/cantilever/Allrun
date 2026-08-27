@@ -7,11 +7,11 @@ source solids4FoamScripts.sh
 solids4Foam::caseDoesNotRunWithFoamExtend
 
 # solids4Foam location path
-export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
 echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the cantileverBeam library
-(cd  analyticalCantilever && ./Allwmake -j -s)
+(cd src && ./Allwmake -j -s)
 
 # Segregated version require a lot of time to converge, I will skip it for
 # now. Tet mesh is not working with snes becouse of gradient at corner cells
@@ -22,15 +22,15 @@ configs=(
     # "BASE=base/segregated NAME=hex.struct.seg GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=tet.struct.seg GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.ksponly HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    # "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.ksponly HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    # "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 PETSC_FILE=petscOptions.lu HOJAC=false HORES=true TYPE=movingLeastSquares"
 )
 
 # Define start and end mesh indices
@@ -68,7 +68,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES
+    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES TYPE
 
     # Parse the configuration string
     eval $config
@@ -116,6 +116,11 @@ do
         # Update number of stencil cells
         if [ -n "${extraCells}" ]; then
             sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated

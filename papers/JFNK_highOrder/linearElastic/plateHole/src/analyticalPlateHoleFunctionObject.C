@@ -17,25 +17,23 @@ License
 
 \*----------------------------------------------------------------------------*/
 
-#include "sphericalCavityAnalyticalSolution.H"
+#include "analyticalPlateHoleFunctionObject.H"
 #include "addToRunTimeSelectionTable.H"
 #include "volFields.H"
 #include "pointFields.H"
-#include "sphericalCavityStressDisplacement.H"
-#include "OSspecific.H"
-#include "compatibilityFunctions.H"
+#include "coordinateSystem.H"
 #include "lookupSolidModel.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
 namespace Foam
 {
-    defineTypeNameAndDebug(sphericalCavityAnalyticalSolution, 0);
+    defineTypeNameAndDebug(analyticalPlateHole, 0);
 
     addToRunTimeSelectionTable
     (
         functionObject,
-        sphericalCavityAnalyticalSolution,
+        analyticalPlateHole,
         dictionary
     );
 }
@@ -43,8 +41,89 @@ namespace Foam
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::sphericalCavityAnalyticalSolution::
-calculateAnalyticalCellDisplacement
+Foam::symmTensor Foam::analyticalPlateHole::plateHoleStress
+(
+    const vector& C
+)
+{
+    tensor sigma = tensor::zero;
+
+    // Calculate radial coordinate
+    const scalar r = ::sqrt(sqr(C.x()) + sqr(C.y()));
+
+    // Calculate circumferential coordinate
+    const scalar theta = Foam::atan2(C.y(), C.x());
+
+    const coordinateSystem cs("polarCS", C, vector(0, 0, 1), C/mag(C));
+
+    sigma.xx() =
+        T_*(1 - sqr(holeR_)/sqr(r))/2
+      + T_
+       *(1 + 3*pow(holeR_,4)/pow(r,4) - 4*sqr(holeR_)/sqr(r))*::cos(2*theta)/2;
+
+    sigma.xy() =
+      - T_
+       *(1 - 3*pow(holeR_,4)/pow(r,4) + 2*sqr(holeR_)/sqr(r))*::sin(2*theta)/2;
+
+    sigma.yx() = sigma.xy();
+
+    sigma.yy() =
+        T_*(1 + sqr(holeR_)/sqr(r))/2
+      - T_*(1 + 3*pow(holeR_,4)/pow(r,4))*::cos(2*theta)/2;
+
+
+    // Transformation to Cartesian coordinate system
+#ifdef OPENFOAM_ORG
+    sigma = ((cs.R().R() & sigma) & cs.R().R().T());
+#else
+    sigma = ((cs.R() & sigma) & cs.R().T());
+#endif
+
+    symmTensor S = symmTensor::zero;
+
+    S.xx() = sigma.xx();
+    S.xy() = sigma.xy();
+    S.yy() = sigma.yy();
+
+    return S;
+}
+
+
+Foam::vector Foam::analyticalPlateHole::plateHoleDisplacement
+(
+    const vector& C, const symmTensor& sigma
+)
+{
+    // Shear modulus
+    const scalar mu = E_/(2*(1 + nu_));
+
+    // Kappa parameter
+    const scalar kappa = 3 - 4*nu_;
+
+    // Polar coordinates
+    const scalar r = ::sqrt(sqr(C.x()) + sqr(C.y()));
+    const scalar theta = atan2(C.y(), C.x());
+
+    return vector
+    (
+        (holeR_*T_/(8*mu))
+        *(
+            (r/holeR_)*(kappa + 1)*cos(theta)
+          + (2*holeR_/r)*((1 + kappa)*cos(theta) + cos(3*theta))
+          - (2*pow(holeR_, 3)/pow(r,3))*cos(3*theta)
+        ),
+        (holeR_*T_/(8*mu))
+        *(
+            (r/holeR_)*(kappa - 3)*sin(theta)
+          + (2*holeR_/r)*((1 - kappa)*sin(theta) + sin(3*theta))
+          - (2*pow(holeR_, 3)/pow(r,3))*sin(3*theta)
+        ),
+        0.0
+    );
+}
+
+
+void Foam::analyticalPlateHole::calculateAnalyticalCellDisplacement
 (
     const fvMesh& mesh,
     vectorField& analyticalD
@@ -85,15 +164,14 @@ calculateAnalyticalCellDisplacement
 
             forAll(cellQuadPoints[cellI], pointI)
             {
+                const point& quadPoint = cellQuadPoints[cellI][pointI];
+
                 analyticalD[cellI] +=
                     cellQuadWeights[cellI][pointI]
-                   *sphericalCavityDisplacement
+                   *plateHoleDisplacement
                     (
-                        nu_,
-                        T0_,
-                        E_,
-                        cavityR_,
-                        cellQuadPoints[cellI][pointI]
+                        quadPoint,
+                        plateHoleStress(quadPoint)
                     );
             }
 
@@ -109,16 +187,17 @@ calculateAnalyticalCellDisplacement
         forAll(analyticalD, cellI)
         {
             analyticalD[cellI] =
-                sphericalCavityDisplacement
+                plateHoleDisplacement
                 (
-                    nu_, T0_, E_, cavityR_, cellCentres[cellI]
+                    cellCentres[cellI],
+                    plateHoleStress(cellCentres[cellI])
                 );
         }
     }
 }
 
 
-bool Foam::sphericalCavityAnalyticalSolution::writeData()
+bool Foam::analyticalPlateHole::writeData()
 {
     // Lookup the solid mesh
     const fvMesh* meshPtr = NULL;
@@ -142,13 +221,10 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
     // Point coordinates
     const pointField& points = mesh.points();
 
-    if (gMin(mag(points)) < -SMALL)
+    if (gMin(mag(points)) < SMALL)
     {
-        FatalErrorIn
-        (
-            "bool Foam::sphericalCavityAnalyticalSolution::writeData()"
-        )   << "The cavity should be centred on the origin!" << endl
-            << "gMin(mag(points)) = " << gMin(mag(points))
+        FatalErrorIn("bool Foam::analyticalPlateHole::writeData()")
+            << "The hole should be centred on the origin!"
             << abort(FatalError);
     }
 
@@ -194,8 +270,7 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
         {
             if (cellStress_)
             {
-                sI[cellI] =
-                    sphericalCavityStress(T0_, nu_, cavityR_, CI[cellI]);
+                sI[cellI] = plateHoleStress(CI[cellI]);
             }
 
         }
@@ -209,28 +284,26 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
         {
             if (mesh.boundary()[patchI].type() != "empty")
             {
-                symmTensorField& sP = boundaryFieldRef(analyticalStress)[patchI];
-                vectorField& aDP = boundaryFieldRef(analyticalD)[patchI];
+#ifdef OPENFOAM_NOT_EXTEND
+                symmTensorField& sP = analyticalStress.boundaryFieldRef()[patchI];
+                vectorField& aDP = analyticalD.boundaryFieldRef()[patchI];
+#else
+                symmTensorField& sP = analyticalStress.boundaryField()[patchI];
+                vectorField& aDP = analyticalD.boundaryField()[patchI];
+#endif
                 const vectorField& CP = C.boundaryField()[patchI];
 
                 forAll(sP, faceI)
                 {
                     if (cellStress_)
                     {
-                        sP[faceI] =
-                            sphericalCavityStress
-                            (
-                                T0_, nu_, cavityR_, CP[faceI]
-                            );
+                        sP[faceI] = plateHoleStress(CP[faceI]);
                     }
 
                     if (cellDisplacement_)
                     {
                         aDP[faceI] =
-                            sphericalCavityDisplacement
-                            (
-                                nu_, T0_, E_, cavityR_, CP[faceI]
-                            );
+                            plateHoleDisplacement(CP[faceI], sP[faceI]);
                     }
                 }
             }
@@ -242,23 +315,6 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
             Info<< "Writing analyticalCellStress field"
                 << nl << endl;
             analyticalStress.write();
-
-            // Calculate and write the equivalent (von Mises) stress
-            Info<< "Writing analyticalCellStressEq field"
-                << nl << endl;
-            volScalarField analyticalStressEq
-            (
-                IOobject
-                (
-                    "analyticalCellStressEq",
-                    time_.timeName(),
-                    mesh,
-                    IOobject::NO_READ,
-                    IOobject::AUTO_WRITE
-                ),
-                sqrt((3.0/2.0)*magSqr(dev(analyticalStress)))
-            );
-            analyticalStressEq.write();
         }
 
         if (cellDisplacement_)
@@ -274,44 +330,34 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
             const volSymmTensorField& sigma =
                 mesh.lookupObject<volSymmTensorField>("sigma");
 
-            const volSymmTensorField diff
+            volSymmTensorField diff
             (
                 "cellStressDifference", analyticalStress - sigma
             );
-            Info<< "Writing cellStressDifference field" << endl;
+
+	    forAll(diff, cellI)
+	    {
+		diff[cellI].zz() = 0.0;
+		diff[cellI].yz() = 0.0;
+		diff[cellI].xz() = 0.0;
+	    }
+
+            Info<< "Writing sigmaDifference field" << endl;
             diff.write();
 
-            if (Pstream::master())
+            const symmTensorField& diffI = diff;
+	    Info<< "    Stress error norms: mean L1, mean L2, LInf: " << nl
+                << "    Magnitude: " << gAverage(mag(diffI))
+                << " " << Foam::sqrt(gAverage(magSqr(diffI)))
+                << " " << gMax(mag(diffI))
+                << endl;
+
+	    for (int cmptI = 0; cmptI < 6; cmptI++)
             {
-                historyFilePtr_()
-                    << time_.time().value();
-            }
-
-            for (int cmpt = 0; cmpt < pTraits<symmTensor>::nComponents; cmpt++)
-            {
-                const symmTensorField& diffI = diff;
-                const scalarField diffIcmptI(diffI.component(cmpt));
-                const scalar l1 = gAverage(mag(diffIcmptI));
-                const scalar l2 = Foam::sqrt(gAverage(magSqr(diffIcmptI)));
-                const scalar lInf = gMax(mag(diffIcmptI));
-
-                Info<< "    Component: " << cmpt << endl;
-                Info<< "    Norms: mean L1, mean L2, LInf: " << nl
-                    << "    " << l1
-                    << " " << l2
-                    << " " << lInf
-                    << nl << endl;
-
-                if (Pstream::master())
-                {
-                    historyFilePtr_()
-                        << " " << l1 << " " << l2 << " " << lInf;
-                }
-            }
-
-            if (Pstream::master())
-            {
-                historyFilePtr_()
+                Info<< "    " << cmptI << " "
+                    << gAverage(mag(diffI.component(cmptI)))
+                    << " " << Foam::sqrt(gAverage(magSqr(diffI.component(cmptI))))
+                    << " " << gMax(mag(diffI.component(cmptI)))
                     << endl;
             }
         }
@@ -329,11 +375,19 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
             diff.write();
 
             const vectorField& diffI = diff;
-            Info<< "    Norms: mean L1, mean L2, LInf: " << nl
-                << "    " << gAverage(mag(diffI))
+            Info<< "    Displacement error norms: mean L1, mean L2, LInf: " << nl
+                << "    Magnitude: " << gAverage(mag(diffI))
                 << " " << Foam::sqrt(gAverage(magSqr(diffI)))
                 << " " << gMax(mag(diffI))
-                << nl << endl;
+                << endl;
+            for (int cmptI = 0; cmptI < 3; cmptI++)
+            {
+                Info<< "    " << cmptI << " "
+                    << gAverage(mag(diffI.component(cmptI)))
+                    << " " << Foam::sqrt(gAverage(magSqr(diffI.component(cmptI))))
+                    << " " << gMax(mag(diffI.component(cmptI)))
+                    << endl;
+            }
         }
     }
 
@@ -375,17 +429,12 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
         {
             if (pointStress_)
             {
-                sI[pointI] =
-                    sphericalCavityStress(T0_, nu_, cavityR_, points[pointI]);
+                sI[pointI] = plateHoleStress(points[pointI]);
             }
 
             if (pointDisplacement_)
             {
-                aDI[pointI] =
-                    sphericalCavityDisplacement
-                    (
-                        nu_, T0_, E_, cavityR_, points[pointI]
-                    );
+                aDI[pointI] = plateHoleDisplacement(points[pointI], sI[pointI]);
             }
         }
 
@@ -432,9 +481,9 @@ bool Foam::sphericalCavityAnalyticalSolution::writeData()
     return true;
 }
 
-//** * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::sphericalCavityAnalyticalSolution::sphericalCavityAnalyticalSolution
+Foam::analyticalPlateHole::analyticalPlateHole
 (
     const word& name,
     const Time& t,
@@ -444,6 +493,10 @@ Foam::sphericalCavityAnalyticalSolution::sphericalCavityAnalyticalSolution
     functionObject(name),
     name_(name),
     time_(t),
+    T_(readScalar(dict.lookup("farFieldTractionX"))),
+    holeR_(readScalar(dict.lookup("holeRadius"))),
+    E_(readScalar(dict.lookup("E"))),
+    nu_(readScalar(dict.lookup("nu"))),
     cellDisplacement_
     (
         dict.lookupOrDefault<Switch>("cellDisplacement", true)
@@ -459,19 +512,14 @@ Foam::sphericalCavityAnalyticalSolution::sphericalCavityAnalyticalSolution
     pointStress_
     (
         dict.lookupOrDefault<Switch>("pointStress", true)
-    ),
-    historyFilePtr_(),
-    T0_(readScalar(dict.lookup("farFieldTractionZ"))),
-    cavityR_(readScalar(dict.lookup("cavityRadius"))),
-    E_(readScalar(dict.lookup("E"))),
-    nu_(readScalar(dict.lookup("nu")))
+    )
 {
     Info<< "Creating " << this->name() << " function object" << endl;
 
-    if (cavityR_ < SMALL)
+    if (holeR_ < SMALL)
     {
         FatalErrorIn(this->name() + " function object constructor")
-            << "cavityRadius should be greater than 0!"
+            << "holeRadius should be greater than 0!"
             << abort(FatalError);
     }
 
@@ -481,81 +529,35 @@ Foam::sphericalCavityAnalyticalSolution::sphericalCavityAnalyticalSolution
             << "E and nu should be positive!"
             << abort(FatalError);
     }
-
-    // Create history file if not already created
-    if (historyFilePtr_.empty())
-    {
-        // File update
-        if (Pstream::master())
-        {
-            fileName historyDir;
-
-            word startTimeName =
-                time_.timeName(time_.startTime().value());
-
-            if (Pstream::parRun())
-            {
-                // Put in undecomposed case (Note: gives problems for
-                // distributed data running)
-                historyDir = time_.path()/".."/"postProcessing"/startTimeName;
-            }
-            else
-            {
-                historyDir = time_.path()/"postProcessing"/startTimeName;
-            }
-
-            // Create directory if does not exist.
-            mkDir(historyDir);
-
-            // Open new file at start up
-            OStringStream FileName;
-            FileName()
-                << "sphericalCavityStressErrors.dat";
-
-            historyFilePtr_.reset
-            (
-                new OFstream(historyDir/word(FileName.str()))
-            );
-
-            // Add headers to output data
-            if (historyFilePtr_.valid())
-            {
-                historyFilePtr_()
-                    << "# Time" << "    "
-                    << "Stress Errors (l1, l2, lInfinity) for each component "
-                    << "(XX XY XZ YY YZ ZZ)" << endl;
-            }
-        }
-    }
 }
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-bool Foam::sphericalCavityAnalyticalSolution::start()
+bool Foam::analyticalPlateHole::start()
 {
     return true;
 }
 
 
 #if FOAMEXTEND
-    bool Foam::sphericalCavityAnalyticalSolution::execute(const bool forceWrite)
+    bool Foam::analyticalPlateHole::execute(const bool forceWrite)
 #else
-    bool Foam::sphericalCavityAnalyticalSolution::execute()
+    bool Foam::analyticalPlateHole::execute()
 #endif
 {
     return writeData();
 }
 
 
-bool Foam::sphericalCavityAnalyticalSolution::read(const dictionary& dict)
+bool Foam::analyticalPlateHole::read(const dictionary& dict)
 {
     return true;
 }
 
 
 #ifdef OPENFOAM_NOT_EXTEND
-bool Foam::sphericalCavityAnalyticalSolution::write()
+bool Foam::analyticalPlateHole::write()
 {
     return false;
 }
