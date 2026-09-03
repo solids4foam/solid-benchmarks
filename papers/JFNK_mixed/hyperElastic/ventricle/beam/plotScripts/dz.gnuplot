@@ -1,25 +1,40 @@
-set term pdfcairo dashed enhanced
-set datafile separator " "
-set output "land_problem1_dz_comparison.pdf"
+# Land problem 1: Even-Laplacian m=3 deformed tip-coordinate convergence.
+# Run from the beam case directory with: gnuplot plotScripts/dz.gnuplot
 
-set grid
-set xrange [0.03:0.6]
-set yrange [*:*]
+system "mkdir -p plots"
+
+set terminal pdfcairo enhanced color size 7.5,4.8 font "Helvetica,10"
+set output "plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf"
+set datafile separator whitespace
+set datafile commentschars "#"
+
+unset title
+set border lw 1.2
+set grid back dt 2 lw 0.50 lc rgb "#d9d9d9"
 set logscale x
-set xtics (0.5, 0.25, 0.125, 0.0625, 0.03125)
+set xrange [0.012:1.1]
+set yrange [0.8:4.5]
+set xtics ("0.0139" 0.0138888889, "0.03125" 0.03125, "0.0625" 0.0625, "0.125" 0.125, "0.25" 0.25, "0.5" 0.5, "1" 1.0)
+set format y "%g"
+set tics nomirror out scale 0.75
+set xtics font "Helvetica,16"
+set ytics font "Helvetica,16"
 
-set xlabel "Cell size (in mm)"
-set ylabel "Dz (in mm)"
-set key outside right center
+set xlabel "Cell size [mm]" font "Helvetica,19" offset 0,-0.8
+set ylabel "Deformed tip coordinate, z_{tip} [mm]" font "Helvetica,19" offset -2.0,0
+set key inside bottom left vertical Left reverse samplen 2.0 spacing 1.00 width 0 maxrows 2 nobox opaque font "Helvetica,19"
 
-# Mesh 1 has 1 mm cells; each mesh level halves the cell size.
-cellSize(mesh) = 1.0/(2**(mesh - 1))
+set lmargin 12.0
+set rmargin 2.0
+set tmargin 1.2
+set bmargin 5.5
+
+referenceZmm = 4.2
+initialTipZmm = 1.0
+
+set style line 1 lc rgb "#7A2738" pt 2 ps 0.80 lw 2.2
+set style line 99 lc rgb "#111111" dt 2 lw 2.2
 
 plot \
-    "displacement/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 5 lc rgb "#222222" t "Displacement only", \
-    "rhiechow/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 7 lc rgb "#d7191c" t "RhieChow", \
-    "laplacian/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 9 lc rgb "#2c7bb6" t "Laplacian", \
-    "jst/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 11 lc rgb "#fdae61" t "JST", \
-    "evenlap_m0/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 13 lc rgb "#abd9e9" t "EvenLap m0", \
-    "evenlap_m1/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 15 lc rgb "#2ca25f" t "EvenLap m1", \
-    "evenlap_m2/beam.summary.txt" u (cellSize($1)):(1e3*$4) w lp pt 17 lc rgb "#756bb1" t "EvenLap m2"
+    referenceZmm with lines ls 99 title "Land et al. ≈ 4.2 mm", \
+    "runs/beam.summary.txt" using 2:(initialTipZmm + 1e3*$4) with linespoints ls 1 title "Even Laplacian, m=3"

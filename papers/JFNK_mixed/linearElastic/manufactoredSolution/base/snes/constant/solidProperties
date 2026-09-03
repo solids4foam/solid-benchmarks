@@ -51,16 +51,13 @@ linearGeometryTotalDisplacementCoeffs
 
         pressure
         {
-            type                laplacian;
+            type                generalisedEvenOrderLaplacian;
             scaleFactor         0.125;
-            scaleFactorJacobian 0.75;
+            scaleFactorJacobian 1.0;
+	    laplacianPower      1;
         }
     }
 
-    mu          mu [1 -1 -2 0 0 0 0] 2.62507e+07;
-    lambda      lambda [1 -1 -2 0 0 0 0] 5.24856e+07;
-    pressureConfig none;
-    pressureScale 1.0;
 }
 
 // ************************************************************************* //

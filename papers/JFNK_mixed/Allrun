@@ -1,0 +1,491 @@
+#!/usr/bin/env bash
+#
+# Run every benchmark case reported in the paper
+#
+#   "Algebraically Monolithic Methods for Mixed Solid Mechanics"
+#
+# collect the figures each case produces into ./figures, and assemble them into
+# a single PDF with a heading above the figures of each test case.
+#
+# Each case keeps its own Allrun; this script only selects the mesh sequence
+# used in the paper, runs that Allrun, and gathers the resulting plots.
+#
+# Usage:
+#   ./Allrun                 # every case, using the paper mesh sequences
+#   ./Allrun mms beam        # only the named cases
+#   ./Allrun --list          # show the cases and the mesh sequences used
+#   ./Allrun --figures-only  # re-collect figures and rebuild the PDF only
+#   ./AllrunTest             # short verification run (see AllrunTest)
+#
+# Environment:
+#   RUN_MODE=full|test       # "test" is what AllrunTest sets
+#   STOP_ON_ERROR=true       # stop at the first failing case (default: false)
+#   BEAM_MESH_LEVELS="..."   # override the beam mesh levels (see below)
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FIGURE_DIR="${ROOT}/figures"
+LOG_DIR="${ROOT}/logs"
+MANIFEST="${FIGURE_DIR}/manifest.tsv"
+COMBINED_PDF="${FIGURE_DIR}/JFNK_mixed_paperFigures.pdf"
+COMBINE_SCRIPT="${ROOT}/scripts/combineFigures.py"
+
+MODE="${RUN_MODE:-full}"
+STOP_ON_ERROR="${STOP_ON_ERROR:-false}"
+
+# The heart tissue beam figure in the paper (Figure 11) spans cell sizes
+# 0.5 mm down to 0.03125 mm, i.e. mesh levels 2 to 6 of the seven levels the
+# beam case defines. Level 1 (10 cells) is not part of that figure.
+BEAM_MESH_LEVELS="${BEAM_MESH_LEVELS:-2 3 4 5 6}"
+
+#------------------------------------------------------------------------------
+# Case table
+#
+#   tag | directory | full-run argument | test-run argument | heading
+#
+# The mesh counts of the full run are those reported in the paper:
+#
+#   manufactured solution           6 meshes (h = 40 mm halved to 1.25 mm)
+#   linear Cook's membrane          6 meshes (3x3 to 96x96 cells)
+#   nonlinear Cook's, nu=0.3        8 meshes (Figure 8b, spacing 12.649 -> 0.099 mm)
+#   nonlinear Cook's, nu=0.4999     8 meshes (Figure 9,  spacing 12.649 -> 0.099 mm)
+#   heart tissue beam               5 meshes, levels 2-6 (Figure 11)
+#   LV inflation                    3 meshes (1,620 / 12,960 / 103,680 cells)
+#   LV active contraction           3 meshes (3,240 / 25,920 / 103,680 cells)
+#------------------------------------------------------------------------------
+CASES=(
+"mms|linearElastic/manufactoredSolution|6|2|5.1 Manufactured solution"
+"linearCooks|linearElastic/cooksMembrane|full|test|5.2 Linear Cook's membrane"
+"nonlinearCooksCompressible|hyperElastic/cooksMembrane|8|2|5.3.1 Nonlinear Cook's membrane, compressible response (nu = 0.3)"
+"nonlinearCooksIncompressible|hyperElastic/LargeStrainIncompCooksMembrane|8|2|5.3.2 Nonlinear Cook's membrane, strongly near-incompressible response (nu = 0.4999)"
+"beam|hyperElastic/ventricle/beam|${BEAM_MESH_LEVELS}|1 2|5.4 Heart tissue beam benchmark"
+"inflation|hyperElastic/ventricle/inflation|3|1|5.5 Idealised left-ventricle inflation benchmark"
+"contraction|hyperElastic/ventricle/contraction|3|1|5.6 Idealised left-ventricle active-contraction benchmark"
+)
+
+field() { echo "$1" | cut -d'|' -f"$2"; }
+
+usage()
+{
+    cat <<'EOF'
+Usage: ./Allrun [options] [case ...]
+
+Options:
+  --list            print the cases and their mesh sequences, then exit
+  --figures-only    skip the solver runs; only collect figures and build the PDF
+  --stop-on-error   stop at the first failing case (default: continue)
+  -h, --help        show this message
+
+Cases:
+  mms  linearCooks  nonlinearCooksCompressible  nonlinearCooksIncompressible
+  beam  inflation  contraction
+
+With no case names, every case is run in paper order.
+Set RUN_MODE=test (or use ./AllrunTest) for the short verification sequence.
+EOF
+}
+
+#------------------------------------------------------------------------------
+# Mesh sequence actually requested for a case, as a human readable string
+#------------------------------------------------------------------------------
+mesh_description()
+{
+    local tag=$1 arg=$2
+
+    case "$tag" in
+        linearCooks)
+            if [[ "$arg" == test ]]
+            then echo "meshes 1-2"
+            else echo "meshes 1-6"
+            fi
+            ;;
+        beam)
+            echo "mesh levels ${arg}"
+            ;;
+        *)
+            if [[ "${arg}" == 1 ]]
+            then echo "mesh 1"
+            else echo "meshes 1-${arg}"
+            fi
+            ;;
+    esac
+}
+
+#------------------------------------------------------------------------------
+# Invoke the case's own Allrun with the requested mesh sequence
+#------------------------------------------------------------------------------
+run_case()
+{
+    local tag=$1 case_dir=$2 arg=$3
+
+    case "$tag" in
+        linearCooks)
+            # This case selects its mesh count through RUN_MODE, not an argument.
+            ( cd "$case_dir" && RUN_MODE="$arg" ./Allrun )
+            ;;
+        beam)
+            # The beam Allrun takes a count, but the paper omits level 1, so the
+            # explicit level list is passed instead.
+            ( cd "$case_dir" && MESH_LEVELS="$arg" ./Allrun )
+            ;;
+        *)
+            ( cd "$case_dir" && ./Allrun "$arg" )
+            ;;
+    esac
+}
+
+#------------------------------------------------------------------------------
+# Newest run_YYYYmmdd_HHMMSS directory of a case, empty if there is none
+#------------------------------------------------------------------------------
+newest_run_dir()
+{
+    local case_dir=$1 newest=""
+    local candidate
+
+    for candidate in "${case_dir}"/run_*
+    do
+        [[ -d "${candidate}" ]] || continue
+        if [[ -z "${newest}" || "${candidate}" -nt "${newest}" ]]
+        then
+            newest="${candidate}"
+        fi
+    done
+
+    printf '%s' "${newest}"
+}
+
+#------------------------------------------------------------------------------
+# Figures produced by a case, printed one "path<TAB>caption" pair per line
+#------------------------------------------------------------------------------
+case_figures()
+{
+    local tag=$1 case_dir=$2
+    local run_dir figure_dir file
+
+    case "$tag" in
+        mms)
+            run_dir="$(newest_run_dir "${case_dir}")"
+            [[ -n "${run_dir}" ]] || return 0
+            emit "${run_dir}/mms_dispErrors.pdf"                "Displacement errors"
+            emit "${run_dir}/mms_disp_orderOfAccuracy.pdf"      "Order of accuracy, displacement"
+            emit "${run_dir}/mms_stressErrors_v2.pdf"           "Stress errors"
+            emit "${run_dir}/mms_stress_orderOfAccuracy_v2.pdf" "Order of accuracy, stress"
+            ;;
+        linearCooks)
+            figure_dir="${case_dir}/figures/${MODE}"
+            emit "${figure_dir}/figure5_structured_displacement.pdf"   "Structured mesh refinement, upper-right corner displacement"
+            emit "${figure_dir}/figure5_execution_time_vs_error.pdf"   "Structured mesh refinement, execution time versus displacement error"
+            emit "${figure_dir}/figure6_pressure_scale_m1.pdf"         "Effect of the pressure-stabilisation scale factor, m = 1"
+            emit "${figure_dir}/figure6_pressure_scale_m2.pdf"         "Effect of the pressure-stabilisation scale factor, m = 2"
+            emit "${figure_dir}/figure6_pressure_scale_m3.pdf"         "Effect of the pressure-stabilisation scale factor, m = 3"
+            emit "${figure_dir}/figure7b_unstructured_displacement.pdf" "Unstructured mesh robustness verification"
+            ;;
+        nonlinearCooksCompressible)
+            run_dir="$(newest_run_dir "${case_dir}")"
+            [[ -n "${run_dir}" ]] || return 0
+            emit "${run_dir}/cooksMembrane-neoHookeanTipDispConvergenceStabCompatible.pdf" \
+                 "Reference-point displacement under mesh refinement"
+            ;;
+        nonlinearCooksIncompressible)
+            run_dir="$(newest_run_dir "${case_dir}")"
+            [[ -n "${run_dir}" ]] || return 0
+            emit "${run_dir}/largeStrainIncompCooksMembrane-neoHookeanTipDispConvergenceStabCompatible.pdf" \
+                 "Reference-point displacement under mesh refinement"
+            ;;
+        beam)
+            emit "${case_dir}/plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf" \
+                 "Deformed tip coordinate under mesh refinement"
+            emit "${case_dir}/plots/land_problem1_m1_m2_m3_verticalDisplacement_vs_cellSize.pdf" \
+                 "Deformed tip coordinate, m = 1, 2 and 3"
+            ;;
+        inflation)
+            emit "${case_dir}/land_problem2_m3_combined.pdf" \
+                 "Mid-wall line deformation with magnified apical and inflection regions"
+            ;;
+        contraction)
+            emit "${case_dir}/land_problem3_m3_combined.pdf" \
+                 "Mid-wall line deformation with magnified apical and inflection regions"
+            emit "${case_dir}/ventricleInflation-midline-deformed.pdf" \
+                 "Complete longitudinal mid-wall line"
+            emit "${case_dir}/ventricleInflation-midline-apex-deformed.pdf" \
+                 "Apical region"
+            emit "${case_dir}/ventricleInflation-midline-inflection-deformed.pdf" \
+                 "Inflection region"
+            ;;
+    esac
+}
+
+# Helper used by case_figures: print a figure only when it exists
+emit()
+{
+    [[ -f "$1" ]] && printf '%s\t%s\n' "$1" "$2"
+    return 0
+}
+
+#------------------------------------------------------------------------------
+# Copy a case's figures into figures/NN_tag and append them to the manifest
+#------------------------------------------------------------------------------
+collect_figures()
+{
+    local index=$1 tag=$2 case_dir=$3 heading=$4
+    local destination copied=0
+    local path caption
+
+    destination="${FIGURE_DIR}/$(printf '%02d' "${index}")_${tag}"
+    rm -rf "${destination}"
+    mkdir -p "${destination}"
+
+    while IFS=$'\t' read -r path caption
+    do
+        [[ -n "${path}" ]] || continue
+        cp -f "${path}" "${destination}/"
+        printf '%s\t%s\t%s\t%s\n' \
+            "${index}" "${heading}" "${caption}" \
+            "${destination#"${ROOT}"/}/$(basename "${path}")" >> "${MANIFEST}"
+        copied=$((copied + 1))
+    done < <(case_figures "${tag}" "${case_dir}")
+
+    if [[ "${copied}" -eq 0 ]]
+    then
+        rmdir "${destination}" 2>/dev/null
+        echo "  no figures found for ${tag}"
+    else
+        echo "  copied ${copied} figure(s) to ${destination#"${ROOT}"/}"
+    fi
+
+    return 0
+}
+
+#------------------------------------------------------------------------------
+# Argument parsing
+#------------------------------------------------------------------------------
+LIST_ONLY=false
+FIGURES_ONLY=false
+SELECTED=()
+
+for argument in "$@"
+do
+    case "${argument}" in
+        --list)          LIST_ONLY=true ;;
+        --figures-only)  FIGURES_ONLY=true ;;
+        --stop-on-error) STOP_ON_ERROR=true ;;
+        -h|--help)       usage; exit 0 ;;
+        -*)
+            echo "ERROR: unknown option: ${argument}" >&2
+            usage >&2
+            exit 2
+            ;;
+        *)
+            SELECTED+=("${argument}")
+            ;;
+    esac
+done
+
+case "${MODE}" in
+    full|test) ;;
+    *)
+        echo "ERROR: RUN_MODE must be 'full' or 'test', not '${MODE}'" >&2
+        exit 2
+        ;;
+esac
+
+# Validate any requested case names against the table
+for wanted in "${SELECTED[@]+"${SELECTED[@]}"}"
+do
+    found=false
+    for entry in "${CASES[@]}"
+    do
+        [[ "$(field "${entry}" 1)" == "${wanted}" ]] && found=true && break
+    done
+    if [[ "${found}" == false ]]
+    then
+        echo "ERROR: unknown case: ${wanted}" >&2
+        usage >&2
+        exit 2
+    fi
+done
+
+selected()
+{
+    local tag=$1 wanted
+    [[ ${#SELECTED[@]} -eq 0 ]] && return 0
+    for wanted in "${SELECTED[@]}"
+    do
+        [[ "${wanted}" == "${tag}" ]] && return 0
+    done
+    return 1
+}
+
+#------------------------------------------------------------------------------
+# --list
+#------------------------------------------------------------------------------
+if [[ "${LIST_ONLY}" == true ]]
+then
+    printf '%-30s %-46s %s\n' "CASE" "DIRECTORY" "MESHES (${MODE} run)"
+    for entry in "${CASES[@]}"
+    do
+        tag=$(field "${entry}" 1)
+        directory=$(field "${entry}" 2)
+        selected "${tag}" || continue
+        if [[ "${MODE}" == test ]]
+        then argument=$(field "${entry}" 4)
+        else argument=$(field "${entry}" 3)
+        fi
+        printf '%-30s %-46s %s\n' \
+            "${tag}" "${directory}" "$(mesh_description "${tag}" "${argument}")"
+    done
+    exit 0
+fi
+
+#------------------------------------------------------------------------------
+# Environment check
+#------------------------------------------------------------------------------
+if [[ "${FIGURES_ONLY}" == false ]]
+then
+    if [[ -z "${WM_PROJECT_DIR:-}" || ! -f "${WM_PROJECT_DIR}/bin/tools/RunFunctions" ]]
+    then
+        echo "ERROR: OpenFOAM is not configured in this shell." >&2
+        echo "Source the OpenFOAM and solids4foam environment before running." >&2
+        exit 1
+    fi
+
+    if ! command -v solids4Foam >/dev/null 2>&1
+    then
+        echo "ERROR: solids4Foam was not found on PATH." >&2
+        exit 1
+    fi
+fi
+
+command -v python3 >/dev/null 2>&1 || {
+    echo "ERROR: python3 is required to assemble the combined figure PDF." >&2
+    exit 1
+}
+
+#------------------------------------------------------------------------------
+# Run
+#------------------------------------------------------------------------------
+mkdir -p "${FIGURE_DIR}" "${LOG_DIR}"
+: > "${MANIFEST}"
+
+START_TIME=$(date +%s)
+echo
+echo "=============================================================="
+echo " JFNK mixed pressure-displacement paper: ${MODE} run"
+echo " Started at $(date)"
+echo "=============================================================="
+
+FAILED=()
+INDEX=0
+
+for entry in "${CASES[@]}"
+do
+    INDEX=$((INDEX + 1))
+    tag=$(field "${entry}" 1)
+    directory=$(field "${entry}" 2)
+    heading=$(field "${entry}" 5)
+
+    selected "${tag}" || continue
+
+    if [[ "${MODE}" == test ]]
+    then argument=$(field "${entry}" 4)
+    else argument=$(field "${entry}" 3)
+    fi
+
+    case_dir="${ROOT}/${directory}"
+    log_file="${LOG_DIR}/${tag}.log"
+
+    echo
+    echo "--------------------------------------------------------------"
+    echo " ${heading}"
+    echo " directory : ${directory}"
+    echo " meshes    : $(mesh_description "${tag}" "${argument}")"
+    echo "--------------------------------------------------------------"
+
+    if [[ ! -x "${case_dir}/Allrun" ]]
+    then
+        echo "ERROR: no executable Allrun in ${directory}" >&2
+        FAILED+=("${tag}")
+        [[ "${STOP_ON_ERROR}" == true ]] && break
+        continue
+    fi
+
+    if [[ "${FIGURES_ONLY}" == true ]]
+    then
+        echo " skipping the solver run (--figures-only)"
+    else
+        echo " log       : ${log_file#"${ROOT}"/}"
+        case_start=$(date +%s)
+        run_case "${tag}" "${case_dir}" "${argument}" 2>&1 | tee "${log_file}"
+        status=${PIPESTATUS[0]}
+        case_end=$(date +%s)
+
+        if [[ "${status}" -ne 0 ]]
+        then
+            echo
+            echo "ERROR: ${tag} failed with status ${status}; see ${log_file}" >&2
+            FAILED+=("${tag}")
+            if [[ "${STOP_ON_ERROR}" == true ]]
+            then
+                collect_figures "${INDEX}" "${tag}" "${case_dir}" "${heading}"
+                break
+            fi
+        else
+            echo
+            echo " ${tag} finished in $((case_end - case_start)) s"
+        fi
+    fi
+
+    collect_figures "${INDEX}" "${tag}" "${case_dir}" "${heading}"
+done
+
+#------------------------------------------------------------------------------
+# Combined figure PDF
+#------------------------------------------------------------------------------
+echo
+echo "--------------------------------------------------------------"
+echo " Assembling the combined figure PDF"
+echo "--------------------------------------------------------------"
+
+if [[ -s "${MANIFEST}" ]]
+then
+    if python3 "${COMBINE_SCRIPT}" \
+        --manifest "${MANIFEST}" \
+        --root "${ROOT}" \
+        --output "${COMBINED_PDF}" \
+        --title "Algebraically Monolithic Methods for Mixed Solid Mechanics" \
+        --subtitle "Benchmark figures, ${MODE} run"
+    then
+        echo " wrote ${COMBINED_PDF#"${ROOT}"/}"
+    else
+        echo "WARNING: the combined PDF could not be created" >&2
+        FAILED+=("combinedFigurePdf")
+    fi
+else
+    echo "WARNING: no figures were collected; the combined PDF was not created" >&2
+fi
+
+#------------------------------------------------------------------------------
+# Summary
+#------------------------------------------------------------------------------
+END_TIME=$(date +%s)
+ELAPSED=$((END_TIME - START_TIME))
+
+echo
+echo "=============================================================="
+echo " Finished at $(date)"
+printf ' Elapsed      : %02d:%02d:%02d\n' \
+    $((ELAPSED / 3600)) $(((ELAPSED % 3600) / 60)) $((ELAPSED % 60))
+echo " Figures      : ${FIGURE_DIR#"${ROOT}"/}"
+[[ -f "${COMBINED_PDF}" ]] && echo " Combined PDF : ${COMBINED_PDF#"${ROOT}"/}"
+echo " Logs         : ${LOG_DIR#"${ROOT}"/}"
+
+if [[ ${#FAILED[@]} -gt 0 ]]
+then
+    echo " Failed       : ${FAILED[*]}"
+    echo "=============================================================="
+    exit 1
+fi
+
+echo " All requested cases completed."
+echo "=============================================================="

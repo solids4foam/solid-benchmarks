@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+# The six ready-made mesh definitions are stored in base/snes/system as
+# blockMeshDict.1 ... blockMeshDict.6 and extrudeMeshDict.1 ...
+# extrudeMeshDict.6. By default only level 1 is run.
+#
+# Examples:
+#   ./Allrun 3                 # run levels 1, 2 and 3
+#   MESH_LEVELS="2 4" ./Allrun # run only levels 2 and 4
+BASE="base/snes"
+MESH_LEVELS="${MESH_LEVELS:-1}"
+MAX_MESH_LEVEL=6
+EXTRACT="extractIdealisedVentricleResults"
+
+# Plot script run once every mesh level has finished: python, gnuplot or none.
+PLOTTER="${PLOTTER:-python}"
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "${1:-}" in
+    -h|--help)
+        echo "Usage: ./Allrun [number-of-mesh-levels]"
+        echo "       MESH_LEVELS=\"1 3 5\" ./Allrun"
+        echo "       PLOTTER=gnuplot ./Allrun 3"
+        echo "Available mesh levels: 1-${MAX_MESH_LEVEL}"
+        echo "PLOTTER selects the final plot script: python, gnuplot or none."
+        exit 0
+        ;;
+    "")
+        ;;
+    *)
+        if ! [[ "$1" =~ ^[1-6]$ ]]; then
+            echo "The number of mesh levels must be an integer from 1 to ${MAX_MESH_LEVEL}." >&2
+            exit 2
+        fi
+        MESH_LEVELS="$(seq 1 "$1")"
+        ;;
+esac
+
+for mesh_level in $MESH_LEVELS; do
+    if ! [[ "$mesh_level" =~ ^[1-6]$ ]]; then
+        echo "Invalid mesh level '$mesh_level'; available levels are 1-${MAX_MESH_LEVEL}." >&2
+        exit 2
+    fi
+done
+
+if [[ -z "${WM_PROJECT_DIR:-}" ]] \
+    || [[ ! -f "$WM_PROJECT_DIR/bin/tools/RunFunctions" ]]; then
+    echo "OpenFOAM is not configured in this shell." >&2
+    echo "Source your OpenFOAM environment before running this script." >&2
+    exit 1
+fi
+
+# shellcheck source=/dev/null
+source "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+if [[ ! -d "$ROOT/$BASE" ]]; then
+    echo "Base case not found: $ROOT/$BASE" >&2
+    exit 1
+fi
+
+# The midline extraction utility is built from the copy in this directory when
+# it is not already on the path.
+if ! command -v "$EXTRACT" >/dev/null 2>&1 && [[ -d "$ROOT/$EXTRACT" ]]; then
+    echo "Compiling $EXTRACT"
+    (
+        cd "$ROOT/$EXTRACT"
+        wmake
+    )
+    hash -r
+fi
+
+if ! command -v "$EXTRACT" >/dev/null 2>&1; then
+    echo "$EXTRACT is not available." >&2
+    echo "Compile it with: (cd $EXTRACT && wmake)" >&2
+    exit 1
+fi
+
+mkdir -p "$ROOT/runs"
+
+for mesh_level in $MESH_LEVELS; do
+    case_dir="$ROOT/runs/mesh${mesh_level}"
+
+    if [[ -e "$case_dir" ]]; then
+        echo "Run case already exists: $case_dir" >&2
+        echo "Run ./Allclean before starting a new mesh study." >&2
+        exit 1
+    fi
+
+    echo
+    echo "Copying $BASE to runs/mesh${mesh_level}"
+    cp -R "$ROOT/$BASE" "$case_dir"
+
+    block_dict="$case_dir/system/blockMeshDict.${mesh_level}"
+    extrude_dict="$case_dir/system/extrudeMeshDict.${mesh_level}"
+    if [[ ! -f "$block_dict" || ! -f "$extrude_dict" ]]; then
+        echo "Mesh definition ${mesh_level} is incomplete in $ROOT/$BASE/system." >&2
+        exit 1
+    fi
+
+    cp "$block_dict" "$case_dir/system/blockMeshDict"
+    cp "$extrude_dict" "$case_dir/system/extrudeMeshDict"
+
+    (
+        cd "$case_dir"
+
+        runApplication blockMesh
+        runApplication extrudeMesh
+        runApplication createPatch -overwrite
+
+        # Generate the Land transmural coordinate and fibre fields on the
+        # selected mesh.
+        cp 0/org/t 0/t
+        runApplication setLand2015FibreField
+
+        # Avoid the diagnostic field "a" colliding with acceleration "A" on
+        # case-insensitive filesystems.
+        rm -f 0/a
+
+        if [[ ! -f 0/f0 ]]; then
+            echo "setLand2015FibreField did not create 0/f0" >&2
+            exit 1
+        fi
+
+        echo "Running solids4Foam for mesh level ${mesh_level}"
+        if command -v mpirun >/dev/null 2>&1; then
+            mpirun -np 1 solids4Foam > log.solids4Foam 2>&1
+        else
+            solids4Foam > log.solids4Foam 2>&1
+        fi
+
+        # Write midLineDeformed.txt for this mesh level, next to the case.
+        echo "Extracting the deformed midline for mesh level ${mesh_level}"
+        runApplication "$EXTRACT"
+
+        if [[ ! -f midLineDeformed.txt ]]; then
+            echo "$EXTRACT did not write midLineDeformed.txt" >&2
+            exit 1
+        fi
+    )
+done
+
+echo
+echo "Completed mesh level(s): $MESH_LEVELS"
+echo "Results are under $ROOT/runs."
+
+# Plot every mesh level currently under runs/, not just the ones run above.
+# The plot scripts resolve their inputs relative to the case directory.
+PYTHON_PLOT="$ROOT/plotScripts/render_land_problem3_m3_midlines.py"
+GNUPLOT_PLOT="$ROOT/plotScripts/midline.gnuplot"
+
+cd "$ROOT"
+
+case "$PLOTTER" in
+    python)
+        if ! command -v python3 >/dev/null 2>&1; then
+            echo "python3 not found: skipping the figures." >&2
+        elif [[ ! -f "$PYTHON_PLOT" ]]; then
+            echo "Plot script not found: $PYTHON_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
+            python3 "$PYTHON_PLOT" || echo "Plotting failed." >&2
+        fi
+        ;;
+    gnuplot)
+        if ! command -v gnuplot >/dev/null 2>&1; then
+            echo "gnuplot not found: skipping the figures." >&2
+        elif [[ ! -f "$GNUPLOT_PLOT" ]]; then
+            echo "Plot script not found: $GNUPLOT_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
+            gnuplot "$GNUPLOT_PLOT" || echo "Plotting failed." >&2
+        fi
+        ;;
+    none)
+        ;;
+    *)
+        echo "Unknown PLOTTER '$PLOTTER'; expected python, gnuplot or none." >&2
+        ;;
+esac

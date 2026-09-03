@@ -15,8 +15,6 @@ FoamFile
     object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-//libs            ("libsolids4FoamModels.so");
-//libs            ("libsolids4FoamModels.dylib");
 application     solids4Foam;
 
 startFrom       startTime;
@@ -27,7 +25,9 @@ stopAt          endTime;
 
 endTime         1;
 
-deltaT          0.1;
+// This is a steady benchmark: apply the complete load in one solve so the
+// generated case contains only the initial state (0) and final state (1).
+deltaT          1;
 
 writeControl    timeStep;
 
@@ -53,10 +53,6 @@ functions
     {
         type          solidPointDisplacement;
         point         (0.01 0.0005 0.001);
-    }
-    traction
-    {
-        type          solidTractions;
     }
 }
 

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#
+# Remove everything ./Allrun and ./AllrunTest generate:
+#
+#   * the run directories of every benchmark case, by calling each case's own
+#     Allclean where one exists,
+#   * the plots those cases leave behind that their own Allclean does not
+#     remove,
+#   * the top-level figures/ and logs/ directories created by ./Allrun,
+#   * Python bytecode caches and the object files of the case-local
+#     extractIdealisedVentricleResults utility.
+#
+# Base cases, mesh definitions, plot scripts and reference data are preserved.
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+CASE_DIRS=(
+    "linearElastic/manufactoredSolution"
+    "linearElastic/cooksMembrane"
+    "hyperElastic/cooksMembrane"
+    "hyperElastic/LargeStrainIncompCooksMembrane"
+    "hyperElastic/ventricle/beam"
+    "hyperElastic/ventricle/inflation"
+    "hyperElastic/ventricle/contraction"
+)
+
+# Plots written into a case directory that the case's own Allclean leaves.
+STRAY_FILES=(
+    "hyperElastic/ventricle/inflation/land_problem2_m3_combined.pdf"
+    "hyperElastic/ventricle/inflation/midline.pdf"
+    "hyperElastic/ventricle/inflation/midline_apex.pdf"
+    "hyperElastic/ventricle/inflation/midline_inflection.pdf"
+    "hyperElastic/ventricle/contraction/land_problem3_m3_combined.pdf"
+    "hyperElastic/ventricle/contraction/ventricleInflation-midline-deformed.pdf"
+    "hyperElastic/ventricle/contraction/ventricleInflation-midline-apex-deformed.pdf"
+    "hyperElastic/ventricle/contraction/ventricleInflation-midline-inflection-deformed.pdf"
+)
+
+echo "Cleaning the JFNK mixed pressure-displacement paper cases"
+echo
+
+#------------------------------------------------------------------------------
+# Each case's own Allclean, and the run directories of the cases without one
+#------------------------------------------------------------------------------
+for directory in "${CASE_DIRS[@]}"
+do
+    case_dir="${ROOT}/${directory}"
+
+    if [[ ! -d "${case_dir}" ]]
+    then
+        echo "Skipping ${directory}: directory not found"
+        continue
+    fi
+
+    if [[ -x "${case_dir}/Allclean" ]]
+    then
+        echo "==> ${directory}"
+        ( cd "${case_dir}" && ./Allclean ) || \
+            echo "WARNING: Allclean failed in ${directory}" >&2
+    else
+        echo "==> ${directory} (no Allclean; removing generated run directories)"
+    fi
+
+    # Timestamped run directories, whether or not the case has an Allclean.
+    for run_dir in "${case_dir}"/run_* "${case_dir}"/tune_*
+    do
+        [[ -d "${run_dir}" ]] || continue
+        echo "    removing ${run_dir#"${ROOT}"/}"
+        rm -rf -- "${run_dir}"
+    done
+
+    # Generated case directories used by the ventricle and beam cases.
+    for generated in runs plots results figures
+    do
+        [[ -d "${case_dir}/${generated}" ]] || continue
+        echo "    removing ${directory}/${generated}"
+        rm -rf -- "${case_dir:?}/${generated}"
+    done
+
+    # Python bytecode caches next to the plot and workflow scripts.
+    while IFS= read -r cache
+    do
+        echo "    removing ${cache#"${ROOT}"/}"
+        rm -rf -- "${cache}"
+    done < <(find "${case_dir}" -type d -name '__pycache__' 2>/dev/null)
+
+    # Object files of the case-local extractIdealisedVentricleResults utility.
+    # The Make/files and Make/options sources are kept.
+    for platform in "${case_dir}"/extractIdealisedVentricleResults/Make/*/
+    do
+        [[ -d "${platform}" ]] || continue
+        echo "    removing ${platform#"${ROOT}"/}"
+        rm -rf -- "${platform}"
+    done
+done
+
+#------------------------------------------------------------------------------
+# Plots left in the case directories
+#------------------------------------------------------------------------------
+echo
+for relative in "${STRAY_FILES[@]}"
+do
+    stray="${ROOT}/${relative}"
+    [[ -f "${stray}" ]] || continue
+    echo "Removing ${relative}"
+    rm -f -- "${stray}"
+done
+
+#------------------------------------------------------------------------------
+# Output created by the top-level Allrun
+#------------------------------------------------------------------------------
+echo
+for generated in figures logs
+do
+    [[ -e "${ROOT}/${generated}" ]] || continue
+    echo "Removing ${generated}/"
+    rm -rf -- "${ROOT:?}/${generated}"
+done
+
+echo
+echo "Done. Base cases, mesh definitions, plot scripts and reference data were preserved."
