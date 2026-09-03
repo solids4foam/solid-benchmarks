@@ -39,14 +39,15 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
         momentum
         {
             type        diffStencilLaplacian;
-            scaleFactor 0.1;
+            scaleFactor 20.0;
         }
 
         pressure
         {
-            type                RhieChow;
-            scaleFactor         0.5;
-            scaleFactorJacobian 0.5;
+            type                generalisedEvenOrderLaplacian;
+            scaleFactor         0.1;
+            scaleFactorJacobian 1.0;
+	    laplacianPower      2;
         }
     }
 

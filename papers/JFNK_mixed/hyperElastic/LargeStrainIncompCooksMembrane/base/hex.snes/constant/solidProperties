@@ -55,9 +55,10 @@ solidModel     nonLinearGeometryTotalLagrangianTotalDisplacement;
 
         pressure
         {
-            type                laplacian;
-            scaleFactor         1.0;
-            scaleFactorJacobian 1.0;
+            type                generalisedEvenOrderLaplacian;
+            scaleFactor         0.125;
+            scaleFactorJacobian 0.125;
+            laplacianPower      2;
         }
     }
 

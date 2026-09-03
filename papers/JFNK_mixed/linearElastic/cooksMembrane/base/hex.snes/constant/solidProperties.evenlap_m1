@@ -39,8 +39,8 @@ solidModel     linearGeometryTotalDisplacement;
         pressure
         {
             type            generalisedEvenOrderLaplacian;
-            scaleFactor     0.125;
-            scaleFactorJacobian 1.0;
+            scaleFactor    10.0;
+            scaleFactorJacobian 10.0;
             laplacianPower  1;
         }
     }

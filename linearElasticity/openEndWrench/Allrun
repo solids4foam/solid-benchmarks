@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Check case version is correct
+solids4Foam::convertCaseFormat .
+
+# Case only tested with OpenFOAM.com
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+if ! command -v cartesianMesh &> /dev/null
+then
+    echo
+    echo "cartesianMesh command not found, which is required for this case."
+    echo "Please install cfMesh"
+    exit 0
+fi
+
+# Download geometry and prepare it for meshing
+wget https://www.solids4foam.com/tutorials/archive/wrench.zip && unzip wrench.zip && mv wrench/* . && rm -rf wrench wrench.zip
+
+for file in wrench-*.stl
+do
+    name="${file%.stl}"
+    sed -i "s/OBJECT/$name/g" "$file"
+done
+cat *.stl > wrench.stl
+
+# Convert stl to fms format
+solids4Foam::runApplication surfaceToFMS wrench.stl
+
+# Create mesh
+solids4Foam::runApplication cartesianMesh
+
+# Set the symmetry patch type instead of wall
+sed -i '/^wrench-sym$/,/^}/{s/type[[:space:]]*wall;/type symmetry;/}' \
+    constant/polyMesh/boundary
+
+# Scale mesh
+solids4Foam::runApplication scaleMesh 0.0254
+
+# Check mesh
+solids4Foam::runApplication checkMesh
+
+# Run parallel
+solids4Foam::runApplication decomposePar
+solids4Foam::runParallel solids4Foam
+solids4Foam::runApplication reconstructPar

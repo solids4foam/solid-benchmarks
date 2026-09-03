@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -d "$ROOT/runs" ]]; then
+    rm -rf "$ROOT/runs"
+fi
+
+if [[ -d "$ROOT/plots" ]]; then
+    rm -rf "$ROOT/plots"
+fi
+
+rm -f "$ROOT/land_problem1_dz_convergence.pdf"
+
+echo "Removed generated runs and plot output. Base case and plot script were preserved."

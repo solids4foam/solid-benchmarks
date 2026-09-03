@@ -1,0 +1,38 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| solids4foam: solid mechanics and fluid-solid interaction simulations        |
+| Version:     v2.3                                                           |
+| Web:         https://solids4foam.github.io                                  |
+| Disclaimer:  This offering is not approved or endorsed by OpenCFD Limited,  |
+|              producer and distributor of the OpenFOAM software via          |
+|              www.openfoam.com, and owner of the OPENFOAM® and OpenCFD®      |
+|              trade marks.                                                   |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      meshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+surfaceFile "wrench.fms";
+
+maxCellSize 0.016;
+
+boundaryCellSize $maxCellSize;
+
+objectRefinements
+{
+    box
+    {
+        type box;
+        cellSize 0.005;
+        centre (3.55 -0.06 -0.006);
+        lengthX 1.8;
+        lengthY 0.05;
+        lengthZ 0.3;
+    }
+}
+
+// ************************************************************************* //

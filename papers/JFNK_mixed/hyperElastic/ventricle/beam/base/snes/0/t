@@ -22,19 +22,31 @@ internalField   uniform 0;
 
 boundaryField
 {
-    fixed
+    left
     {
         type            zeroGradient;
     }
-    inside
+    bottom
     {
         type            fixedValue;
         value           uniform 0;
     }
-    outside
+    top
     {
         type            fixedValue;
         value           uniform 1;
+    }
+    right
+    {
+        type            zeroGradient;
+    }
+    front
+    {
+        type            zeroGradient;
+    }
+    back
+    {
+        type            zeroGradient;
     }
 }
 

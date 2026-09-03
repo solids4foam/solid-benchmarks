@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+removed=0
+
+for run_dir in "${ROOT}"/run_*
+do
+    [[ -d "${run_dir}" ]] || continue
+
+    echo "Removing ${run_dir}"
+    rm -rf -- "${run_dir}"
+    removed=$((removed + 1))
+done
+
+if [[ "${removed}" -eq 0 ]]
+then
+    echo "No run directories found."
+elif [[ "${removed}" -eq 1 ]]
+then
+    echo "Removed 1 run directory."
+else
+    echo "Removed ${removed} run directories."
+fi

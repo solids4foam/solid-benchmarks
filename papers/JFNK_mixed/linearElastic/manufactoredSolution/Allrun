@@ -14,30 +14,26 @@ source solids4FoamScripts.sh
 configs=(
     "BASE=base/snes NAME=hex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.split"
     #"BASE=base/snes NAME=tet.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.split"
-    #"BASE=base/snes NAME=poly.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.split"
-    #"BASE=base/snes NAME=distHex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.split"
+    "BASE=base/snes NAME=poly.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.split"
+    "BASE=base/snes NAME=distHex.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.split"
 )
 
-# Pressure stabilisation methods for the MMS stabilisation-framework check
-stabilisations=(
-    "STAB=rhiechow STAB_FILE=solidProperties.rhiechow"
-    "STAB=laplacian STAB_FILE=solidProperties.laplacian"
-    "STAB=jst STAB_FILE=solidProperties.jst"
-    "STAB=evenlap_m0 STAB_FILE=solidProperties.evenlap_m0"
-    "STAB=evenlap_m1 STAB_FILE=solidProperties.evenlap_m1"
-    "STAB=evenlap_m2 STAB_FILE=solidProperties.evenlap_m2"
-)
 # SNES segregated approach
 #    "BASE=base/snes NAME=hex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
 #    "BASE=base/snes NAME=tet.seg.hypre USE_GMSH=1 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
 #    "BASE=base/snes NAME=poly.seg.hypre USE_GMSH=1 USE_DUALMESH=1 USE_PERTURBMESHPOINTS=0 PETSC_FILE=petscOptions.seg.hypre"
 #    "BASE=base/snes NAME=distHex.seg.hypre USE_GMSH=0 USE_DUALMESH=0 USE_PERTURBMESHPOINTS=1 PETSC_FILE=petscOptions.seg.hypre"
 
-# Define start and end mesh indices
-# Mesh input files are defined from 1 to 6
-# END_MESH should be greater than START_MESH
+# Run the first six meshes by default. An optional argument limits the run to
+# the first N meshes; for example, "./Allrun 1" runs mesh 1 only.
 START_MESH=1
-END_MESH=4
+END_MESH="${1:-6}"
+
+if [ "$#" -gt 1 ] || ! [[ "${END_MESH}" =~ ^[1-6]$ ]]
+then
+    echo "Usage: $0 [number-of-meshes (1-6)]" >&2
+    exit 2
+fi
 
 
 # Detect the CPU type: we append this to the case name
@@ -64,16 +60,6 @@ mkdir "${RUN_DIR}"
 # Enter the run directory
 cd "${RUN_DIR}"
 
-for stabConfig in "${stabilisations[@]}"
-do
-    eval $stabConfig
-    echo; echo "***************************************"
-    echo "Running pressure stabilisation: ${STAB}"
-    echo "***************************************"
-
-    mkdir "${STAB}"
-    cd "${STAB}"
-
 # Iterate through configurations
 for config in "${configs[@]}"
 do
@@ -86,17 +72,17 @@ do
     echo "USE_GMSH is $USE_GMSH"
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf" > "${SUMMARY}"
+    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1" > "${SUMMARY}"
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
         CASE="${NAME}.$i"
         echo; echo "Processing case: $CASE"
 
-        # Prepare the case
-        cp -r "../../${BASE}" "${CASE}"
+        # Prepare the case. The base case contains the only solidProperties
+        # file used by this run.
+        cp -r "../${BASE}" "${CASE}"
         cd "$CASE"
-        cp "constant/${STAB_FILE}" "constant/solidProperties"
 
         # Mesh generation logic
         if [ "$USE_GMSH" -eq 1 ]
@@ -170,35 +156,54 @@ do
 
         if [ "$SOLVER_STATUS" -ne 0 ]
         then
-            echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam"
-            exit "$SOLVER_STATUS"
+            # On this macOS/PETSc build, solids4Foam can abort during object
+            # teardown after the solution and MMS error fields are complete.
+            # Keep those completed results, but still stop for genuine solver
+            # failures that occur before the required output is written.
+            if grep -a -q '^End$' log.solids4Foam \
+                && grep -a -q 'Writing DDifference field' log.solids4Foam \
+                && grep -a -q 'Writing sigmaDifference field' log.solids4Foam
+            then
+                echo "Warning: solids4Foam returned ${SOLVER_STATUS} after completing ${CASE}; continuing with its written results" >&2
+            else
+                echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam" >&2
+                exit "$SOLVER_STATUS"
+            fi
         fi
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
-        if grep -q "Maximum resident" log.solids4Foam; then
-            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+        if grep -a -q "Maximum resident" log.solids4Foam; then
+            MAX_MEMORY=$(grep -a "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
         else
             MAX_MEMORY="NaN"
         fi
 
         # Record the time
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | awk '{print $7}')
+        CLOCK_TIME=$(grep -a "ClockTime" log.solids4Foam | awk '{print $7}')
 
-        # Extract the L2 (average) error for displacement
-        DISP_L2_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+        # The manufactured-solution function object prints three norms on one
+        # line, in this order:
+        #
+        #   Displacement error norms: mean L1, mean L2, LInf:
+        #   Magnitude:   <mean L1>      <mean L2>      <LInf>
+        #                    $2             $3             $4
+        #
+        # Columns 4 and 5 of the summary file are the two series plotted by
+        # plotScripts/dispErrors.gnuplot as "L_2" and "L_inf". They are taken
+        # from $3 and $4, i.e. the mean L2 and the true LInf, matching the axis
+        # labels. The mean L1 ($2) is recorded in the trailing columns; the
+        # published figures plotted $2 and $3 (mean L1 and mean L2) instead.
+        DISP_L2_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        DISP_LINF_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        DISP_MEAN_L1=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
-        # Extract the LInfinity (max) error for displacement
-        DISP_LINF_ERROR=$(grep "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-
-        # Extract the L2 (average) error for mag(sigma)
-        STRESS_L2_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
-
-        # Extract the LInfinity (max) error for mag(sigma)
-        STRESS_LINF_ERROR=$(grep "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        STRESS_L2_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        STRESS_LINF_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        STRESS_MEAN_L1=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1" >> ../"${SUMMARY}"
 
         cd ..
     done
@@ -214,10 +219,7 @@ do
     cat "${ORDER}"
 done
 
-    cd ..
-done
-
-# Create plots if gnuplot in installed
+# Create plots after every mesh and configuration has finished.
 if command -v gnuplot &>/dev/null
 then
     # Copy gnuplot scripts
@@ -228,11 +230,25 @@ then
     cp ../plotScripts/orderOfAccuracySlopes*.dat .
 
     # Run all scripts
+    PLOT_STATUS=0
     for f in *gnuplot
     do
         echo "Running gnuplot on $f"
-        gnuplot "$f"
+        if ! gnuplot "$f"
+        then
+            echo "gnuplot failed for ${f}" >&2
+            PLOT_STATUS=1
+        fi
     done
+
+    if [ "${PLOT_STATUS}" -ne 0 ]
+    then
+        echo "One or more plots failed in ${PWD}" >&2
+        exit "${PLOT_STATUS}"
+    fi
+else
+    echo "gnuplot is required to create the final plots" >&2
+    exit 127
 fi
 
 # Exit the run directory

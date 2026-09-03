@@ -27,7 +27,16 @@ nonLinearGeometryTotalLagrangianTotalDisplacementCoeffs
     predictor yes;
 
     // Damping to help reach steady state
-    dampingCoeff     dampingCoeff [0 0 -1 0 0 0 0] 1e-1;
+    dampingCoeff     dampingCoeff [0 0 -1 0 0 0 0] 0.5;
+
+    stabilisation
+    {
+        momentum
+        {
+            type        diffStencilLaplacian;
+            scaleFactor 0.1;
+        }
+    }
 }
 
 // ************************************************************************* //

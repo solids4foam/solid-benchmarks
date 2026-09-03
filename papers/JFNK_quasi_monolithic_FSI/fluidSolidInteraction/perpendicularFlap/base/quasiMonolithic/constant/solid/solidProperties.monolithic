@@ -16,9 +16,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solidModel    linearGeometryVelocity;
+solidModel    nonLinearGeometryTotalLagrangianVelocity;
 
-linearGeometryVelocityCoeffs
+nonLinearGeometryTotalLagrangianVelocityCoeffs
 {
     stabilisation
     {

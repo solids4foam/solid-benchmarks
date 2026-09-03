@@ -1,97 +1,116 @@
-# Cook's membrane stabilisation study
+# Linear Cook's membrane paper reproduction
 
-This directory contains the mesh-study harness for the hex `PETScSNES` Cook's
-membrane case and its pressure-stabilisation variants.
+This directory reproduces the numerical results and the six retained Cook's
+membrane panels used by the paper.  The cases and plotting conventions were
+migrated from the original `DataHPC` calculations; the reproduction scripts do
+not refer back to that external directory.
 
-It is set up to follow the newer runtime-selectable stabilisation framework in
-`s4f/src/solids4FoamModels/numerics/stabilisationModels`, not the older
-`stabilisationType`/`pressureScale` path.
+## Requirements
 
-## Naming
+Run from a shell with the OpenFOAM-v2312 and solids4foam environment loaded.
+The workflow checks for the applications it needs before creating cases:
 
-Cases created by `Allrun` use:
+- `python3`
+- `blockMesh`
+- `solids4Foam`
+- `gmsh`, `gmshToFoam`, `changeDictionary` and `checkMesh` for the unstructured study
+- the Python `reportlab` package for plotting
 
-`hex_snes__<stabilisation_tag>.<mesh_index>`
+`Allrun` re-sources `$WM_PROJECT_DIR/etc/bashrc` before starting.  If the
+OpenFOAM environment file is elsewhere, set `OPENFOAM_BASHRC` to its path.
+The prerequisite check executes `solids4Foam -help`, so a binary with missing
+dynamic libraries is rejected before the first case is generated.
 
-Current tags are:
+## Workflows
 
-- `rhiechow`
-- `laplacian`
-- `jst`
-- `evenlap_m0`
-- `evenlap_m1`
+Run the complete 180-case paper calculation and create all figures with:
 
-## Included checks
+```sh
+./Allrun
+```
 
-- `rhiechow`: pressure stabilisation type `RhieChow`
-- `laplacian`: pressure stabilisation type `laplacian`
-- `jst`: pressure stabilisation type `JamesonSchmidtTurkel`
-- `evenlap_m0`: pressure stabilisation type `generalisedEvenOrderLaplacian`
-  with `laplacianPower 0` and the same pressure coefficients as `laplacian`
-  for the equivalence check
-- `evenlap_m1`: pressure stabilisation type `generalisedEvenOrderLaplacian`
-  with `laplacianPower 1`
+Individual stages are available as:
 
-The `laplacian` versus `evenlap_m0` comparison is written out separately so the
-`m = 0` equivalence check is easy to inspect after each sweep.
+```sh
+./Allrun structured
+./Allrun parameter
+./Allrun unstructured
+./Allrun plots
+```
 
-## Mesh study
+The individual numerical stages can be run sequentially.  `./Allrun plots`
+requires all three processed result tables for the selected mode.
 
-`Allrun` now defaults to meshes `1` to `3`.
+The end-to-end test uses exactly the same implementation but selects mesh
+indices 1 and 2:
 
-For the full study, run:
+```sh
+./AllrunTest
+```
 
-`END_MESH=7 ./Allrun`
+It still runs all methods and parameter combinations: 12 structured cases, 36
+pressure-scale cases and 12 unstructured cases, for 60 simulations in total.
 
-The mesh-index to cells-per-side mapping used in the post-processing is kept in
-`plotscripts/meshSpacing.csv`:
+Before running, enumerate and validate the exact manifest without creating any
+cases:
 
-- `1 -> 3`
-- `2 -> 6`
-- `3 -> 12`
-- `4 -> 24`
-- `5 -> 48`
-- `6 -> 96`
-- `7 -> 192`
+```sh
+./AllrunTest --list
+./Allrun --list
+```
 
-## Bijelona comparison
+Clean all generated cases, logs, result tables and figures with:
 
-The archived Bijelona reference data is copied locally into
-`plotscripts/Bijelona.csv` so the comparison plots can be recreated entirely
-from this case.
+```sh
+./Allclean
+```
 
-For comparison against Bijelona, the reported `Dy` from the case is scaled by
-`0.001` before plotting. The raw `Dy` is still kept in the detailed tables.
+`Allclean` retains the canonical bases, mesh definitions, plotting code,
+benchmark data and the user-supplied `unstructured/0.1` migration archive.
 
-## Outputs
+## Scientific configuration
 
-Each run directory contains:
+The structured mesh sequence is `3, 6, 12, 24, 48, 96` cells per side, with
+one cell through the thickness.  Study 1 uses `sp=10.0` and `sm=0.1` for
+Rhie-Chow, Laplacian, JST and generalised even-order Laplacian powers 0, 1 and
+2.  The latter correspond to the paper labels `m=1`, `m=2` and `m=3`.
 
-- one per-configuration summary `.summary.txt`,
-- one per-configuration detail table `.details.tsv`,
-- a combined `stabilisationResults.tsv`,
-- an `laplacian_vs_evenlap_m0.tsv` comparison,
-- plot-ready wide tables for raw `Dy` versus total cells,
-- plot-ready wide tables for scaled `Dy` versus cells per side,
-- plot-ready wide tables for `ClockTime`,
-- plot-ready wide tables for `ExecutionTime`,
-- plot-ready wide tables for maximum memory,
-- plot-ready wide tables for SNES iterations,
-- plot-ready wide tables for average linear iterations,
-- a local copy of `Bijelona.csv` and `meshSpacing.csv`,
-- PDF plots when `gnuplot` is available.
+The pressure-scale study holds `sm=0.1` and sweeps
+`sp=0.01, 0.1, 1, 10, 100, 1000` for all three even-Laplacian powers.
 
-The detailed tables include:
+The unstructured study uses the six Gmsh spacings `16, 8, 4, 2, 1, 0.5`, whose
+nominal resolutions are again `3, 6, 12, 24, 48, 96` cells per side.  The
+expected mesh cell counts are `19, 62, 241, 941, 3793, 15131`.  All six methods
+use `sp=10.0` and `sm=1.0`.  Generated dictionaries and mesh cell counts are
+validated before solving or accepting results.
 
-- mesh index,
-- cells per side,
-- total cells,
-- execution time,
-- clock time,
-- maximum memory,
-- raw `Dy`,
-- scaled `Dy`,
-- SNES iterations,
-- average linear iterations,
-- number of linear solves,
-- status and exit code.
+The measured value is vertical displacement at `(48.0 60.0 0)`.  The final
+data row's `Dy` is retained as `dy_raw` and multiplied by `0.001` for plotting.
+Only Study 1 extracts `ExecutionTime`.  Its error reference is the finest
+available structured `evenlap_m2` result: mesh 2 in test mode and mesh 6 in
+full mode.
+
+## Generated files
+
+Raw cases and logs are written below `runs/test` or `runs/full`.  Deterministic
+processed tables are written to:
+
+```text
+results/<mode>/structured.tsv
+results/<mode>/parameter.tsv
+results/<mode>/unstructured.tsv
+```
+
+Only these paper PDFs are generated below `figures/<mode>`:
+
+```text
+figure5_structured_displacement.pdf
+figure5_execution_time_vs_error.pdf
+figure6_pressure_scale_m1.pdf
+figure6_pressure_scale_m2.pdf
+figure6_pressure_scale_m3.pdf
+figure7b_unstructured_displacement.pdf
+```
+
+The benchmark data and paper-style renderer are in `plotScripts`.  Solver logs
+are never parsed directly by the plotting code.

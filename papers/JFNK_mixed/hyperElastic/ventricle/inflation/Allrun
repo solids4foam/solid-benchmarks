@@ -1,215 +1,170 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 set -eo pipefail
 
-# Source required functions
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
-source solids4FoamScripts.sh
-
-BASE="base/snes"
-NAME="hex_snes"
-
-# Pressure stabilisation methods using the new stabilisation framework
-stabilisations=(
-    "STAB=rhiechow STAB_FILE=solidProperties.rhiechow"
-    "STAB=laplacian STAB_FILE=solidProperties.laplacian"
-    "STAB=jst STAB_FILE=solidProperties.jst"
-    "STAB=evenlap_m0 STAB_FILE=solidProperties.evenlap_m0"
-    "STAB=evenlap_m1 STAB_FILE=solidProperties.evenlap_m1"
-    "STAB=evenlap_m2 STAB_FILE=solidProperties.evenlap_m2"
-)
-
-# Optional method subset, for example:
-#     STABS="rhiechow laplacian" START_MESH=1 END_MESH=1 ./Allrun
+# The six ready-made mesh definitions are stored in base/snes/system as
+# blockMeshDict.1 ... blockMeshDict.6 and extrudeMeshDict.1 ...
+# extrudeMeshDict.6. By default only level 1 is run.
 #
-# The default uses the methods that are currently practical for this transient
-# inflation benchmark with the supplied PETSc options.  Set STABS=all to also
-# run the laplacian-family variants that still need further tuning here.
-STABS="${STABS:-rhiechow jst evenlap_m1}"
+# Examples:
+#   ./Allrun 3                  # run levels 1, 2 and 3
+#   MESH_LEVELS="2 4" ./Allrun # run only levels 2 and 4
+BASE="base/snes"
+MESH_LEVELS="${MESH_LEVELS:-1}"
+MAX_MESH_LEVEL=6
+EXTRACT="extractIdealisedVentricleResults"
 
-# Mesh input files are defined from 1 to 6.  The default matches the original
-# inflation benchmark; override START_MESH/END_MESH for shorter checks.
-START_MESH="${START_MESH:-1}"
-END_MESH="${END_MESH:-4}"
+# Plot once every requested mesh level has finished: python, gnuplot or none.
+PLOTTER="${PLOTTER:-python}"
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
 
-if ! command -v extractIdealisedVentricleResults &>/dev/null
-then
-    if [[ -d "extractIdealisedVentricleResults" ]]
-    then
-        echo "Compiling extractIdealisedVentricleResults"
-        (
-            cd extractIdealisedVentricleResults
-            wmake
-        )
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+case "${1:-}" in
+    -h|--help)
+        echo "Usage: ./Allrun [number-of-mesh-levels]"
+        echo "       MESH_LEVELS=\"1 3 5\" ./Allrun"
+        echo "       PLOTTER=gnuplot ./Allrun 3"
+        echo "       PLOT_PYTHON=/path/to/python3 ./Allrun"
+        echo "Available mesh levels: 1-${MAX_MESH_LEVEL}"
+        echo "PLOTTER selects the final plot script: python, gnuplot or none."
+        exit 0
+        ;;
+    "")
+        ;;
+    *)
+        if ! [[ "$1" =~ ^[1-6]$ ]]; then
+            echo "The number of mesh levels must be an integer from 1 to ${MAX_MESH_LEVEL}." >&2
+            exit 2
+        fi
+        MESH_LEVELS="$(seq 1 "$1")"
+        ;;
+esac
+
+for mesh_level in $MESH_LEVELS; do
+    if ! [[ "$mesh_level" =~ ^[1-6]$ ]]; then
+        echo "Invalid mesh level '$mesh_level'; available levels are 1-${MAX_MESH_LEVEL}." >&2
+        exit 2
     fi
-fi
+done
 
-if ! command -v extractIdealisedVentricleResults &>/dev/null
-then
-    echo "ERROR: extractIdealisedVentricleResults is not available."
-    echo "Compile it with: (cd extractIdealisedVentricleResults && wmake)"
+if [[ -z "${WM_PROJECT_DIR:-}" ]] \
+    || [[ ! -f "$WM_PROJECT_DIR/bin/tools/RunFunctions" ]]; then
+    echo "OpenFOAM is not configured in this shell." >&2
+    echo "Source your OpenFOAM environment before running this script." >&2
     exit 1
 fi
 
-if [[ "$OSTYPE" == "darwin"* ]]
-then
-    CPU_BRAND=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || true)
-    if [[ -n "${CPU_BRAND}" ]]
-    then
-        CPU_TYPE=$(echo "${CPU_BRAND}" | sed 's/[^a-zA-Z0-9]/_/g')
-    else
-        CPU_TYPE=$(uname -m | sed 's/[^a-zA-Z0-9]/_/g')
-    fi
-elif [[ -f /proc/cpuinfo ]]
-then
-    CPU_TYPE=$(grep -m 1 "model name" /proc/cpuinfo | awk -F': ' '{print $2}' | sed 's/[^a-zA-Z0-9]/_/g')
-else
-    CPU_TYPE="Unknown_CPU"
+# shellcheck source=/dev/null
+source "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+if [[ ! -d "$ROOT/$BASE" ]]; then
+    echo "Base case not found: $ROOT/$BASE" >&2
+    exit 1
 fi
 
-DATE=$(date +%Y%m%d_%H%M%S)
-RUN_DIR="run_${CPU_TYPE}_${DATE}"
-echo "Creating ${RUN_DIR}"
-mkdir "${RUN_DIR}"
-
-cd "${RUN_DIR}"
-
-for stabConfig in "${stabilisations[@]}"
-do
-    eval "${stabConfig}"
-
-    if [[ "${STABS}" != "all" && ! " ${STABS} " =~ " ${STAB} " ]]
-    then
-        continue
-    fi
-
-    echo; echo "***************************************"
-    echo "Running pressure stabilisation: ${STAB}"
-    echo "***************************************"
-
-    SUMMARY="${NAME}__${STAB}.summary.txt"
-    ITERATIONS="${NAME}__${STAB}.iterations.txt"
-    echo "# Mesh Time Mem MidlinePoints" > "${SUMMARY}"
-    echo "# Mesh SNESIts MaxLinearIts TotalLinearIts" > "${ITERATIONS}"
-
-    for i in $(seq "${START_MESH}" "${END_MESH}")
-    do
-        CASE="${NAME}__${STAB}.${i}"
-        echo; echo "Processing case: ${CASE}"
-
-        cp -r "../${BASE}" "${CASE}"
-        cd "${CASE}"
-
-        if [[ ! -f "constant/${STAB_FILE}" ]]
-        then
-            echo "ERROR: missing constant/${STAB_FILE} in $(pwd)"
-            exit 1
-        fi
-        cp "constant/${STAB_FILE}" constant/solidProperties
-
-        if [[ ! -f "system/blockMeshDict.${i}" ]]
-        then
-            echo "Cannot find ${CASE}/system/blockMeshDict.${i}: please add it to ${BASE}/system/"
-            exit 1
-        fi
-        cp "system/blockMeshDict.${i}" system/blockMeshDict
-
-        if [[ ! -f "system/extrudeMeshDict.${i}" ]]
-        then
-            echo "Cannot find ${CASE}/system/extrudeMeshDict.${i}: please add it to ${BASE}/system/"
-            exit 1
-        fi
-        cp "system/extrudeMeshDict.${i}" system/extrudeMeshDict
-
-        solids4Foam::runApplication blockMesh
-        solids4Foam::runApplication extrudeMesh
-        solids4Foam::runApplication createPatch -overwrite
-
-        set +e
-        if command -v gtime &>/dev/null
-        then
-            echo "Running solids4Foam on ${CASE} with gtime"
-            gtime -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
-            SOLVER_STATUS=$?
-        elif command -v /usr/bin/time &>/dev/null && /usr/bin/time -f "Maximum resident set size (kbytes): %M" true &>/dev/null
-        then
-            echo "Running solids4Foam on ${CASE} with /usr/bin/time"
-            /usr/bin/time -f "Maximum resident set size (kbytes): %M" mpirun -np 1 solids4Foam &> log.solids4Foam
-            SOLVER_STATUS=$?
-        else
-            echo "Running solids4Foam on ${CASE}"
-            mpirun -np 1 solids4Foam &> log.solids4Foam
-            SOLVER_STATUS=$?
-        fi
-        set -e
-
-        if [[ "${SOLVER_STATUS}" -ne 0 ]]
-        then
-            echo "solids4Foam failed for ${CASE}; see ${PWD}/log.solids4Foam"
-            exit "${SOLVER_STATUS}"
-        fi
-
-        solids4Foam::runApplication extractIdealisedVentricleResults
-
-        if [[ ! -f "midLineDeformed.txt" ]]
-        then
-            echo "extractIdealisedVentricleResults did not write midLineDeformed.txt"
-            exit 1
-        fi
-
-        if grep -q "Maximum resident" log.solids4Foam
-        then
-            MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | tail -n 1 | awk '{print int($6 / 1000)}')
-        else
-            MAX_MEMORY="NaN"
-        fi
-
-        CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
-        MIDLINE_POINTS=$(wc -l < midLineDeformed.txt | tr -d ' ')
-        SNES_ITS=$(grep "Nonlinear solve converged" log.solids4Foam | tail -n 1 | awk '{print $NF}')
-        if [[ -z "${SNES_ITS}" ]]
-        then
-            SNES_ITS="NaN"
-        fi
-        read MAX_LINEAR_ITS TOTAL_LINEAR_ITS <<< \
-            $(awk '/Linear solve/ && /iterations/ {sum += $NF; if ($NF > max) max = $NF} END {print max+0, sum+0}' log.solids4Foam)
-
-        echo "${i} ${CLOCK_TIME} ${MAX_MEMORY} ${MIDLINE_POINTS}" >> ../"${SUMMARY}"
-        echo "${i} ${SNES_ITS} ${MAX_LINEAR_ITS} ${TOTAL_LINEAR_ITS}" >> ../"${ITERATIONS}"
-
-        cd ..
-    done
-
-    echo; echo "${SUMMARY} file:"; cat "${SUMMARY}"; echo
-    echo; echo "${ITERATIONS} file:"; cat "${ITERATIONS}"; echo
-done
-
-CAN_PLOT="yes"
-for plotStab in rhiechow jst evenlap_m1
-do
-    if [[ "${STABS}" != "all" && ! " ${STABS} " =~ " ${plotStab} " ]]
-    then
-        CAN_PLOT="no"
-    fi
-done
-
-if command -v gnuplot &>/dev/null && [[ "${CAN_PLOT}" == "yes" && "${START_MESH}" -le 1 && "${END_MESH}" -ge 4 ]]
-then
-    cp ../plotScripts/*.gnuplot .
-
-    for f in *.gnuplot
-    do
-        echo "Running gnuplot on ${f}"
-        gnuplot "${f}"
-    done
-elif command -v gnuplot &>/dev/null
-then
-    echo "Skipping plots for subset/partial sweep"
+# Build the case-local result extractor if it is not already available in the
+# configured OpenFOAM environment. This keeps the workflow relocatable.
+if ! command -v "$EXTRACT" >/dev/null 2>&1 && [[ -d "$ROOT/$EXTRACT" ]]; then
+    echo "Compiling $EXTRACT"
+    (
+        cd "$ROOT/$EXTRACT"
+        wmake
+    )
+    hash -r
 fi
 
-cd ..
+if ! command -v "$EXTRACT" >/dev/null 2>&1; then
+    echo "$EXTRACT is not available." >&2
+    echo "Compile it with: (cd $EXTRACT && wmake)" >&2
+    exit 1
+fi
 
-echo; echo; echo "Done!"; echo
-echo "View the PDF files in ${RUN_DIR}"
-echo; echo "Completed at $(date +%Y%m%d_%H%M%S)"
-echo; echo
+mkdir -p "$ROOT/runs"
+
+for mesh_level in $MESH_LEVELS; do
+    case_dir="$ROOT/runs/mesh${mesh_level}"
+
+    if [[ -e "$case_dir" ]]; then
+        echo "Run case already exists: $case_dir" >&2
+        echo "Run ./Allclean before starting a new mesh study." >&2
+        exit 1
+    fi
+
+    echo
+    echo "Copying $BASE to runs/mesh${mesh_level}"
+    cp -R "$ROOT/$BASE" "$case_dir"
+
+    block_dict="$case_dir/system/blockMeshDict.${mesh_level}"
+    extrude_dict="$case_dir/system/extrudeMeshDict.${mesh_level}"
+    if [[ ! -f "$block_dict" || ! -f "$extrude_dict" ]]; then
+        echo "Mesh definition ${mesh_level} is incomplete in $ROOT/$BASE/system." >&2
+        exit 1
+    fi
+
+    cp "$block_dict" "$case_dir/system/blockMeshDict"
+    cp "$extrude_dict" "$case_dir/system/extrudeMeshDict"
+
+    (
+        cd "$case_dir"
+
+        runApplication blockMesh
+        runApplication extrudeMesh
+        runApplication createPatch -overwrite
+
+        echo "Running solids4Foam for mesh level ${mesh_level}"
+        if command -v mpirun >/dev/null 2>&1; then
+            mpirun -np 1 solids4Foam > log.solids4Foam 2>&1
+        else
+            solids4Foam > log.solids4Foam 2>&1
+        fi
+
+        echo "Extracting the deformed midline for mesh level ${mesh_level}"
+        runApplication "$EXTRACT"
+
+        if [[ ! -f midLineDeformed.txt ]]; then
+            echo "$EXTRACT did not write midLineDeformed.txt" >&2
+            exit 1
+        fi
+    )
+done
+
+echo
+echo "Completed mesh level(s): $MESH_LEVELS"
+echo "Results are under $ROOT/runs."
+
+# Run the selected plot script from the inflation directory. Both plotters use
+# paths relative to this directory, irrespective of where Allrun was invoked.
+PYTHON_PLOT="$ROOT/plotScripts/render_land_problem2_m3_combined.py"
+GNUPLOT_PLOT="$ROOT/plotScripts/midline.gnuplot"
+
+cd "$ROOT"
+
+case "$PLOTTER" in
+    python)
+        if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
+            echo "$PLOT_PYTHON not found: skipping the figure." >&2
+        elif [[ ! -f "$PYTHON_PLOT" ]]; then
+            echo "Plot script not found: $PYTHON_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
+            "$PLOT_PYTHON" "$PYTHON_PLOT" || echo "Plotting failed." >&2
+        fi
+        ;;
+    gnuplot)
+        if ! command -v gnuplot >/dev/null 2>&1; then
+            echo "gnuplot not found: skipping the figures." >&2
+        elif [[ ! -f "$GNUPLOT_PLOT" ]]; then
+            echo "Plot script not found: $GNUPLOT_PLOT" >&2
+        else
+            echo
+            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
+            gnuplot "$GNUPLOT_PLOT" || echo "Plotting failed." >&2
+        fi
+        ;;
+    none)
+        ;;
+    *)
+        echo "Unknown PLOTTER '$PLOTTER'; expected python, gnuplot or none." >&2
+        ;;
+esac

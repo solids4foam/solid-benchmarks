@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Short verification run of every benchmark case. It exercises the same
+# workflow as ./Allrun, including figure collection and the combined PDF, on a
+# much smaller mesh sequence:
+#
+#   manufactured solution                    meshes 1-2
+#   linear Cook's membrane                   meshes 1-2
+#   nonlinear Cook's membrane (nu=0.3)       meshes 1-2
+#   nonlinear Cook's membrane (nu=0.4999)    meshes 1-2
+#   heart tissue beam                        mesh levels 1-2
+#   idealised LV inflation                   mesh 1
+#   idealised LV active contraction          mesh 1
+#
+# Any argument accepted by ./Allrun may be passed through, for example
+#   ./AllrunTest --list
+#   ./AllrunTest beam inflation
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+export RUN_MODE=test
+exec "${SCRIPT_DIR}/Allrun" "$@"

@@ -1,0 +1,37 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2312                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      setFibreFieldDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+fibreAngleEndo    90;
+fibreAngleEpi     -90;
+
+comparisonMode            false;
+coordinateConvention      paperNegativeU;
+allowNonBenchmarkAngles   false;
+
+endocardialPatch          inside;
+epicardialPatch           outside;
+basalPatch                fixed;
+
+ellipsoidBracketTolerance 1e-10;
+axisRegularisationTolerance 1e-10;
+
+rShortEndo        0.007;
+rShortEpi         0.01;
+rLongEndo         0.017;
+rLongEpi          0.02;
+
+
+// ************************************************************************* //

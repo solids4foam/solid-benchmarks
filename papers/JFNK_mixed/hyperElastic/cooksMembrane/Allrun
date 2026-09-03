@@ -7,6 +7,35 @@ source solids4FoamScripts.sh
 BASE="base/hex.snes"
 NAME="hex_snes"
 
+usage()
+{
+    echo "Usage: $0 [LAST_MESH]"
+    echo "  LAST_MESH must be an integer from 1 to 8 (default: 8)."
+}
+
+if [[ $# -gt 1 ]]
+then
+    usage >&2
+    exit 2
+fi
+
+if [[ $# -eq 1 ]]
+then
+    if [[ ! "$1" =~ ^[1-8]$ ]]
+    then
+        echo "ERROR: LAST_MESH must be an integer from 1 to 8; received '$1'." >&2
+        usage >&2
+        exit 2
+    fi
+
+    # A command-line limit always means mesh 1 through LAST_MESH.
+    START_MESH=1
+    END_MESH=$1
+else
+    START_MESH=${START_MESH:-1}
+    END_MESH=${END_MESH:-8}
+fi
+
 # Pressure stabilisation methods using the new stabilisation framework
 stabilisations=(
     "STAB=rhiechow STAB_FILE=solidProperties.rhiechow"
@@ -17,9 +46,17 @@ stabilisations=(
     "STAB=evenlap_m2 STAB_FILE=solidProperties.evenlap_m2"
 )
 
-# Mesh input files are defined from 1 to 8
-START_MESH=${START_MESH:-2}
-END_MESH=${END_MESH:-8}
+# Run only the m2 stabilisation by default. Set STAB_FILTER to another name, or
+# to "all", to override this selection.
+STAB_FILTER=${STAB_FILTER:-evenlap_m2}
+
+# Mesh input files are defined from 1 to 8. Validate environment overrides too.
+if [[ ! "${START_MESH}" =~ ^[1-8]$ || ! "${END_MESH}" =~ ^[1-8]$ \
+      || "${START_MESH}" -gt "${END_MESH}" ]]
+then
+    echo "ERROR: mesh range must satisfy 1 <= START_MESH <= END_MESH <= 8." >&2
+    exit 2
+fi
 
 
 # Detect the CPU type: we append this to the case name
@@ -57,7 +94,7 @@ for stabConfig in "${stabilisations[@]}"
 do
     eval $stabConfig
 
-    if [[ -n "${STAB_FILTER:-}" && "${STAB}" != "${STAB_FILTER}" ]]
+    if [[ "${STAB_FILTER}" != "all" && "${STAB}" != "${STAB_FILTER}" ]]
     then
         continue
     fi
@@ -71,7 +108,7 @@ do
     echo "# Mesh Time Mem D" > "${SUMMARY}"
     echo "# Mesh SNESIts MaxLinearIts TotalLinearIts" > "${ITERATIONS}"
 
-    for i in `seq $START_MESH $END_MESH`
+    for i in $(seq "${START_MESH}" "${END_MESH}")
     do
         CASE="${NAME}__${STAB}.${i}"
         echo; echo "Processing case: $CASE"
@@ -146,16 +183,22 @@ do
     echo; echo "${ITERATIONS} file:"; cat "${ITERATIONS}"; echo
 done
 
-# Create plots if gnuplot is installed
-if [[ "${RUN_PLOTS:-true}" != "false" ]] && command -v gnuplot &>/dev/null
+# Plot the present m2 results alongside the reference results after all
+# requested cases have finished.
+if [[ "${RUN_PLOTS:-true}" == "false" ]]
 then
-    cp ../plotScripts/* .
+    echo "Skipping plots because RUN_PLOTS=false"
+elif ! command -v gnuplot &>/dev/null
+then
+    echo "WARNING: gnuplot is not installed; skipping plots"
+else
+    PLOT_SCRIPT="stabVsLiterature.gnuplot"
+    cp "../plotScripts/${PLOT_SCRIPT}" \
+       ../plotScripts/deal.II.dat \
+       ../plotScripts/abaqus.dat .
 
-    for f in *gnuplot
-    do
-        echo "Running gnuplot on $f"
-        gnuplot "$f"
-    done
+    echo "Running gnuplot on ${PLOT_SCRIPT}"
+    gnuplot "${PLOT_SCRIPT}"
 fi
 
 # Exit the run directory
