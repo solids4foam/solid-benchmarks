@@ -115,6 +115,14 @@ class sphericalCavityAnalyticalSolution
 
     // Private Member Functions
 
+        //- Calculate analytical cell displacement using the selected
+        //  reconstruction semantics
+        void calculateAnalyticalCellDisplacement
+        (
+            const fvMesh& mesh,
+            vectorField& analyticalD
+        );
+
         //- Write data
         bool writeData();
 

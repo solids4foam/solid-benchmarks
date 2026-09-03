@@ -6,8 +6,7 @@ source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
 
-SCRIPT_DIR="$(cd "${0%/*}" && pwd -P)"
-export SOLIDS4FOAM_DIR="${SOLIDS4FOAM_DIR:-${SCRIPT_DIR}/../../../../../solids4foam-ib-2412}"
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
 
 # Compile local analytical library
 (cd src && ./Allwmake -s)
@@ -18,12 +17,12 @@ configs=(
     "BASE=base/segregated NAME=tet.unstruct.seg GMSH_FILE=tet"
     "BASE=base/segregated NAME=poly.unstruct.seg GMSH_FILE=poly"
     "BASE=base/snes NAME=poly.unstruct.hypre PETSC_FILE=petscOptions.hypre GMSH_FILE=poly"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.unstruct.ho.N1 GMSH_FILE=poly polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.unstruct.ho.N2 GMSH_FILE=poly polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
-    "BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N1 GMSH_FILE=tet polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N2 GMSH_FILE=tet polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct.ho.N3 GMSH_FILE=tet polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N1 GMSH_FILE=poly polyOrder=1 extraCells=45 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N2 GMSH_FILE=poly polyOrder=2 extraCells=55 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.unstruct.ho.N3 GMSH_FILE=poly polyOrder=3 extraCells=65 PETSC_FILE=petscOptions.hypre HOJAC=false HORES=true TYPE=movingLeastSquares"
 )
 
 # Define start and end mesh indices
@@ -66,7 +65,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES
+    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES TYPE
 
     # Parse the configuration string
     eval $config
@@ -138,6 +137,11 @@ do
         # Update number of stencil cells
         if [ -n "${extraCells}" ]; then
             sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update the least squares type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated

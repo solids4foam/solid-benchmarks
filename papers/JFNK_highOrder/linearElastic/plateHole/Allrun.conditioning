@@ -5,7 +5,9 @@
 source solids4FoamScripts.sh
 # Extend version not supported
 solids4Foam::caseDoesNotRunWithFoamExtend
-solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+# Compile the src  library
+(cd  src  && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
@@ -116,12 +118,12 @@ do
             sed -i "/^\s*Nn /s|^.*|            Nn ${Nn};|" constant/solidProperties
         fi
 
-	# Update how Jacobian is calculated
+        # Update how Jacobian is calculated
         if [ -n "${HOJAC}" ]; then
             sed -i "/^\s*highOrderJacobian /s|^.*|        highOrderJacobian ${HOJAC};|" constant/solidProperties
         fi
 
-	# Update how Residual is calculated
+        # Update how Residual is calculated
         if [ -n "${HORES}" ]; then
             sed -i "/^\s*highOrderResidual /s|^.*|        highOrderResidual ${HORES};|" constant/solidProperties
         fi

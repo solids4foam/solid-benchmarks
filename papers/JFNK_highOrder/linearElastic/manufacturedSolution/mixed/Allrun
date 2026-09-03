@@ -7,11 +7,11 @@ source solids4FoamScripts.sh
 solids4Foam::caseDoesNotRunWithFoamExtend
 
 # solids4Foam location path
-export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib-highOrder
+export SOLIDS4FOAM_DIR=/Users/ivanbatistic/work/solids4foam-ib/solids4foam-ib-2412/
 echo "SOLIDS4FOAM_DIR = $SOLIDS4FOAM_DIR"
 
 # Compile the manucafturedSolution library
-(cd  manufacturedSolution && wclean libso && ./Allwmake -j -s)
+(cd src && wclean libso && ./Allwmake -j -s)
 
 # Define configurations as space-separated strings
 configs=(
@@ -25,21 +25,21 @@ configs=(
     # "BASE=base/segregated NAME=tet.unstruct_v1.seg GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=tet.unstruct_v2.seg GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0"
     # "BASE=base/segregated NAME=poly.struct.seg GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0"
-    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
-    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true PETSC_FILE=petscOptions.lu"
+    "BASE=base/highOrder NAME=hex.struct.ho.N1 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N2 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=hex.struct.ho.N3 GMSH_FILE=hex-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N1 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N2 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.struct.ho.N3 GMSH_FILE=tet-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N1 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N2 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v1.ho.N3 GMSH_FILE=tet-unstructured_v1 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N1 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N2 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=tet.unstruct_v2.ho.N3 GMSH_FILE=tet-unstructured_v2 USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.struct.ho.N1 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=1 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.struct.ho.N2 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=2 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
+    "BASE=base/highOrder NAME=poly.struct.ho.N3 GMSH_FILE=poly-structured USE_PERTURBMESHPOINTS=0 polyOrder=3 extraCells=10 HOJAC=false HORES=true TYPE=movingLeastSquares"
 )
 
 # SNES segregated approach
@@ -82,7 +82,7 @@ cd "${RUN_DIR}"
 for config in "${configs[@]}"
 do
     # Reset variables in the case some variable is not used
-    unset GMSH_FILE PETSC_FILE order extraCells HOJAC HORES
+    unset GMSH_FILE polyOrder extraCells HOJAC HORES TYPE
 
     # Parse the configuration string
     eval $config
@@ -132,19 +132,19 @@ do
         fi
         solids4Foam::runApplication checkMesh
 
-        # Update the PETSc options file
-        if [ -n "${PETSC_FILE}" ]; then
-            sed -i "/^\s*optionsFile /s|^.*|    optionsFile ${PETSC_FILE};|" constant/solidProperties
-        fi
-
-        # Update the order in the LRECoeffs
+        # Update the order
         if [ -n "${polyOrder}" ]; then
             sed -i "/^\s*polynomialOrder /s|^.*|        polynomialOrder ${polyOrder};|" constant/solidProperties
         fi
 
-        # Update number of stencil cells in the LRECoeffs
+        # Update number of stencil cells in stencil
         if [ -n "${extraCells}" ]; then
             sed -i "/^\s*faceStencilExtraCells /s|^.*|        faceStencilExtraCells ${extraCells};|" constant/solidProperties
+        fi
+
+        # Update least-squares reconstruction type
+        if [ -n "${TYPE}" ]; then
+            sed -i "/^\s*type \(movingLeastSquares\|kExactLeastSquares\);/s|^.*|            type ${TYPE};|" constant/solidProperties
         fi
 
         # Update how Jacobian is calculated
