@@ -1,31 +1,116 @@
 # Linear Cook's membrane paper reproduction
 
-This directory reproduces the numerical results and the six retained Cook's
-membrane panels used by the paper.  The cases and plotting conventions were
-migrated from the original `DataHPC` calculations; the reproduction scripts do
-not refer back to that external directory.
+This directory prepares the normalised pressure-stabilisation Cook's membrane
+campaign for Paper 1. The cases and visual conventions come from the historical
+`DataHPC` calculations, but this workflow is self-contained and never writes to
+that archive.
 
-## Requirements
+## Historical baseline
 
-Run from a shell with the OpenFOAM-v2312 and solids4foam environment loaded.
-The workflow checks for the applications it needs before creating cases:
+The original reproduction contained 180 simulations:
 
-- `python3`
-- `blockMesh`
-- `solids4Foam`
-- `gmsh`, `gmshToFoam`, `changeDictionary` and `checkMesh` for the unstructured study
-- the Python `reportlab` package for plotting
+- 36 structured accuracy/timing cases: six pressure operators on six meshes,
+  with `sp=10.0` and `sm=0.1`;
+- 108 structured pressure-scale cases: paper orders `m=1`, `m=2` and `m=3`
+  on six meshes at `sp=0.01, 0.1, 1, 10, 100, 1000`, with `sm=0.1`;
+- 36 unstructured verification cases: six pressure operators on six meshes,
+  with `sp=10.0` and `sm=1.0`.
 
-`Allrun` re-sources `$WM_PROJECT_DIR/etc/bashrc` before starting.  If the
-OpenFOAM environment file is elsewhere, set `OPENFOAM_BASHRC` to its path.
-The prerequisite check executes `solids4Foam -help`, so a binary with missing
-dynamic libraries is rejected before the first case is generated.
+Those runs generated the structured displacement and execution-time/error
+panels, the three order-specific pressure-scale panels, and the unstructured
+displacement panel. The tracked raw dictionaries and historical `DataHPC`
+results remain unchanged.
 
-## Workflows
+## Normalised campaign
 
-Run the complete 180-case paper calculation and create all figures with:
+Every generated pressure-stabilisation dictionary uses:
+
+```text
+normalise                    true;
+referenceNyquistDirections   2;
+```
+
+The nominal `sp` values are unchanged. The generalised model mapping is
+`paper m = laplacianPower + 1`, so powers 0, 1 and 2 are paper orders 1, 2 and
+3. Rhie--Chow is a separate operator with its own spectral shape; it is not
+labelled as coupled `m=2`.
+
+The full 396-case matrix is:
+
+| Study | Methods | Meshes | `sp` values | `sm` values | Cases |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Structured accuracy/timing | 6 | 6 | 1 | 2 | 72 |
+| Structured pressure scale | 4 | 6 | 6 | 2 | 288 |
+| Unstructured verification | 6 | 6 | 1 | 1 | 36 |
+
+The six accuracy methods are Rhie--Chow, standalone Laplacian, JST, and the
+three generalised orders. The pressure-scale study uses the three generalised
+orders plus Rhie--Chow at every existing `sp`. Structured runs use both
+`sm=1.0` and `sm=0.1`. The unstructured study deliberately remains a single
+`sm=1.0` verification campaign.
+
+The structured mesh sequence is `3, 6, 12, 24, 48, 96` cells per side, with
+one cell through the thickness. The unstructured Gmsh spacings are
+`16, 8, 4, 2, 1, 0.5`, with expected cell counts
+`19, 62, 241, 941, 3793, 15131`. Material properties, loading, boundary
+conditions, PETSc options, tolerances and the displacement sample point
+`(48.0 60.0 0)` are inherited unchanged from the paper cases.
+
+## Required solids4foam build
+
+The executable and `libsolids4FoamModels` must come from a checkout containing
+normalisation commit:
+
+```text
+329898141971d40e201ff2ee6ae4d19e8a97643c
+```
+
+The current integration branch is `pr/spectral-normalisation`. On the HPC
+system, load the desired OpenFOAM environment and build that solids4foam
+checkout normally, for example:
 
 ```sh
+export OPENFOAM_BASHRC=/path/to/OpenFOAM/etc/bashrc
+source "$OPENFOAM_BASHRC"
+export SOLIDS4FOAM_SOURCE=/path/to/normalisation-enabled/solids4foam
+cd "$SOLIDS4FOAM_SOURCE"
+./Allwmake
+```
+
+If the models library is outside `$FOAM_USER_LIBBIN` or `$FOAM_LIBBIN`, also
+set `SOLIDS4FOAM_MODELS_LIB` to its absolute path. Before creating cases, the
+workflow checks that the required commit is an ancestor of the selected source
+HEAD, that the source and compiled library contain normalisation markers, that
+the solver links `libsolids4FoamModels`, and that `solids4Foam -help` loads.
+The checked source HEAD, executable and library are recorded in generated run
+provenance.
+
+## Manifest and preparation checks
+
+Enumerate and validate the complete matrix without writing cases:
+
+```sh
+./Allrun --list
+./AllrunTest --list
+```
+
+Create all cheap-test dictionaries without meshing or solving:
+
+```sh
+./Allclean
+./AllrunTest --prepare-only
+```
+
+This is useful for inspecting dictionaries with `foamDictionary` before an HPC
+submission. Run `./Allclean` afterwards.
+
+## Running locally or on HPC
+
+Run the complete campaign and create the figures with:
+
+```sh
+export OPENFOAM_BASHRC=/path/to/OpenFOAM/etc/bashrc
+export SOLIDS4FOAM_SOURCE=/path/to/normalisation-enabled/solids4foam
 ./Allrun
 ```
 
@@ -38,79 +123,84 @@ Individual stages are available as:
 ./Allrun plots
 ```
 
-The individual numerical stages can be run sequentially.  `./Allrun plots`
-requires all three processed result tables for the selected mode.
-
-The end-to-end test uses exactly the same implementation but selects mesh
-indices 1 and 2:
+For SLURM, preserve the historical serial execution convention:
 
 ```sh
+sbatch --export=ALL,OPENFOAM_BASHRC=/path/to/bashrc,\
+SOLIDS4FOAM_SOURCE=/path/to/solids4foam run.slurm
+```
+
+An optional module can be loaded with `OPENFOAM_MODULE`, and an individual
+stage can be selected with `COOKS_TARGET=structured`, `parameter`,
+`unstructured` or `plots`. Do not run stages concurrently in the same output
+tree. The workflow refuses to overwrite existing cases and records each case
+as `PENDING`, `RUNNING`, `OK` or `FAILED`; final result tables are written only
+after every requested simulation succeeds.
+
+## Cheap test
+
+The test uses the first two existing meshes and the existing `sp=10` pressure
+scale. It exercises both momentum settings, all six accuracy methods, all four
+pressure-sweep methods, the single-scope unstructured study, extraction and
+separate figure generation:
+
+```sh
+./Allclean
 ./AllrunTest
 ```
 
-It still runs all methods and parameter combinations: 12 structured cases, 36
-pressure-scale cases and 12 unstructured cases, for 60 simulations in total.
+It contains 24 structured accuracy runs, 16 pressure-scale runs and 12
+unstructured runs, for 52 simulations. It cannot select the full mesh or
+pressure-scale matrix accidentally because those selections are fixed by test
+mode in the shared generator.
 
-Before running, enumerate and validate the exact manifest without creating any
-cases:
+## Output layout
 
-```sh
-./AllrunTest --list
-./Allrun --list
+Every case path records normalisation, momentum scale, study, model, pressure
+scale where applicable, and mesh. For example:
+
+```text
+runs/full/normalised_r2/sm1p0/parameter/rhiechow/sp_0p1/mesh_03/
+runs/full/normalised_r2/sm0p1/structured/evenlap_m2/mesh_06/
 ```
 
-Clean all generated cases, logs, result tables and figures with:
+Processed tables and progress manifests are separated in the same way:
+
+```text
+results/<mode>/normalised_r2/sm1p0/{structured,parameter,unstructured}.tsv
+results/<mode>/normalised_r2/sm0p1/{structured,parameter}.tsv
+runs/<mode>/normalised_r2/provenance.txt
+runs/<mode>/normalised_r2/<sm>/*_{manifest,progress}.tsv
+```
+
+Plots never combine momentum campaigns. The shared axis bounds and original
+fonts, dimensions, colours, markers, line styles and legend placement are
+retained wherever possible. Rhie--Chow uses triangle markers with the existing
+`sp` colour. The generated PDFs are:
+
+```text
+figure5_structured_displacement_sm1p0.pdf
+figure5_execution_time_vs_error_sm1p0.pdf
+figure6_pressure_scale_m1_sm1p0.pdf
+figure6_pressure_scale_m2_sm1p0.pdf
+figure6_pressure_scale_m3_sm1p0.pdf
+figure5_structured_displacement_sm0p1.pdf
+figure5_execution_time_vs_error_sm0p1.pdf
+figure6_pressure_scale_m1_sm0p1.pdf
+figure6_pressure_scale_m2_sm0p1.pdf
+figure6_pressure_scale_m3_sm0p1.pdf
+figure7b_unstructured_displacement.pdf
+```
+
+Only the first structured experiment retains both accuracy and
+error-versus-execution-time panels. The pressure-scale and unstructured studies
+retain their accuracy-only scope.
+
+Clean generated cases, logs, tables and figures with:
 
 ```sh
 ./Allclean
 ```
 
-`Allclean` retains the canonical bases, mesh definitions, plotting code,
-benchmark data and the user-supplied `unstructured/0.1` migration archive.
-
-## Scientific configuration
-
-The structured mesh sequence is `3, 6, 12, 24, 48, 96` cells per side, with
-one cell through the thickness.  Study 1 uses `sp=10.0` and `sm=0.1` for
-Rhie-Chow, Laplacian, JST and generalised even-order Laplacian powers 0, 1 and
-2.  The latter correspond to the paper labels `m=1`, `m=2` and `m=3`.
-
-The pressure-scale study holds `sm=0.1` and sweeps
-`sp=0.01, 0.1, 1, 10, 100, 1000` for all three even-Laplacian powers.
-
-The unstructured study uses the six Gmsh spacings `16, 8, 4, 2, 1, 0.5`, whose
-nominal resolutions are again `3, 6, 12, 24, 48, 96` cells per side.  The
-expected mesh cell counts are `19, 62, 241, 941, 3793, 15131`.  All six methods
-use `sp=10.0` and `sm=1.0`.  Generated dictionaries and mesh cell counts are
-validated before solving or accepting results.
-
-The measured value is vertical displacement at `(48.0 60.0 0)`.  The final
-data row's `Dy` is retained as `dy_raw` and multiplied by `0.001` for plotting.
-Only Study 1 extracts `ExecutionTime`.  Its error reference is the finest
-available structured `evenlap_m2` result: mesh 2 in test mode and mesh 6 in
-full mode.
-
-## Generated files
-
-Raw cases and logs are written below `runs/test` or `runs/full`.  Deterministic
-processed tables are written to:
-
-```text
-results/<mode>/structured.tsv
-results/<mode>/parameter.tsv
-results/<mode>/unstructured.tsv
-```
-
-Only these paper PDFs are generated below `figures/<mode>`:
-
-```text
-figure5_structured_displacement.pdf
-figure5_execution_time_vs_error.pdf
-figure6_pressure_scale_m1.pdf
-figure6_pressure_scale_m2.pdf
-figure6_pressure_scale_m3.pdf
-figure7b_unstructured_displacement.pdf
-```
-
-The benchmark data and paper-style renderer are in `plotScripts`.  Solver logs
-are never parsed directly by the plotting code.
+Canonical bases, mesh definitions, plotting sources and benchmark reference
+data are retained.

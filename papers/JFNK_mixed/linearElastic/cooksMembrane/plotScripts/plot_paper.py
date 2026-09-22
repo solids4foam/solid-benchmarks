@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render only the six retained linear Cook's membrane paper panels.
+"""Render the retained Cook's membrane panels for each requested campaign.
 
 The dimensions, fonts, colours, markers, labels, grids and legend layout are
 adapted from the ReportLab and gnuplot scripts archived with DataHPC.
@@ -22,6 +22,8 @@ except ImportError as error:
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCHMARK_FILE = Path(__file__).resolve().parent / "Bijelona.csv"
+NORMALISATION_TAG = "normalised_r2"
+MOMENTUM_SCALES = ("1.0", "0.1")
 METHODS = (
     ("jst", "JST", colors.HexColor("#4C78A8"), "square"),
     ("laplacian", "Laplacian", colors.HexColor("#5B8E55"), "circle"),
@@ -40,7 +42,7 @@ SCALE_COLOURS = {
 }
 
 
-def read_results(path: Path) -> list[dict[str, object]]:
+def read_results(path: Path, expected_sm: str | None = None) -> list[dict[str, object]]:
     if not path.is_file() or path.stat().st_size == 0:
         raise ValueError(f"processed result file is missing or empty: {path}")
     rows: list[dict[str, object]] = []
@@ -52,6 +54,9 @@ def read_results(path: Path) -> list[dict[str, object]]:
             "method",
             "paper_m",
             "sp",
+            "sm",
+            "normalise",
+            "referenceNyquistDirections",
             "dy_scaled",
             "execution_time_s",
             "status",
@@ -62,6 +67,12 @@ def read_results(path: Path) -> list[dict[str, object]]:
         for source in reader:
             if source["status"] != "OK":
                 raise ValueError(f"non-OK result in {path}: {source}")
+            if source["normalise"] != "true" or source["referenceNyquistDirections"] != "2":
+                raise ValueError(f"non-normalised or wrong-rStar result in {path}: {source}")
+            if expected_sm is not None and source["sm"] != expected_sm:
+                raise ValueError(
+                    f"mixed momentum campaign in {path}: expected sm={expected_sm}, got {source['sm']}"
+                )
             try:
                 row = dict(source)
                 row["mesh_index"] = int(source["mesh_index"])
@@ -298,7 +309,27 @@ def method_points(rows: list[dict[str, object]], method: str) -> list[tuple[floa
     )
 
 
-def render_method_displacement(path: Path, rows: list[dict[str, object]]) -> None:
+def method_displacement_bounds(
+    row_groups: list[list[dict[str, object]]],
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    benchmark = read_benchmark()
+    points = [
+        point
+        for rows in row_groups
+        for method, *_ in METHODS
+        for point in method_points(rows, method)
+    ]
+    return (
+        finite_bounds([x for x, _ in points] + [x for x, _ in benchmark]),
+        finite_bounds([y for _, y in points] + [y for _, y in benchmark]),
+    )
+
+
+def render_method_displacement(
+    path: Path,
+    rows: list[dict[str, object]],
+    axis_bounds: tuple[tuple[float, float], tuple[float, float]] | None = None,
+) -> None:
     benchmark = read_benchmark()
     series = [
         (label, colour, shape, method_points(rows, method))
@@ -309,7 +340,7 @@ def render_method_displacement(path: Path, rows: list[dict[str, object]]) -> Non
     xs = [x for *_, points in series for x, _ in points] + [x for x, _ in benchmark]
     ys = [y for *_, points in series for _, y in points] + [y for _, y in benchmark]
     plot = Plot(path, "Cells per side", "Vertical displacement")
-    xb, yb = finite_bounds(xs), finite_bounds(ys)
+    xb, yb = axis_bounds if axis_bounds is not None else (finite_bounds(xs), finite_bounds(ys))
     plot.draw_axes(xb, yb)
     plot.draw_series(benchmark, xb, yb, colors.HexColor("#111111"), "triangle", dashed=True)
     for _, colour, shape, points in series:
@@ -321,7 +352,9 @@ def render_method_displacement(path: Path, rows: list[dict[str, object]]) -> Non
     plot.finish()
 
 
-def render_time_error(path: Path, rows: list[dict[str, object]], mode: str) -> None:
+def time_error_series(
+    rows: list[dict[str, object]], mode: str
+) -> list[tuple[object, str, list[tuple[float, float]]]]:
     reference_rows = [row for row in rows if row["method"] == "evenlap_m2"]
     if not reference_rows:
         raise ValueError("structured m=3 reference series is missing")
@@ -345,44 +378,98 @@ def render_time_error(path: Path, rows: list[dict[str, object]], mode: str) -> N
                 points.append((execution_time, error))
         points.sort()
         series.append((colour, shape, points))
+    return series
+
+
+def time_error_bounds(
+    row_groups: list[list[dict[str, object]]], mode: str
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    series = [item for rows in row_groups for item in time_error_series(rows, mode)]
+    xs = [x for _, _, points in series for x, _ in points]
+    ys = [y for _, _, points in series for _, y in points]
+    return finite_bounds(xs, True), finite_bounds(ys, True)
+
+
+def render_time_error(
+    path: Path,
+    rows: list[dict[str, object]],
+    mode: str,
+    axis_bounds: tuple[tuple[float, float], tuple[float, float]] | None = None,
+) -> None:
+    series = time_error_series(rows, mode)
     xs = [x for _, _, points in series for x, _ in points]
     ys = [y for _, _, points in series for _, y in points]
     plot = Plot(path, "Execution time [s]", "|d_y - d_y,ref|", logx=True, logy=True)
-    xb, yb = finite_bounds(xs, True), finite_bounds(ys, True)
+    xb, yb = axis_bounds if axis_bounds is not None else (finite_bounds(xs, True), finite_bounds(ys, True))
     plot.draw_axes(xb, yb)
     for colour, shape, points in series:
         plot.draw_series(points, xb, yb, colour, shape)
     plot.finish()
 
 
-def render_parameter_panel(path: Path, rows: list[dict[str, object]], paper_m: int) -> None:
+def parameter_series(
+    rows: list[dict[str, object]], paper_m: int
+) -> list[tuple[str, object, str, list[tuple[float, float]]]]:
+    present_scales = {str(row["sp"]) for row in rows}
+    scales = [scale for scale in SCALE_COLOURS if scale in present_scales]
+    if present_scales != set(scales):
+        raise ValueError(f"unknown pressure scales in parameter data: {sorted(present_scales)}")
+    series: list[tuple[str, object, str, list[tuple[float, float]]]] = []
+    for scale in scales:
+        colour = SCALE_COLOURS[scale]
+        for method, shape in ((f"evenlap_m{paper_m - 1}", "cross"), ("rhiechow", "triangle")):
+            points = sorted(
+                (
+                    (float(row["cells_per_side"]), float(row["dy_scaled"]))
+                    for row in rows
+                    if row["method"] == method and str(row["sp"]) == scale
+                ),
+                key=lambda point: point[0],
+            )
+            if not points:
+                raise ValueError(
+                    f"parameter series method={method}, m={paper_m}, sp={scale} is empty"
+                )
+            series.append((scale, colour, shape, points))
+    return series
+
+
+def parameter_bounds(
+    row_groups: list[list[dict[str, object]]], paper_m: int
+) -> tuple[tuple[float, float], tuple[float, float]]:
     benchmark = read_benchmark()
-    series: list[tuple[str, object, list[tuple[float, float]]]] = []
-    for scale, colour in SCALE_COLOURS.items():
-        points = sorted(
-            (
-                (float(row["cells_per_side"]), float(row["dy_scaled"]))
-                for row in rows
-                if row["paper_m"] == paper_m and str(row["sp"]) == scale
-            ),
-            key=lambda point: point[0],
-        )
-        if not points:
-            raise ValueError(f"parameter series m={paper_m}, sp={scale} is empty")
-        series.append((scale, colour, points))
-    xs = [x for _, _, points in series for x, _ in points] + [x for x, _ in benchmark]
-    ys = [y for _, _, points in series for _, y in points] + [y for _, y in benchmark]
+    series = [item for rows in row_groups for item in parameter_series(rows, paper_m)]
+    xs = [x for *_, points in series for x, _ in points] + [x for x, _ in benchmark]
+    ys = [y for *_, points in series for _, y in points] + [y for _, y in benchmark]
+    return finite_bounds(xs, padding=0.12), finite_bounds(ys, padding=0.12)
+
+
+def render_parameter_panel(
+    path: Path,
+    rows: list[dict[str, object]],
+    paper_m: int,
+    axis_bounds: tuple[tuple[float, float], tuple[float, float]] | None = None,
+) -> None:
+    benchmark = read_benchmark()
+    series = parameter_series(rows, paper_m)
+    xs = [x for *_, points in series for x, _ in points] + [x for x, _ in benchmark]
+    ys = [y for *_, points in series for _, y in points] + [y for _, y in benchmark]
     plot = Plot(path, "Cells per side", "Vertical displacement", parameter_panel=True)
-    xb = finite_bounds(xs, padding=0.12)
-    yb = finite_bounds(ys, padding=0.12)
+    xb, yb = axis_bounds if axis_bounds is not None else (
+        finite_bounds(xs, padding=0.12),
+        finite_bounds(ys, padding=0.12),
+    )
     plot.draw_axes(xb, yb)
     plot.draw_series(benchmark, xb, yb, colors.HexColor("#111111"), "cross", dashed=True)
-    for _, colour, points in series:
-        plot.draw_series(points, xb, yb, colour, "cross")
+    for _, colour, shape, points in series:
+        plot.draw_series(points, xb, yb, colour, shape)
     plot.annotation(f"m={paper_m}")
+    present_scales = [scale for scale in SCALE_COLOURS if scale in {item[0] for item in series}]
     plot.legend(
         [("Benchmark", colors.HexColor("#111111"), "cross")]
-        + [(scale, colour, "cross") for scale, colour, _ in series]
+        + [(scale, SCALE_COLOURS[scale], "cross") for scale in present_scales]
+        + [("Rhie-Chow (same s_p colour)", colors.black, "triangle")],
+        font_size=10,
     )
     plot.finish()
 
@@ -398,23 +485,56 @@ def main() -> None:
     results_dir = ROOT / "results" / args.mode
     output_dir = ROOT / "figures" / args.mode
     output_dir.mkdir(parents=True, exist_ok=True)
-    structured = read_results(results_dir / "structured.tsv")
-    parameter = read_results(results_dir / "parameter.tsv")
-    unstructured = read_results(results_dir / "unstructured.tsv")
-
-    render_method_displacement(output_dir / "figure5_structured_displacement.pdf", structured)
-    render_time_error(output_dir / "figure5_execution_time_vs_error.pdf", structured, args.mode)
-    for paper_m in (1, 2, 3):
-        render_parameter_panel(
-            output_dir / f"figure6_pressure_scale_m{paper_m}.pdf",
-            parameter,
-            paper_m,
+    structured = {
+        sm: read_results(
+            results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "structured.tsv",
+            sm,
         )
+        for sm in MOMENTUM_SCALES
+    }
+    parameter = {
+        sm: read_results(
+            results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "parameter.tsv",
+            sm,
+        )
+        for sm in MOMENTUM_SCALES
+    }
+    unstructured = read_results(
+        results_dir / NORMALISATION_TAG / "sm1p0" / "unstructured.tsv",
+        "1.0",
+    )
+
+    structured_bounds = method_displacement_bounds(list(structured.values()))
+    timing_bounds = time_error_bounds(list(structured.values()), args.mode)
+    parameter_axis_bounds = {
+        paper_m: parameter_bounds(list(parameter.values()), paper_m)
+        for paper_m in (1, 2, 3)
+    }
+    for sm in MOMENTUM_SCALES:
+        suffix = f"sm{sm.replace('.', 'p')}"
+        render_method_displacement(
+            output_dir / f"figure5_structured_displacement_{suffix}.pdf",
+            structured[sm],
+            structured_bounds,
+        )
+        render_time_error(
+            output_dir / f"figure5_execution_time_vs_error_{suffix}.pdf",
+            structured[sm],
+            args.mode,
+            timing_bounds,
+        )
+        for paper_m in (1, 2, 3):
+            render_parameter_panel(
+                output_dir / f"figure6_pressure_scale_m{paper_m}_{suffix}.pdf",
+                parameter[sm],
+                paper_m,
+                parameter_axis_bounds[paper_m],
+            )
     render_method_displacement(
         output_dir / "figure7b_unstructured_displacement.pdf",
         unstructured,
     )
-    print(f"Wrote 6 paper PDFs to {output_dir}")
+    print(f"Wrote 11 paper PDFs to {output_dir}")
 
 
 if __name__ == "__main__":

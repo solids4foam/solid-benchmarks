@@ -6,15 +6,17 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 MODE=${RUN_MODE:-full}
 TARGET=all
 LIST_ONLY=false
+PREPARE_ONLY=false
 
 usage()
 {
     cat <<'EOF'
-Usage: ./Allrun [structured|parameter|unstructured|plots] [--list]
+Usage: ./Allrun [structured|parameter|unstructured|plots] [--list|--prepare-only]
 
-With no target, run all three studies and generate the six paper figures.
+With no target, run all three studies and generate the eleven paper figures.
 Set RUN_MODE=test, or use ./AllrunTest, to select only the first two meshes.
 Use --list to validate and print the cases without creating or running them.
+Use --prepare-only to create and validate dictionaries without running solvers.
 EOF
 }
 
@@ -31,6 +33,9 @@ do
             ;;
         --list)
             LIST_ONLY=true
+            ;;
+        --prepare-only)
+            PREPARE_ONLY=true
             ;;
         -h|--help)
             usage
@@ -103,6 +108,10 @@ arguments=(--mode "$MODE" --target "$TARGET")
 if [[ "$LIST_ONLY" == true ]]
 then
     arguments+=(--list)
+fi
+if [[ "$PREPARE_ONLY" == true ]]
+then
+    arguments+=(--prepare-only)
 fi
 
 exec python3 "$SCRIPT_DIR/scripts/workflow.py" "${arguments[@]}"

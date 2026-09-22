@@ -23,6 +23,12 @@ PLOTTER = ROOT / "plotScripts" / "plot_paper.py"
 MESH_CELLS_PER_SIDE = {1: 3, 2: 6, 3: 12, 4: 24, 5: 48, 6: 96}
 UNSTRUCTURED_CELLS = {1: 19, 2: 62, 3: 241, 4: 941, 5: 3793, 6: 15131}
 PRESSURE_SCALES = ("0.01", "0.1", "1", "10", "100", "1000")
+TEST_PRESSURE_SCALES = ("10",)
+MOMENTUM_SCALES = ("1.0", "0.1")
+NORMALISE = "true"
+REFERENCE_NYQUIST_DIRECTIONS = 2
+NORMALISATION_TAG = "normalised_r2"
+REQUIRED_NORMALISATION_COMMIT = "329898141971d40e201ff2ee6ae4d19e8a97643c"
 
 
 @dataclass(frozen=True)
@@ -46,6 +52,7 @@ METHODS = (
     Method("evenlap_m2", "Even Laplacian, m=3", "generalisedEvenOrderLaplacian", 2),
 )
 EVEN_METHODS = METHODS[3:]
+PARAMETER_METHODS = (*EVEN_METHODS, METHODS[0])
 
 
 @dataclass(frozen=True)
@@ -74,6 +81,8 @@ RESULT_FIELDS = (
     "laplacian_power",
     "sp",
     "sm",
+    "normalise",
+    "referenceNyquistDirections",
     "dy_raw",
     "dy_scaled",
     "execution_time_s",
@@ -86,6 +95,10 @@ def mesh_indices(mode: str) -> tuple[int, ...]:
     return (1, 2) if mode == "test" else (1, 2, 3, 4, 5, 6)
 
 
+def pressure_scales(mode: str) -> tuple[str, ...]:
+    return TEST_PRESSURE_SCALES if mode == "test" else PRESSURE_SCALES
+
+
 def scale_slug(value: str) -> str:
     return value.replace(".", "p")
 
@@ -94,35 +107,43 @@ def enumerate_specs(mode: str, target: str) -> list[CaseSpec]:
     meshes = mesh_indices(mode)
     specs: list[CaseSpec] = []
     if target in {"all", "structured"}:
-        for method in METHODS:
-            for mesh in meshes:
-                specs.append(
-                    CaseSpec(
-                        "structured",
-                        method,
-                        mesh,
-                        "10.0",
-                        "0.1",
-                        Path("structured") / method.tag / f"mesh_{mesh:02d}",
-                    )
-                )
-    if target in {"all", "parameter"}:
-        for method in EVEN_METHODS:
-            for sp in PRESSURE_SCALES:
+        for sm in MOMENTUM_SCALES:
+            for method in METHODS:
                 for mesh in meshes:
                     specs.append(
                         CaseSpec(
-                            "parameter",
+                            "structured",
                             method,
                             mesh,
-                            sp,
-                            "0.1",
-                            Path("parameter")
-                            / f"m{method.paper_m}"
-                            / f"sp_{scale_slug(sp)}"
+                            "10.0",
+                            sm,
+                            Path(NORMALISATION_TAG)
+                            / f"sm{scale_slug(sm)}"
+                            / "structured"
+                            / method.tag
                             / f"mesh_{mesh:02d}",
                         )
                     )
+    if target in {"all", "parameter"}:
+        for sm in MOMENTUM_SCALES:
+            for method in PARAMETER_METHODS:
+                for sp in pressure_scales(mode):
+                    for mesh in meshes:
+                        specs.append(
+                            CaseSpec(
+                                "parameter",
+                                method,
+                                mesh,
+                                sp,
+                                sm,
+                                Path(NORMALISATION_TAG)
+                                / f"sm{scale_slug(sm)}"
+                                / "parameter"
+                                / method.tag
+                                / f"sp_{scale_slug(sp)}"
+                                / f"mesh_{mesh:02d}",
+                            )
+                        )
     if target in {"all", "unstructured"}:
         for method in METHODS:
             for mesh in meshes:
@@ -133,7 +154,11 @@ def enumerate_specs(mode: str, target: str) -> list[CaseSpec]:
                         mesh,
                         "10.0",
                         "1.0",
-                        Path("unstructured") / method.tag / f"mesh_{mesh:02d}",
+                        Path(NORMALISATION_TAG)
+                        / "sm1p0"
+                        / "unstructured"
+                        / method.tag
+                        / f"mesh_{mesh:02d}",
                     )
                 )
     return specs
@@ -165,6 +190,28 @@ def replace_block_entry(text: str, block_name: str, key: str, value: str) -> str
     return text[:start] + block + text[end:]
 
 
+def set_block_entry(text: str, block_name: str, key: str, value: str) -> str:
+    """Set an existing block entry or append it using the block's indentation."""
+    start, end = find_named_block(text, block_name)
+    block = text[start:end]
+    pattern = re.compile(rf"(?m)^(\s*{re.escape(key)}\s+)[^;\s]+(\s*;)")
+    replaced, count = pattern.subn(rf"\g<1>{value}\g<2>", block, count=1)
+    if count == 1:
+        return text[:start] + replaced + text[end:]
+    if count != 0:
+        raise ValueError(f"entry '{key}' occurs more than once in block '{block_name}'")
+    entry = re.search(r"(?m)^(\s*)type\s+", block)
+    if entry is None:
+        raise ValueError(f"cannot determine indentation for block '{block_name}'")
+    closing_line = block.rfind("\n")
+    if closing_line < 0:
+        raise ValueError(f"dictionary block '{block_name}' has no line structure")
+    indentation = entry.group(1)
+    addition = f"\n{indentation}{key:<28}{value};"
+    block = block[:closing_line].rstrip() + addition + block[closing_line:]
+    return text[:start] + block + text[end:]
+
+
 def block_entry(text: str, block_name: str, key: str) -> str:
     start, end = find_named_block(text, block_name)
     block = text[start:end]
@@ -184,6 +231,12 @@ def validate_dictionary(text: str, method: Method, sp: str, sm: str, source: Pat
         pressure_type = block_entry(text, "pressure", "type")
         pressure_scale = block_entry(text, "pressure", "scaleFactor")
         jacobian_scale = block_entry(text, "pressure", "scaleFactorJacobian")
+        normalise = block_entry(text, "pressure", "normalise")
+        reference_directions = block_entry(
+            text,
+            "pressure",
+            "referenceNyquistDirections",
+        )
         if momentum_type != "diffStencilLaplacian":
             errors.append(f"momentum type={momentum_type}")
         if not math.isclose(float(momentum_scale), float(sm)):
@@ -194,6 +247,13 @@ def validate_dictionary(text: str, method: Method, sp: str, sm: str, source: Pat
             errors.append(f"sp={pressure_scale}, expected {sp}")
         if not math.isclose(float(jacobian_scale), float(sp)):
             errors.append(f"Jacobian sp={jacobian_scale}, expected {sp}")
+        if normalise != NORMALISE:
+            errors.append(f"normalise={normalise}, expected {NORMALISE}")
+        if int(reference_directions) != REFERENCE_NYQUIST_DIRECTIONS:
+            errors.append(
+                "referenceNyquistDirections="
+                f"{reference_directions}, expected {REFERENCE_NYQUIST_DIRECTIONS}"
+            )
         if method.laplacian_power is not None:
             power = int(block_entry(text, "pressure", "laplacianPower"))
             if power != method.laplacian_power:
@@ -213,7 +273,15 @@ def validate_sources() -> None:
             path = base / "constant" / f"solidProperties.{method.tag}"
             if not path.is_file():
                 raise RuntimeError(f"required canonical dictionary is missing: {path}")
-            validate_dictionary(path.read_text(), method, sp, sm, path)
+            text = path.read_text()
+            text = set_block_entry(text, "pressure", "normalise", NORMALISE)
+            text = set_block_entry(
+                text,
+                "pressure",
+                "referenceNyquistDirections",
+                str(REFERENCE_NYQUIST_DIRECTIONS),
+            )
+            validate_dictionary(text, method, sp, sm, path)
         control_dict = base / "system" / "controlDict"
         text = control_dict.read_text()
         if not re.search(r"point\s*\(\s*48\.0\s+60\.0\s+0\s*\)\s*;", text):
@@ -241,8 +309,11 @@ def validate_specs(specs: list[CaseSpec], mode: str, target: str) -> None:
 
     nmesh = len(mesh_indices(mode))
     expected_by_study = {
-        "structured": len(METHODS) * nmesh,
-        "parameter": len(EVEN_METHODS) * len(PRESSURE_SCALES) * nmesh,
+        "structured": len(METHODS) * len(MOMENTUM_SCALES) * nmesh,
+        "parameter": len(PARAMETER_METHODS)
+        * len(pressure_scales(mode))
+        * len(MOMENTUM_SCALES)
+        * nmesh,
         "unstructured": len(METHODS) * nmesh,
     }
     requested = (
@@ -258,15 +329,17 @@ def validate_specs(specs: list[CaseSpec], mode: str, target: str) -> None:
     meshes = set(mesh_indices(mode))
     expected_keys: dict[str, set[tuple[object, ...]]] = {
         "structured": {
-            (method.tag, mesh, "10.0", "0.1")
+            (method.tag, mesh, "10.0", sm)
             for method in METHODS
             for mesh in meshes
+            for sm in MOMENTUM_SCALES
         },
         "parameter": {
-            (method.tag, mesh, sp, "0.1")
-            for method in EVEN_METHODS
-            for sp in PRESSURE_SCALES
+            (method.tag, mesh, sp, sm)
+            for method in PARAMETER_METHODS
+            for sp in pressure_scales(mode)
             for mesh in meshes
+            for sm in MOMENTUM_SCALES
         },
         "unstructured": {
             (method.tag, mesh, "10.0", "1.0")
@@ -291,6 +364,10 @@ def validate_specs(specs: list[CaseSpec], mode: str, target: str) -> None:
         if method.paper_m != method.laplacian_power + 1:
             raise RuntimeError(f"invalid paper/internal m mapping for {method.tag}")
 
+    unstructured_sm = {spec.sm for spec in specs if spec.study == "unstructured"}
+    if unstructured_sm and unstructured_sm != {"1.0"}:
+        raise RuntimeError(f"unstructured study must remain single-scope sm=1.0: {unstructured_sm}")
+
 
 def manifest_row(spec: CaseSpec) -> dict[str, str | int]:
     return {
@@ -306,6 +383,8 @@ def manifest_row(spec: CaseSpec) -> dict[str, str | int]:
         else spec.method.laplacian_power,
         "sp": spec.sp,
         "sm": spec.sm,
+        "normalise": NORMALISE,
+        "referenceNyquistDirections": REFERENCE_NYQUIST_DIRECTIONS,
     }
 
 
@@ -337,6 +416,13 @@ def configure_case(case: Path, spec: CaseSpec) -> None:
     text = replace_block_entry(text, "momentum", "scaleFactor", spec.sm)
     text = replace_block_entry(text, "pressure", "scaleFactor", spec.sp)
     text = replace_block_entry(text, "pressure", "scaleFactorJacobian", spec.sp)
+    text = set_block_entry(text, "pressure", "normalise", NORMALISE)
+    text = set_block_entry(
+        text,
+        "pressure",
+        "referenceNyquistDirections",
+        str(REFERENCE_NYQUIST_DIRECTIONS),
+    )
     active = case / "constant" / "solidProperties"
     active.write_text(text)
     validate_dictionary(text, spec.method, spec.sp, spec.sm, active)
@@ -370,6 +456,92 @@ def validate_executable_loads(path: str, name: str) -> None:
         )
 
 
+def normalisation_build_provenance(solver: str) -> dict[str, str]:
+    source_value = os.environ.get("SOLIDS4FOAM_SOURCE")
+    if not source_value:
+        raise RuntimeError(
+            "SOLIDS4FOAM_SOURCE must name the matching normalisation-enabled "
+            "solids4foam checkout"
+        )
+    source = Path(source_value).expanduser().resolve()
+    if not (source / ".git").exists():
+        raise RuntimeError(f"SOLIDS4FOAM_SOURCE is not a Git checkout: {source}")
+    head = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    ancestor = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "merge-base",
+            "--is-ancestor",
+            REQUIRED_NORMALISATION_COMMIT,
+            "HEAD",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    if ancestor.returncode != 0:
+        raise RuntimeError(
+            f"solids4foam HEAD {head} does not contain required normalisation "
+            f"commit {REQUIRED_NORMALISATION_COMMIT}"
+        )
+    source_model = (
+        source
+        / "src/solids4FoamModels/numerics/stabilisationModels/"
+        "stabilisationModel/stabilisationModel.C"
+    )
+    source_text = source_model.read_text()
+    for marker in ("referenceNyquistDirections", "Spectral normalisation"):
+        if marker not in source_text:
+            raise RuntimeError(f"normalisation marker '{marker}' is missing from {source_model}")
+
+    explicit_library = os.environ.get("SOLIDS4FOAM_MODELS_LIB")
+    candidates: list[Path] = []
+    if explicit_library:
+        candidates.append(Path(explicit_library).expanduser())
+    for variable in ("FOAM_USER_LIBBIN", "FOAM_LIBBIN"):
+        directory = os.environ.get(variable)
+        if directory:
+            candidates.extend(
+                Path(directory) / name
+                for name in ("libsolids4FoamModels.so", "libsolids4FoamModels.dylib")
+            )
+    library = next((path.resolve() for path in candidates if path.is_file()), None)
+    if library is None:
+        raise RuntimeError(
+            "cannot locate libsolids4FoamModels; set SOLIDS4FOAM_MODELS_LIB "
+            "or load an environment defining FOAM_USER_LIBBIN"
+        )
+    binary = library.read_bytes()
+    for marker in (b"referenceNyquistDirections", b"Spectral normalisation"):
+        if marker not in binary:
+            raise RuntimeError(
+                f"compiled library lacks normalisation marker {marker!r}: {library}"
+            )
+
+    linkage_tool = shutil.which("ldd") or shutil.which("otool")
+    if linkage_tool:
+        command = [linkage_tool, solver] if Path(linkage_tool).name == "ldd" else [linkage_tool, "-L", solver]
+        linkage = subprocess.run(command, check=True, capture_output=True, text=True).stdout
+        if "libsolids4FoamModels" not in linkage:
+            raise RuntimeError(f"{solver} does not link libsolids4FoamModels according to {command[0]}")
+
+    return {
+        "solids4foam_source": str(source),
+        "solids4foam_head": head,
+        "required_normalisation_commit": REQUIRED_NORMALISATION_COMMIT,
+        "solver": str(Path(solver).resolve()),
+        "libsolids4FoamModels": str(library),
+        "wm_project_version": os.environ.get("WM_PROJECT_VERSION", "unknown"),
+        "wm_options": os.environ.get("WM_OPTIONS", "unknown"),
+    }
+
+
 def gmsh_executable() -> str:
     path = shutil.which("gmsh")
     if path:
@@ -398,21 +570,36 @@ def required_commands(study: str) -> dict[str, str]:
     return commands
 
 
-def preflight(target: str) -> None:
+def preflight(target: str, prepare_only: bool) -> dict[str, str]:
     studies = (
         ("structured", "parameter", "unstructured")
         if target == "all"
         else (() if target == "plots" else (target,))
     )
+    solver = ""
     for study in studies:
-        required_commands(study)
-    if target in {"all", "plots"}:
+        solver = required_commands(study)["solids4Foam"]
+    if target == "plots" or (target == "all" and not prepare_only):
         if not PLOTTER.is_file():
             raise RuntimeError(f"paper plot renderer is missing: {PLOTTER}")
         reportlab_python()
         benchmark = ROOT / "plotScripts" / "Bijelona.csv"
         if not benchmark.is_file() or benchmark.stat().st_size == 0:
             raise RuntimeError(f"benchmark data are missing or empty: {benchmark}")
+    return {} if target == "plots" else normalisation_build_provenance(solver)
+
+
+def write_provenance(mode: str, provenance: dict[str, str]) -> None:
+    if not provenance:
+        return
+    path = ROOT / "runs" / mode / NORMALISATION_TAG / "provenance.txt"
+    contents = "".join(f"{key}={value}\n" for key, value in provenance.items())
+    if path.exists():
+        if path.read_text() != contents:
+            raise RuntimeError(f"existing build provenance differs from this run: {path}")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(contents)
 
 
 def reportlab_python() -> str:
@@ -583,6 +770,8 @@ def run_case(spec: CaseSpec, run_root: Path, commands: dict[str, str]) -> dict[s
         else spec.method.laplacian_power,
         "sp": spec.sp,
         "sm": spec.sm,
+        "normalise": NORMALISE,
+        "referenceNyquistDirections": REFERENCE_NYQUIST_DIRECTIONS,
         "dy_raw": f"{dy_raw:.16g}",
         "dy_scaled": f"{dy_scaled:.16g}",
         "execution_time_s": "" if execution_time == "" else f"{execution_time:.16g}",
@@ -591,43 +780,95 @@ def run_case(spec: CaseSpec, run_root: Path, commands: dict[str, str]) -> dict[s
     }
 
 
-def run_study(study: str, specs: list[CaseSpec], mode: str) -> Path:
-    study_specs = [spec for spec in specs if spec.study == study]
+def result_path(mode: str, study: str, sm: str) -> Path:
+    return (
+        ROOT
+        / "results"
+        / mode
+        / NORMALISATION_TAG
+        / f"sm{scale_slug(sm)}"
+        / f"{study}.tsv"
+    )
+
+
+def run_study(
+    study: str,
+    sm: str,
+    specs: list[CaseSpec],
+    mode: str,
+    prepare_only: bool,
+) -> Path | None:
+    study_specs = [spec for spec in specs if spec.study == study and spec.sm == sm]
     if not study_specs:
-        raise RuntimeError(f"no cases enumerated for study '{study}'")
+        raise RuntimeError(f"no cases enumerated for study '{study}', sm={sm}")
     run_root = ROOT / "runs" / mode
-    result_path = ROOT / "results" / mode / f"{study}.tsv"
+    output_path = result_path(mode, study, sm)
+    metadata_root = run_root / NORMALISATION_TAG / f"sm{scale_slug(sm)}"
+    manifest_path = metadata_root / f"{study}_manifest.tsv"
+    progress_path = metadata_root / f"{study}_progress.tsv"
     case_paths = [run_root / spec.relative_case for spec in study_specs]
     existing = [path for path in case_paths if path.exists()]
-    if existing or result_path.exists():
-        first = existing[0] if existing else result_path
+    metadata = [manifest_path, progress_path, output_path]
+    if existing or any(path.exists() for path in metadata):
+        first = existing[0] if existing else next(path for path in metadata if path.exists())
         raise RuntimeError(f"generated output already exists: {first}; run ./Allclean before rerunning")
 
-    commands = required_commands(study)
     manifest_fields = tuple(manifest_row(study_specs[0]).keys())
-    write_tsv(
-        run_root / f"{study}_manifest.tsv",
-        manifest_fields,
-        [manifest_row(spec) for spec in study_specs],
-    )
+    manifest_rows = [manifest_row(spec) for spec in study_specs]
+    write_tsv(manifest_path, manifest_fields, manifest_rows)
+    progress_fields = (*manifest_fields, "status", "error")
+    progress_rows: list[dict[str, object]] = [
+        {**row, "status": "PENDING", "error": ""} for row in manifest_rows
+    ]
+    write_tsv(progress_path, progress_fields, progress_rows)
+
+    if prepare_only:
+        for index, spec in enumerate(study_specs):
+            case = run_root / spec.relative_case
+            base = STRUCTURED_BASE if spec.study != "unstructured" else UNSTRUCTURED_BASE
+            shutil.copytree(base, case)
+            configure_case(case, spec)
+            progress_rows[index]["status"] = "PREPARED"
+            write_tsv(progress_path, progress_fields, progress_rows)
+        print(f"Prepared {len(study_specs)} validated cases; no solver was run")
+        return None
+
+    commands = required_commands(study)
     rows: list[dict[str, object]] = []
-    for spec in study_specs:
-        rows.append(run_case(spec, run_root, commands))
+    for index, spec in enumerate(study_specs):
+        progress_rows[index]["status"] = "RUNNING"
+        write_tsv(progress_path, progress_fields, progress_rows)
+        try:
+            rows.append(run_case(spec, run_root, commands))
+        except (OSError, RuntimeError, ValueError) as error:
+            progress_rows[index]["status"] = "FAILED"
+            progress_rows[index]["error"] = str(error).replace("\t", " ").replace("\n", " ")
+            write_tsv(progress_path, progress_fields, progress_rows)
+            raise
+        progress_rows[index]["status"] = "OK"
+        write_tsv(progress_path, progress_fields, progress_rows)
     if len(rows) != len(study_specs):
         raise RuntimeError(f"{study}: completed {len(rows)} of {len(study_specs)} cases")
-    write_tsv(result_path, RESULT_FIELDS, rows)
-    print(f"Wrote {len(rows)} validated rows to {result_path}")
-    return result_path
+    write_tsv(output_path, RESULT_FIELDS, rows)
+    print(f"Wrote {len(rows)} validated rows to {output_path}")
+    return output_path
 
 
 def reject_existing_outputs(specs: list[CaseSpec], mode: str, target: str) -> None:
     if target == "plots":
         return
     run_root = ROOT / "runs" / mode
-    studies = {spec.study for spec in specs}
     candidates = [run_root / spec.relative_case for spec in specs]
-    candidates.extend(run_root / f"{study}_manifest.tsv" for study in studies)
-    candidates.extend(ROOT / "results" / mode / f"{study}.tsv" for study in studies)
+    groups = {(spec.study, spec.sm) for spec in specs}
+    for study, sm in groups:
+        metadata_root = run_root / NORMALISATION_TAG / f"sm{scale_slug(sm)}"
+        candidates.extend(
+            (
+                metadata_root / f"{study}_manifest.tsv",
+                metadata_root / f"{study}_progress.tsv",
+                result_path(mode, study, sm),
+            )
+        )
     existing = [path for path in candidates if path.exists()]
     if existing:
         raise RuntimeError(
@@ -637,23 +878,31 @@ def reject_existing_outputs(specs: list[CaseSpec], mode: str, target: str) -> No
 
 def expected_figures(mode: str) -> tuple[Path, ...]:
     figure_dir = ROOT / "figures" / mode
-    return tuple(
-        figure_dir / name
-        for name in (
-            "figure5_structured_displacement.pdf",
-            "figure5_execution_time_vs_error.pdf",
-            "figure6_pressure_scale_m1.pdf",
-            "figure6_pressure_scale_m2.pdf",
-            "figure6_pressure_scale_m3.pdf",
-            "figure7b_unstructured_displacement.pdf",
+    names: list[str] = []
+    for sm in MOMENTUM_SCALES:
+        suffix = f"sm{scale_slug(sm)}"
+        names.extend(
+            (
+                f"figure5_structured_displacement_{suffix}.pdf",
+                f"figure5_execution_time_vs_error_{suffix}.pdf",
+                f"figure6_pressure_scale_m1_{suffix}.pdf",
+                f"figure6_pressure_scale_m2_{suffix}.pdf",
+                f"figure6_pressure_scale_m3_{suffix}.pdf",
+            )
         )
-    )
+    names.append("figure7b_unstructured_displacement.pdf")
+    return tuple(figure_dir / name for name in names)
 
 
 def run_plots(mode: str) -> None:
     required_results = tuple(
-        ROOT / "results" / mode / f"{study}.tsv"
-        for study in ("structured", "parameter", "unstructured")
+        result_path(mode, study, sm)
+        for study, scales in (
+            ("structured", MOMENTUM_SCALES),
+            ("parameter", MOMENTUM_SCALES),
+            ("unstructured", ("1.0",)),
+        )
+        for sm in scales
     )
     for path in required_results:
         if not path.is_file() or path.stat().st_size == 0:
@@ -682,18 +931,26 @@ def parse_args() -> argparse.Namespace:
         default="all",
     )
     parser.add_argument("--list", action="store_true", help="validate and list cases without writing")
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="write and validate configured cases without meshing or solving",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.prepare_only and args.target == "plots":
+        raise ValueError("--prepare-only cannot be combined with the plots target")
     specs = enumerate_specs(args.mode, args.target)
     validate_specs(specs, args.mode, args.target)
     if args.list:
         print_manifest(specs, args.mode, args.target)
         return 0
-    preflight(args.target)
+    provenance = preflight(args.target, args.prepare_only)
     reject_existing_outputs(specs, args.mode, args.target)
+    write_provenance(args.mode, provenance)
     if args.target == "plots":
         run_plots(args.mode)
         return 0
@@ -703,8 +960,10 @@ def main() -> int:
         else (args.target,)
     )
     for study in studies:
-        run_study(study, specs, args.mode)
-    if args.target == "all":
+        study_scales = MOMENTUM_SCALES if study != "unstructured" else ("1.0",)
+        for sm in study_scales:
+            run_study(study, sm, specs, args.mode, args.prepare_only)
+    if args.target == "all" and not args.prepare_only:
         run_plots(args.mode)
     return 0
 
@@ -712,6 +971,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except (OSError, RuntimeError, ValueError) as error:
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         raise SystemExit(1)
