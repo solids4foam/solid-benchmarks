@@ -25,6 +25,10 @@ UNSTRUCTURED_CELLS = {1: 19, 2: 62, 3: 241, 4: 941, 5: 3793, 6: 15131}
 PRESSURE_SCALES = ("0.01", "0.1", "1", "10", "100", "1000")
 TEST_PRESSURE_SCALES = ("10",)
 MOMENTUM_SCALES = ("1.0", "0.1")
+# The pressure-stabilisation residual coefficient sweeps over PRESSURE_SCALES,
+# but the approximate Jacobian coefficient is a fixed experimental control: it
+# stays at 1.0 in every case and must never track sp.
+JACOBIAN_SCALE = "1.0"
 NORMALISE = "true"
 REFERENCE_NYQUIST_DIRECTIONS = 2
 NORMALISATION_TAG = "normalised_r2"
@@ -245,8 +249,10 @@ def validate_dictionary(text: str, method: Method, sp: str, sm: str, source: Pat
             errors.append(f"pressure type={pressure_type}, expected {method.pressure_type}")
         if not math.isclose(float(pressure_scale), float(sp)):
             errors.append(f"sp={pressure_scale}, expected {sp}")
-        if not math.isclose(float(jacobian_scale), float(sp)):
-            errors.append(f"Jacobian sp={jacobian_scale}, expected {sp}")
+        if not math.isclose(float(jacobian_scale), float(JACOBIAN_SCALE)):
+            errors.append(
+                f"scaleFactorJacobian={jacobian_scale}, expected {JACOBIAN_SCALE}"
+            )
         if normalise != NORMALISE:
             errors.append(f"normalise={normalise}, expected {NORMALISE}")
         if int(reference_directions) != REFERENCE_NYQUIST_DIRECTIONS:
@@ -274,6 +280,12 @@ def validate_sources() -> None:
             if not path.is_file():
                 raise RuntimeError(f"required canonical dictionary is missing: {path}")
             text = path.read_text()
+            text = set_block_entry(
+                text,
+                "pressure",
+                "scaleFactorJacobian",
+                JACOBIAN_SCALE,
+            )
             text = set_block_entry(text, "pressure", "normalise", NORMALISE)
             text = set_block_entry(
                 text,
@@ -415,7 +427,7 @@ def configure_case(case: Path, spec: CaseSpec) -> None:
     text = template.read_text()
     text = replace_block_entry(text, "momentum", "scaleFactor", spec.sm)
     text = replace_block_entry(text, "pressure", "scaleFactor", spec.sp)
-    text = replace_block_entry(text, "pressure", "scaleFactorJacobian", spec.sp)
+    text = set_block_entry(text, "pressure", "scaleFactorJacobian", JACOBIAN_SCALE)
     text = set_block_entry(text, "pressure", "normalise", NORMALISE)
     text = set_block_entry(
         text,

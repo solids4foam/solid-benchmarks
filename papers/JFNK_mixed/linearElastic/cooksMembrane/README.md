@@ -28,7 +28,15 @@ Every generated pressure-stabilisation dictionary uses:
 ```text
 normalise                    true;
 referenceNyquistDirections   2;
+scaleFactorJacobian          1.0;
 ```
+
+`sp` sets the pressure-stabilisation **residual** coefficient (`scaleFactor`)
+and is the only swept stabilisation parameter. The approximate **Jacobian**
+coefficient (`scaleFactorJacobian`) is a fixed experimental control held at
+`1.0` in every case, so that the sweep changes the residual operator alone and
+not the preconditioner. It never tracks `sp`. `scripts/validate_campaign.py`
+re-reads the generated dictionaries and fails if the two are ever relinked.
 
 The nominal `sp` values are unchanged. The generalised model mapping is
 `paper m = laplacianPower + 1`, so powers 0, 1 and 2 are paper orders 1, 2 and
@@ -137,6 +145,21 @@ tree. The workflow refuses to overwrite existing cases and records each case
 as `PENDING`, `RUNNING`, `OK` or `FAILED`; final result tables are written only
 after every requested simulation succeeds.
 
+## Configuration regression check
+
+`scripts/validate_campaign.py` generates the complete full and test matrices
+with the real preparation mechanism, then re-reads every generated
+`constant/solidProperties` and checks the stabilisation settings
+(`scaleFactor == sp`, `scaleFactorJacobian == 1.0`, `normalise true`,
+`referenceNyquistDirections 2`, momentum scale, model and `laplacianPower`)
+and the campaign structure (72 + 288 + 36 = 396 cases, `sm` of 0.1 and 1.0,
+single-scope unstructured study). It needs no OpenFOAM environment and runs in
+a temporary directory:
+
+```sh
+python3 scripts/validate_campaign.py
+```
+
 ## Cheap test
 
 The test uses the first two existing meshes and the existing `sp=10` pressure
@@ -150,7 +173,8 @@ separate figure generation:
 ```
 
 It contains 24 structured accuracy runs, 16 pressure-scale runs and 12
-unstructured runs, for 52 simulations. It cannot select the full mesh or
+unstructured runs, for 52 simulations. Like the full campaign, every test case
+is generated with `scaleFactorJacobian 1.0`. It cannot select the full mesh or
 pressure-scale matrix accidentally because those selections are fixed by test
 mode in the shared generator.
 
