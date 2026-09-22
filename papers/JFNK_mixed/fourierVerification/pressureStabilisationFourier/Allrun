@@ -1,0 +1,75 @@
+#!/bin/bash
+set -e
+cd "${0%/*}" || exit 1
+
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+source solids4FoamScripts.sh
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::convertCaseFormat .
+
+# Preserve macros while editing: ordinary foamDictionary expands $nCells.
+# Restore the original file exactly, including its formatting and comments.
+meshDictBackup=$(mktemp system/blockMeshDict.XXXXXX)
+cp system/blockMeshDict "$meshDictBackup"
+trap 'cp "$meshDictBackup" system/blockMeshDict; rm -f "$meshDictBackup"' EXIT
+for N in 16 32 64; do
+    foamDictionary system/blockMeshDict -disableFunctionEntries -entry nCells -set "$N" > /dev/null
+    runApplication -o -s "N$N" blockMesh
+    runApplication -o -s "N$N" stabilisationFourierCheck -symbolSweep
+    tail -n 3 "log.stabilisationFourierCheck.N$N"
+done
+
+outputDir=postProcessing/stabilisationFourierCheck
+mkdir -p "$outputDir"
+rejectionCsv="$outputDir/rejectionChecks.csv"
+printf '# case=%s\ncase,exitCode,expectedText,pass\n' \
+    "$(pwd -P)" > "$rejectionCsv"
+rejectionFailures=0
+
+runRejection()
+{
+    dictName=$1
+    expectedText=$2
+    logName="log.stabilisationFourierCheck.$dictName"
+
+    if stabilisationFourierCheck -dict "$dictName" -constructOnly > "$logName" 2>&1; then
+        exitCode=0
+    else
+        exitCode=$?
+    fi
+
+    if [ "$exitCode" -ne 0 ] && grep -Fq "$expectedText" "$logName"; then
+        pass=1
+        printf 'PASS rejection: %s\n' "$dictName"
+    else
+        pass=0
+        rejectionFailures=$((rejectionFailures + 1))
+        printf 'FAIL rejection: %s (exit %s, expected: %s)\n' \
+            "$dictName" "$exitCode" "$expectedText"
+    fi
+    printf '%s,%s,"%s",%s\n' \
+        "$dictName" "$exitCode" "$expectedText" "$pass" >> "$rejectionCsv"
+}
+
+runRejection rejectRStarZero \
+    "referenceNyquistDirections must be greater than zero"
+runRejection rejectRStarFour \
+    "referenceNyquistDirections must be in the valid range 1 .. 2"
+runRejection rejectRStarThree2D \
+    "referenceNyquistDirections must be in the valid range 1 .. 2"
+runRejection rejectRStarMissing \
+    "referenceNyquistDirections is required when normalise is true"
+runRejection rejectAlpha \
+    "Spectral normalisation is not supported by stabilisation model alpha"
+runRejection rejectGradDiv \
+    "Spectral normalisation is not supported by stabilisation model gradDiv"
+runRejection rejectVolStrainRate \
+    "Spectral normalisation is not supported by stabilisation model volStrainRate"
+runRejection rejectMultiple \
+    "Spectral normalisation is not supported by stabilisation model multiple"
+runRejection rejectNegativePower \
+    "laplacianPower must be non-negative"
+
+if [ "$rejectionFailures" -ne 0 ]; then
+    exit 1
+fi

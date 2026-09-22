@@ -1,0 +1,80 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object stabilisationFourierVisualisationDict;
+}
+
+tolerance 1e-9;
+visualisationOmega 0.5;
+
+fieldOutput
+{
+    pressurePrefix      pMode;
+    stabilisationPrefix S;
+
+    // Entries are theta/pi. Each component must be periodic on the mesh.
+    modes
+    {
+        xNyquist     (1 0 0);
+        yNyquist     (0 1 0);
+        checkerboard (1 1 0);
+    }
+}
+
+models
+{
+    laplacian
+    {
+        type laplacian;
+        scaleFactor 0.37;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    gen0
+    {
+        type generalisedEvenOrderLaplacian;
+        scaleFactor 0.37;
+        laplacianPower 0;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    JST
+    {
+        type JamesonSchmidtTurkel;
+        scaleFactor 0.37;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    gen1
+    {
+        type generalisedEvenOrderLaplacian;
+        scaleFactor 0.37;
+        laplacianPower 1;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    gen2
+    {
+        type generalisedEvenOrderLaplacian;
+        scaleFactor 0.37;
+        laplacianPower 2;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    diffStencil
+    {
+        type diffStencilLaplacian;
+        scaleFactor 0.37;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+    RhieChow
+    {
+        type RhieChow;
+        scaleFactor 0.37;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+}

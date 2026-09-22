@@ -1,0 +1,19 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object rejectVolStrainRate;
+}
+
+models
+{
+    invalid
+    {
+        type volStrainRate;
+        scaleFactor 1;
+        mode firstOrderTemporal;
+        normalise true;
+        referenceNyquistDirections 2;
+    }
+}

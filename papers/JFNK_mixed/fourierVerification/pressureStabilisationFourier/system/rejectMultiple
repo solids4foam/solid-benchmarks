@@ -1,0 +1,25 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object rejectMultiple;
+}
+
+models
+{
+    invalid
+    {
+        type multiple;
+        normalise true;
+        referenceNyquistDirections 2;
+        models (inner);
+        jacobianModel inner;
+
+        inner
+        {
+            type laplacian;
+            scaleFactor 1;
+        }
+    }
+}

@@ -1,0 +1,17 @@
+constant/polyMesh/
+postProcessing/
+regressionTests/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+log.*
+*.foam
+*.OpenFOAM
+system/blockMeshDict.*
+0/fourierP_*
+0/fourierS_*
+0/pMode_*
+0/S_*
+0/pIllustrativeFiltered_*

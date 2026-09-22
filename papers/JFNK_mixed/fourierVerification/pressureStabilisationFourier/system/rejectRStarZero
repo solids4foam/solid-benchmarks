@@ -1,0 +1,17 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object rejectRStarZero;
+}
+
+models
+{
+    invalid
+    {
+        type laplacian;
+        normalise true;
+        referenceNyquistDirections 0;
+    }
+}
