@@ -13,7 +13,7 @@ usage()
     cat <<'EOF'
 Usage: ./Allrun [structured|parameter|unstructured|plots] [--list|--prepare-only]
 
-With no target, run all three studies and generate the eleven paper figures.
+With no target, run all three studies and generate the thirteen paper figures.
 Set RUN_MODE=test, or use ./AllrunTest, to select only the first two meshes.
 Use --list to validate and print the cases without creating or running them.
 Use --prepare-only to create and validate dictionaries without running solvers.

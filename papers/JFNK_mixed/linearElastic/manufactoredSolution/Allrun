@@ -72,7 +72,7 @@ do
     echo "USE_GMSH is $USE_GMSH"
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1" > "${SUMMARY}"
+    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1 P_L2 P_Linf P_meanL1" > "${SUMMARY}"
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
@@ -202,8 +202,30 @@ do
         STRESS_LINF_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
         STRESS_MEAN_L1=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
 
+        # The pressure norms are only printed when the solid model solves for
+        # a pressure field, i.e. when "solvePressure" is enabled. For runs
+        # without a pressure unknown these are recorded as NaN, which gnuplot
+        # skips, so the displacement and stress plots are unaffected.
+        PRESS_L2_ERROR=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+        PRESS_LINF_ERROR=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+        PRESS_MEAN_L1=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+        : "${PRESS_L2_ERROR:=NaN}" "${PRESS_LINF_ERROR:=NaN}" "${PRESS_MEAN_L1:=NaN}"
+
+        # Catch the most likely mistake: a pressure-solving case run
+        # against a manufacturedSolution library that predates the
+        # cellPressure output, which would silently give NaN columns
+        # and an empty pressure plot.
+        if [ "${PRESS_L2_ERROR}" = "NaN" ] \
+            && grep -a -q "solvePressure[[:space:]]*true" constant/solidProperties
+        then
+            echo "Warning: ${CASE} solves for pressure but no pressure error" \
+                 "norms were found in log.solids4Foam. Rebuild the" \
+                 "manufacturedSolution library (cellPressure) if you want the" \
+                 "pressure plots." >&2
+        fi
+
         # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1" >> ../"${SUMMARY}"
+        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1 $PRESS_L2_ERROR $PRESS_LINF_ERROR $PRESS_MEAN_L1" >> ../"${SUMMARY}"
 
         cd ..
     done
@@ -214,8 +236,8 @@ do
     # Calculate the order of accuracy from the summary file
     ORDER="${NAME}.orderOfAccuracy.txt"
     echo; echo "Creating ${ORDER} file"
-    echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress" > "${ORDER}"
-    awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7}' "${SUMMARY}" >> "${ORDER}"
+    echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress OrderOfAccuracyPressure" > "${ORDER}"
+    awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2), log(prev10/$10)/log(2), log(prev11/$11)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7; prev10=$10; prev11=$11}' "${SUMMARY}" >> "${ORDER}"
     cat "${ORDER}"
 done
 
@@ -227,6 +249,8 @@ then
     cp ../plotScripts/stressErrors.gnuplot .
     cp ../plotScripts/orderOfAccuracyDisp.gnuplot .
     cp ../plotScripts/orderOfAccuracyStress.gnuplot .
+    cp ../plotScripts/pressureErrors.gnuplot .
+    cp ../plotScripts/orderOfAccuracyPressure.gnuplot .
     cp ../plotScripts/orderOfAccuracySlopes*.dat .
 
     # Run all scripts

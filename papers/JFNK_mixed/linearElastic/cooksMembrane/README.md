@@ -1,9 +1,9 @@
 # Linear Cook's membrane paper reproduction
 
-This directory prepares the normalised pressure-stabilisation Cook's membrane
-campaign for Paper 1. The cases and visual conventions come from the historical
-`DataHPC` calculations, but this workflow is self-contained and never writes to
-that archive.
+This directory prepares and plots the normalised pressure-stabilisation Cook's
+membrane campaign for Paper 1. The cases and visual conventions come from the
+historical plots. Full paper plots are now generated directly from the new HPC
+archive; the plotting workflow only reads that archive.
 
 ## Historical baseline
 
@@ -18,8 +18,8 @@ The original reproduction contained 180 simulations:
 
 Those runs generated the structured displacement and execution-time/error
 panels, the three order-specific pressure-scale panels, and the unstructured
-displacement panel. The tracked raw dictionaries and historical `DataHPC`
-results remain unchanged.
+displacement panel. Their plotting structure and visual style remain the basis
+for the updated figures.
 
 ## Normalised campaign
 
@@ -131,6 +131,14 @@ Individual stages are available as:
 ./Allrun plots
 ```
 
+In full mode, the plotting stage reads raw results from a case-local `DataHPC`
+directory when present, otherwise from the repository-level `../../dataHPC`
+archive used by this checkout. It reads each campaign manifest,
+point-displacement file and solver log without changing the archive. If the
+archive is stored elsewhere, set `COOKS_HPC_DATA_DIR` to its root. The
+cheap-test plotting stage continues to read its locally generated
+`results/test` tables.
+
 For SLURM, preserve the historical serial execution convention:
 
 ```sh
@@ -188,7 +196,7 @@ runs/full/normalised_r2/sm1p0/parameter/rhiechow/sp_0p1/mesh_03/
 runs/full/normalised_r2/sm0p1/structured/evenlap_m2/mesh_06/
 ```
 
-Processed tables and progress manifests are separated in the same way:
+Locally run campaigns keep their processed tables and progress manifests in:
 
 ```text
 results/<mode>/normalised_r2/sm1p0/{structured,parameter,unstructured}.tsv
@@ -199,8 +207,10 @@ runs/<mode>/normalised_r2/<sm>/*_{manifest,progress}.tsv
 
 Plots never combine momentum campaigns. The shared axis bounds and original
 fonts, dimensions, colours, markers, line styles and legend placement are
-retained wherever possible. Rhie--Chow uses triangle markers with the existing
-`sp` colour. The generated PDFs are:
+retained wherever possible. The paper's displacement-axis headroom and linear
+tick spacing are retained so that the inside upper-right legends do not hide
+refined-mesh data. Rhie--Chow uses triangle markers with the existing `sp`
+colour. The generated PDFs are:
 
 ```text
 figure5_structured_displacement_sm1p0.pdf
@@ -208,11 +218,13 @@ figure5_execution_time_vs_error_sm1p0.pdf
 figure6_pressure_scale_m1_sm1p0.pdf
 figure6_pressure_scale_m2_sm1p0.pdf
 figure6_pressure_scale_m3_sm1p0.pdf
+figure6_pressure_scale_rhiechow_sm1p0.pdf
 figure5_structured_displacement_sm0p1.pdf
 figure5_execution_time_vs_error_sm0p1.pdf
 figure6_pressure_scale_m1_sm0p1.pdf
 figure6_pressure_scale_m2_sm0p1.pdf
 figure6_pressure_scale_m3_sm0p1.pdf
+figure6_pressure_scale_rhiechow_sm0p1.pdf
 figure7b_unstructured_displacement.pdf
 ```
 

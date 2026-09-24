@@ -174,11 +174,18 @@ case_figures()
             ;;
         linearCooks)
             figure_dir="${case_dir}/figures/${MODE}"
-            emit "${figure_dir}/figure5_structured_displacement.pdf"   "Structured mesh refinement, upper-right corner displacement"
-            emit "${figure_dir}/figure5_execution_time_vs_error.pdf"   "Structured mesh refinement, execution time versus displacement error"
-            emit "${figure_dir}/figure6_pressure_scale_m1.pdf"         "Effect of the pressure-stabilisation scale factor, m = 1"
-            emit "${figure_dir}/figure6_pressure_scale_m2.pdf"         "Effect of the pressure-stabilisation scale factor, m = 2"
-            emit "${figure_dir}/figure6_pressure_scale_m3.pdf"         "Effect of the pressure-stabilisation scale factor, m = 3"
+            emit "${figure_dir}/figure5_structured_displacement_sm1p0.pdf" "Structured mesh refinement, s_m = 1.0"
+            emit "${figure_dir}/figure5_execution_time_vs_error_sm1p0.pdf" "Execution time versus displacement error, s_m = 1.0"
+            emit "${figure_dir}/figure6_pressure_scale_m1_sm1p0.pdf"     "Pressure-stabilisation scale, m = 1, s_m = 1.0"
+            emit "${figure_dir}/figure6_pressure_scale_m2_sm1p0.pdf"     "Pressure-stabilisation scale, m = 2, s_m = 1.0"
+            emit "${figure_dir}/figure6_pressure_scale_m3_sm1p0.pdf"     "Pressure-stabilisation scale, m = 3, s_m = 1.0"
+            emit "${figure_dir}/figure6_pressure_scale_rhiechow_sm1p0.pdf" "Pressure-stabilisation scale, Rhie-Chow, s_m = 1.0"
+            emit "${figure_dir}/figure5_structured_displacement_sm0p1.pdf" "Structured mesh refinement, s_m = 0.1"
+            emit "${figure_dir}/figure5_execution_time_vs_error_sm0p1.pdf" "Execution time versus displacement error, s_m = 0.1"
+            emit "${figure_dir}/figure6_pressure_scale_m1_sm0p1.pdf"     "Pressure-stabilisation scale, m = 1, s_m = 0.1"
+            emit "${figure_dir}/figure6_pressure_scale_m2_sm0p1.pdf"     "Pressure-stabilisation scale, m = 2, s_m = 0.1"
+            emit "${figure_dir}/figure6_pressure_scale_m3_sm0p1.pdf"     "Pressure-stabilisation scale, m = 3, s_m = 0.1"
+            emit "${figure_dir}/figure6_pressure_scale_rhiechow_sm0p1.pdf" "Pressure-stabilisation scale, Rhie-Chow, s_m = 0.1"
             emit "${figure_dir}/figure7b_unstructured_displacement.pdf" "Unstructured mesh robustness verification"
             ;;
         nonlinearCooksCompressible)

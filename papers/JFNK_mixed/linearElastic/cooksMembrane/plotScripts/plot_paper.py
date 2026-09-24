@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import re
 from pathlib import Path
 
 try:
@@ -40,6 +41,8 @@ SCALE_COLOURS = {
     "100": colors.HexColor("#B8793D"),
     "1000": colors.HexColor("#7A2738"),
 }
+STRUCTURED_Y_BOUNDS = (3.25, 20.5)
+UNSTRUCTURED_Y_BOUNDS = (3.25, 14.25)
 
 
 def read_results(path: Path, expected_sm: str | None = None) -> list[dict[str, object]]:
@@ -92,6 +95,101 @@ def read_results(path: Path, expected_sm: str | None = None) -> list[dict[str, o
     return rows
 
 
+def read_hpc_results(data_dir: Path, study: str, sm: str) -> list[dict[str, object]]:
+    """Read one completed campaign directly from the read-only HPC archive."""
+    campaign_dir = data_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}"
+    manifest_path = campaign_dir / f"{study}_manifest.tsv"
+    progress_path = campaign_dir / f"{study}_progress.tsv"
+    if not manifest_path.is_file() or manifest_path.stat().st_size == 0:
+        raise ValueError(f"HPC manifest is missing or empty: {manifest_path}")
+    if not progress_path.is_file() or progress_path.stat().st_size == 0:
+        raise ValueError(f"HPC progress file is missing or empty: {progress_path}")
+
+    with progress_path.open(newline="") as handle:
+        progress = list(csv.DictReader(handle, delimiter="\t"))
+    incomplete = [row for row in progress if row.get("status") != "OK"]
+    if incomplete:
+        raise ValueError(f"HPC campaign contains non-OK cases in {progress_path}")
+    progress_cases = {row.get("case", "") for row in progress}
+
+    rows: list[dict[str, object]] = []
+    with manifest_path.open(newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        required = {
+            "study",
+            "case",
+            "mesh_index",
+            "cells_per_side",
+            "method",
+            "paper_m",
+            "sp",
+            "sm",
+            "normalise",
+            "referenceNyquistDirections",
+        }
+        missing = required.difference(reader.fieldnames or ())
+        if missing:
+            raise ValueError(
+                f"missing columns in {manifest_path}: {', '.join(sorted(missing))}"
+            )
+        for source in reader:
+            if source["case"] not in progress_cases:
+                raise ValueError(f"HPC case has no progress record: {source['case']}")
+            if source["study"] != study or source["sm"] != sm:
+                raise ValueError(f"mixed HPC campaign in {manifest_path}: {source}")
+            if source["normalise"] != "true" or source["referenceNyquistDirections"] != "2":
+                raise ValueError(f"non-normalised or wrong-rStar HPC result: {source}")
+
+            case = data_dir / source["case"]
+            displacement_path = (
+                case / "postProcessing" / "0" / "solidPointDisplacement_pointDisp.dat"
+            )
+            if not displacement_path.is_file():
+                raise ValueError(f"HPC displacement output is missing: {displacement_path}")
+            data_lines = [
+                line.split()
+                for line in displacement_path.read_text().splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+            if not data_lines or len(data_lines[-1]) < 3:
+                raise ValueError(f"malformed HPC displacement output: {displacement_path}")
+
+            log_path = case / "log.solids4Foam"
+            if not log_path.is_file():
+                raise ValueError(f"HPC solver log is missing: {log_path}")
+            log_text = log_path.read_text(errors="replace")
+            if not re.search(r"(?m)^End\s*$", log_text):
+                raise ValueError(f"HPC solver log has no successful terminal 'End': {log_path}")
+            timing = re.findall(r"ExecutionTime\s*=\s*([0-9.eE+-]+)", log_text)
+            if study == "structured" and not timing:
+                raise ValueError(f"ExecutionTime is missing from HPC solver log: {log_path}")
+
+            try:
+                dy_scaled = float(data_lines[-1][2]) * 0.001
+                execution_time = float(timing[-1]) if study == "structured" else math.nan
+                row = dict(source)
+                row["mesh_index"] = int(source["mesh_index"])
+                row["cells_per_side"] = float(source["cells_per_side"])
+                row["paper_m"] = int(source["paper_m"]) if source["paper_m"] else None
+                row["dy_scaled"] = dy_scaled
+                row["execution_time_s"] = execution_time
+                row["status"] = "OK"
+            except ValueError as error:
+                raise ValueError(f"malformed numeric HPC result for {source['case']}") from error
+            if not math.isfinite(dy_scaled):
+                raise ValueError(f"non-finite HPC displacement for {source['case']}")
+            rows.append(row)
+
+    if not rows:
+        raise ValueError(f"no HPC data rows in {manifest_path}")
+    if len(rows) != len(progress):
+        raise ValueError(
+            f"HPC manifest/progress row mismatch in {campaign_dir}: "
+            f"{len(rows)} != {len(progress)}"
+        )
+    return rows
+
+
 def read_benchmark() -> list[tuple[float, float]]:
     points: list[tuple[float, float]] = []
     with BENCHMARK_FILE.open(newline="") as handle:
@@ -140,6 +238,21 @@ class Plot:
         self.left, self.right, self.bottom, self.top = 58, 20, 54, 22
         self.c = canvas.Canvas(str(path), pagesize=(self.width, self.height))
 
+    def draw_centred_parts(
+        self,
+        centre_x: float,
+        baseline_y: float,
+        parts: list[tuple[str, float, str, float]],
+    ) -> None:
+        total_width = sum(
+            self.c.stringWidth(text, font, size) for font, size, text, _ in parts
+        )
+        x = centre_x - total_width / 2
+        for font, size, text, rise in parts:
+            self.c.setFont(font, size)
+            self.c.drawString(x, baseline_y + rise, text)
+            x += self.c.stringWidth(text, font, size)
+
     def tx(self, x: float, bounds: tuple[float, float]) -> float:
         lo, hi = bounds
         if self.logx:
@@ -162,18 +275,9 @@ class Plot:
                 for power in range(math.floor(math.log10(lo)), math.ceil(math.log10(hi)) + 1)
                 if lo <= 10**power <= hi
             ]
-        raw_step = (hi - lo) / 5
-        magnitude = 10 ** math.floor(math.log10(raw_step))
-        fraction = raw_step / magnitude
-        if fraction <= 1.5:
-            multiplier = 1
-        elif fraction <= 3:
-            multiplier = 2
-        elif fraction <= 7:
-            multiplier = 5
-        else:
-            multiplier = 10
-        step = multiplier * magnitude
+        # Match the original paper renderer: use decade-based linear tick
+        # spacing rather than a generic "nice number" multiplier.
+        step = 10 ** math.floor(math.log10((hi - lo) / 5))
         first = math.ceil(lo / step) * step
         return [first + index * step for index in range(20) if lo <= first + index * step <= hi]
 
@@ -201,19 +305,36 @@ class Plot:
             stroke=1,
             fill=0,
         )
-        c.setFont("Helvetica", 9)
+        c.setFont("Helvetica", 10.5)
         for x in xticks:
             label = f"{x:g}" if not self.logx or self.xlabel == "Execution time [s]" else f"1e{int(round(math.log10(x)))}"
             c.drawCentredString(self.tx(x, xb), self.bottom - 14, label)
         for y in yticks:
             label = f"{y:.2f}" if not self.logy else f"1e{int(round(math.log10(y)))}"
             c.drawRightString(self.left - 6, self.ty(y, yb) - 3, label)
-        c.setFont("Helvetica", 11)
+        c.setFont("Helvetica", 12)
         c.drawCentredString((self.left + self.width - self.right) / 2, 18, self.xlabel)
         c.saveState()
         c.translate(15, (self.bottom + self.height - self.top) / 2)
         c.rotate(90)
-        c.drawCentredString(0, 0, self.ylabel)
+        if self.ylabel == "Vertical-displacement error":
+            self.draw_centred_parts(
+                0,
+                0,
+                [
+                    ("Helvetica", 12, "Vertical-displacement error, ", 0),
+                    ("Times-Roman", 12, "|", 0),
+                    ("Times-Italic", 12, "d", 0),
+                    ("Times-Italic", 8, "y", -2.5),
+                    ("Times-Roman", 12, " - ", 0),
+                    ("Times-Italic", 12, "d", 0),
+                    ("Times-Italic", 8, "y", -2.5),
+                    ("Times-Roman", 7, "ref", 4.5),
+                    ("Times-Roman", 12, "|", 0),
+                ],
+            )
+        else:
+            c.drawCentredString(0, 0, self.ylabel)
         c.restoreState()
 
     def marker(self, x: float, y: float, colour, shape: str) -> None:
@@ -286,12 +407,20 @@ class Plot:
 
     def annotation(self, text: str) -> None:
         self.c.setFillColor(colors.black)
-        self.c.setFont("Helvetica-Bold", 12)
-        self.c.drawCentredString(
-            (self.left + self.width - self.right) / 2,
-            self.height - self.top - 20,
-            text,
-        )
+        centre = (self.left + self.width - self.right) / 2
+        baseline = self.height - self.top - 20
+        if text.startswith("m="):
+            self.draw_centred_parts(
+                centre,
+                baseline,
+                [
+                    ("Times-BoldItalic", 13, "m", 0),
+                    ("Helvetica-Bold", 13, text[1:], 0),
+                ],
+            )
+        else:
+            self.c.setFont("Helvetica-Bold", 13)
+            self.c.drawCentredString(centre, baseline, text)
 
     def finish(self) -> None:
         self.c.showPage()
@@ -399,7 +528,13 @@ def render_time_error(
     series = time_error_series(rows, mode)
     xs = [x for _, _, points in series for x, _ in points]
     ys = [y for _, _, points in series for _, y in points]
-    plot = Plot(path, "Execution time [s]", "|d_y - d_y,ref|", logx=True, logy=True)
+    plot = Plot(
+        path,
+        "Execution time [s]",
+        "Vertical-displacement error",
+        logx=True,
+        logy=True,
+    )
     xb, yb = axis_bounds if axis_bounds is not None else (finite_bounds(xs, True), finite_bounds(ys, True))
     plot.draw_axes(xb, yb)
     for colour, shape, points in series:
@@ -408,37 +543,35 @@ def render_time_error(
 
 
 def parameter_series(
-    rows: list[dict[str, object]], paper_m: int
+    rows: list[dict[str, object]], method: str
 ) -> list[tuple[str, object, str, list[tuple[float, float]]]]:
     present_scales = {str(row["sp"]) for row in rows}
     scales = [scale for scale in SCALE_COLOURS if scale in present_scales]
     if present_scales != set(scales):
         raise ValueError(f"unknown pressure scales in parameter data: {sorted(present_scales)}")
     series: list[tuple[str, object, str, list[tuple[float, float]]]] = []
+    shape = "triangle" if method == "rhiechow" else "cross"
     for scale in scales:
         colour = SCALE_COLOURS[scale]
-        for method, shape in ((f"evenlap_m{paper_m - 1}", "cross"), ("rhiechow", "triangle")):
-            points = sorted(
-                (
-                    (float(row["cells_per_side"]), float(row["dy_scaled"]))
-                    for row in rows
-                    if row["method"] == method and str(row["sp"]) == scale
-                ),
-                key=lambda point: point[0],
-            )
-            if not points:
-                raise ValueError(
-                    f"parameter series method={method}, m={paper_m}, sp={scale} is empty"
-                )
-            series.append((scale, colour, shape, points))
+        points = sorted(
+            (
+                (float(row["cells_per_side"]), float(row["dy_scaled"]))
+                for row in rows
+                if row["method"] == method and str(row["sp"]) == scale
+            ),
+            key=lambda point: point[0],
+        )
+        if not points:
+            raise ValueError(f"parameter series method={method}, sp={scale} is empty")
+        series.append((scale, colour, shape, points))
     return series
 
 
 def parameter_bounds(
-    row_groups: list[list[dict[str, object]]], paper_m: int
+    row_groups: list[list[dict[str, object]]], method: str
 ) -> tuple[tuple[float, float], tuple[float, float]]:
     benchmark = read_benchmark()
-    series = [item for rows in row_groups for item in parameter_series(rows, paper_m)]
+    series = [item for rows in row_groups for item in parameter_series(rows, method)]
     xs = [x for *_, points in series for x, _ in points] + [x for x, _ in benchmark]
     ys = [y for *_, points in series for _, y in points] + [y for _, y in benchmark]
     return finite_bounds(xs, padding=0.12), finite_bounds(ys, padding=0.12)
@@ -447,11 +580,12 @@ def parameter_bounds(
 def render_parameter_panel(
     path: Path,
     rows: list[dict[str, object]],
-    paper_m: int,
+    method: str,
+    annotation: str,
     axis_bounds: tuple[tuple[float, float], tuple[float, float]] | None = None,
 ) -> None:
     benchmark = read_benchmark()
-    series = parameter_series(rows, paper_m)
+    series = parameter_series(rows, method)
     xs = [x for *_, points in series for x, _ in points] + [x for x, _ in benchmark]
     ys = [y for *_, points in series for _, y in points] + [y for _, y in benchmark]
     plot = Plot(path, "Cells per side", "Vertical displacement", parameter_panel=True)
@@ -463,13 +597,18 @@ def render_parameter_panel(
     plot.draw_series(benchmark, xb, yb, colors.HexColor("#111111"), "cross", dashed=True)
     for _, colour, shape, points in series:
         plot.draw_series(points, xb, yb, colour, shape)
-    plot.annotation(f"m={paper_m}")
+    plot.annotation(annotation)
     present_scales = [scale for scale in SCALE_COLOURS if scale in {item[0] for item in series}]
     plot.legend(
         [("Benchmark", colors.HexColor("#111111"), "cross")]
-        + [(scale, SCALE_COLOURS[scale], "cross") for scale in present_scales]
-        + [("Rhie-Chow (same s_p colour)", colors.black, "triangle")],
-        font_size=10,
+        + [
+            (
+                scale,
+                SCALE_COLOURS[scale],
+                "triangle" if method == "rhiechow" else "cross",
+            )
+            for scale in present_scales
+        ]
     )
     plot.finish()
 
@@ -477,39 +616,73 @@ def render_parameter_panel(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=("full", "test"), required=True)
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        help="read raw full-campaign results from this DataHPC archive",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    results_dir = ROOT / "results" / args.mode
     output_dir = ROOT / "figures" / args.mode
     output_dir.mkdir(parents=True, exist_ok=True)
-    structured = {
-        sm: read_results(
-            results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "structured.tsv",
-            sm,
+    if args.data_dir is not None:
+        if args.mode != "full":
+            raise ValueError("--data-dir is only valid for the full HPC campaign")
+        data_dir = args.data_dir.resolve()
+        structured = {
+            sm: read_hpc_results(data_dir, "structured", sm) for sm in MOMENTUM_SCALES
+        }
+        parameter = {
+            sm: read_hpc_results(data_dir, "parameter", sm) for sm in MOMENTUM_SCALES
+        }
+        unstructured = read_hpc_results(data_dir, "unstructured", "1.0")
+    else:
+        results_dir = ROOT / "results" / args.mode
+        structured = {
+            sm: read_results(
+                results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "structured.tsv",
+                sm,
+            )
+            for sm in MOMENTUM_SCALES
+        }
+        parameter = {
+            sm: read_results(
+                results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "parameter.tsv",
+                sm,
+            )
+            for sm in MOMENTUM_SCALES
+        }
+        unstructured = read_results(
+            results_dir / NORMALISATION_TAG / "sm1p0" / "unstructured.tsv",
+            "1.0",
         )
-        for sm in MOMENTUM_SCALES
-    }
-    parameter = {
-        sm: read_results(
-            results_dir / NORMALISATION_TAG / f"sm{sm.replace('.', 'p')}" / "parameter.tsv",
-            sm,
-        )
-        for sm in MOMENTUM_SCALES
-    }
-    unstructured = read_results(
-        results_dir / NORMALISATION_TAG / "sm1p0" / "unstructured.tsv",
-        "1.0",
-    )
 
-    structured_bounds = method_displacement_bounds(list(structured.values()))
+    structured_x_bounds, _ = method_displacement_bounds(list(structured.values()))
+    structured_bounds = (structured_x_bounds, STRUCTURED_Y_BOUNDS)
     timing_bounds = time_error_bounds(list(structured.values()), args.mode)
-    parameter_axis_bounds = {
-        paper_m: parameter_bounds(list(parameter.values()), paper_m)
-        for paper_m in (1, 2, 3)
+    parameter_plots = (
+        ("m1", "evenlap_m0", "m=1"),
+        ("m2", "evenlap_m1", "m=2"),
+        ("m3", "evenlap_m2", "m=3"),
+        ("rhiechow", "rhiechow", "Rhie-Chow"),
+    )
+    parameter_method_bounds = {
+        method: parameter_bounds(list(parameter.values()), method)
+        for _, method, _ in parameter_plots
     }
+    parameter_axis_bounds = (
+        (
+            min(bounds[0][0] for bounds in parameter_method_bounds.values()),
+            max(bounds[0][1] for bounds in parameter_method_bounds.values()),
+        ),
+        (
+            min(bounds[1][0] for bounds in parameter_method_bounds.values()),
+            max(bounds[1][1] for bounds in parameter_method_bounds.values()),
+        ),
+    )
     for sm in MOMENTUM_SCALES:
         suffix = f"sm{sm.replace('.', 'p')}"
         render_method_displacement(
@@ -523,18 +696,20 @@ def main() -> None:
             args.mode,
             timing_bounds,
         )
-        for paper_m in (1, 2, 3):
+        for name, method, annotation in parameter_plots:
             render_parameter_panel(
-                output_dir / f"figure6_pressure_scale_m{paper_m}_{suffix}.pdf",
+                output_dir / f"figure6_pressure_scale_{name}_{suffix}.pdf",
                 parameter[sm],
-                paper_m,
-                parameter_axis_bounds[paper_m],
+                method,
+                annotation,
+                parameter_axis_bounds,
             )
     render_method_displacement(
         output_dir / "figure7b_unstructured_displacement.pdf",
         unstructured,
+        (method_displacement_bounds([unstructured])[0], UNSTRUCTURED_Y_BOUNDS),
     )
-    print(f"Wrote 11 paper PDFs to {output_dir}")
+    print(f"Wrote 13 paper PDFs to {output_dir}")
 
 
 if __name__ == "__main__":

@@ -900,6 +900,7 @@ def expected_figures(mode: str) -> tuple[Path, ...]:
                 f"figure6_pressure_scale_m1_{suffix}.pdf",
                 f"figure6_pressure_scale_m2_{suffix}.pdf",
                 f"figure6_pressure_scale_m3_{suffix}.pdf",
+                f"figure6_pressure_scale_rhiechow_{suffix}.pdf",
             )
         )
     names.append("figure7b_unstructured_displacement.pdf")
@@ -907,19 +908,35 @@ def expected_figures(mode: str) -> tuple[Path, ...]:
 
 
 def run_plots(mode: str) -> None:
-    required_results = tuple(
-        result_path(mode, study, sm)
-        for study, scales in (
-            ("structured", MOMENTUM_SCALES),
-            ("parameter", MOMENTUM_SCALES),
-            ("unstructured", ("1.0",)),
+    command = [reportlab_python(), str(PLOTTER), "--mode", mode]
+    if mode == "full":
+        configured = os.environ.get("COOKS_HPC_DATA_DIR")
+        candidates = (
+            (Path(configured).expanduser(),)
+            if configured
+            else (ROOT / "DataHPC", ROOT.parents[1] / "dataHPC")
         )
-        for sm in scales
-    )
-    for path in required_results:
-        if not path.is_file() or path.stat().st_size == 0:
-            raise RuntimeError(f"required processed result file is missing or empty: {path}")
-    completed = subprocess.run([reportlab_python(), str(PLOTTER), "--mode", mode], cwd=ROOT)
+        data_dir = next((path.resolve() for path in candidates if path.is_dir()), None)
+        if data_dir is None:
+            checked = ", ".join(str(path) for path in candidates)
+            raise RuntimeError(
+                "Cook's membrane HPC data directory was not found; checked " + checked
+            )
+        command.extend(("--data-dir", str(data_dir)))
+    else:
+        required_results = tuple(
+            result_path(mode, study, sm)
+            for study, scales in (
+                ("structured", MOMENTUM_SCALES),
+                ("parameter", MOMENTUM_SCALES),
+                ("unstructured", ("1.0",)),
+            )
+            for sm in scales
+        )
+        for path in required_results:
+            if not path.is_file() or path.stat().st_size == 0:
+                raise RuntimeError(f"required processed result file is missing or empty: {path}")
+    completed = subprocess.run(command, cwd=ROOT)
     if completed.returncode != 0:
         raise RuntimeError(f"paper plotting failed with exit code {completed.returncode}")
     missing = [
