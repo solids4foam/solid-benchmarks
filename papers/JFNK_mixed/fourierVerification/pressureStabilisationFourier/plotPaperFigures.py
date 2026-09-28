@@ -37,11 +37,12 @@ REPRESENTATIVE_LABELS = {
     "gen2": "Coupled $m=3$",
     "RhieChow": "diffStencil / Rhie--Chow",
 }
+# Same method colours as linearElastic/cooksMembrane/plotScripts/plot_paper.py
 COLORS = {
-    "laplacian": "#2868a3",
-    "JST": "#df7c18",
-    "gen2": "#3e916c",
-    "RhieChow": "#965bb0",
+    "laplacian": "#5B8E55",
+    "JST": "#4C78A8",
+    "gen2": "#7A2738",
+    "RhieChow": "#7B6AA8",
 }
 
 
@@ -97,7 +98,7 @@ def plot_reference_response(plt, np, result_rows, resolution, output):
 
     for campaign, offset, color, label in (
         ("0", -width / 2, "#9aa0a6", "Raw"),
-        ("1", width / 2, "#2868a3", "Normalised"),
+        ("1", width / 2, "#4C78A8", "Normalised"),
     ):
         numerical = []
         analytical = []

@@ -43,6 +43,8 @@ SCALE_COLOURS = {
 }
 STRUCTURED_Y_BOUNDS = (3.25, 20.5)
 UNSTRUCTURED_Y_BOUNDS = (3.25, 14.25)
+TICK_FONT_SIZE = 13.5
+AXIS_LABEL_FONT_SIZE = 15.5
 
 
 def read_results(path: Path, expected_sm: str | None = None) -> list[dict[str, object]]:
@@ -267,8 +269,9 @@ class Plot:
 
     def ticks(self, bounds: tuple[float, float], logscale: bool, axis: str) -> list[float]:
         lo, hi = bounds
-        if self.parameter_panel and axis == "x":
-            return [value for value in (3, 6, 12, 24, 48, 96, 192, 384) if lo <= value <= hi]
+        if self.xlabel == "Cells per side" and axis == "x":
+            first = math.ceil(lo / 10) * 10
+            return list(range(first, math.floor(hi / 10) * 10 + 1, 10))
         if logscale:
             return [
                 10**power
@@ -305,14 +308,21 @@ class Plot:
             stroke=1,
             fill=0,
         )
-        c.setFont("Helvetica", 10.5)
+        tick_length = 4
+        for x in xticks:
+            px = self.tx(x, xb)
+            c.line(px, self.bottom, px, self.bottom - tick_length)
+        for y in yticks:
+            py = self.ty(y, yb)
+            c.line(self.left, py, self.left - tick_length, py)
+        c.setFont("Helvetica", TICK_FONT_SIZE)
         for x in xticks:
             label = f"{x:g}" if not self.logx or self.xlabel == "Execution time [s]" else f"1e{int(round(math.log10(x)))}"
             c.drawCentredString(self.tx(x, xb), self.bottom - 14, label)
         for y in yticks:
-            label = f"{y:.2f}" if not self.logy else f"1e{int(round(math.log10(y)))}"
+            label = f"{y:g}" if not self.logy else f"1e{int(round(math.log10(y)))}"
             c.drawRightString(self.left - 6, self.ty(y, yb) - 3, label)
-        c.setFont("Helvetica", 12)
+        c.setFont("Helvetica", AXIS_LABEL_FONT_SIZE)
         c.drawCentredString((self.left + self.width - self.right) / 2, 18, self.xlabel)
         c.saveState()
         c.translate(15, (self.bottom + self.height - self.top) / 2)
@@ -322,15 +332,15 @@ class Plot:
                 0,
                 0,
                 [
-                    ("Helvetica", 12, "Vertical-displacement error, ", 0),
-                    ("Times-Roman", 12, "|", 0),
-                    ("Times-Italic", 12, "d", 0),
-                    ("Times-Italic", 8, "y", -2.5),
-                    ("Times-Roman", 12, " - ", 0),
-                    ("Times-Italic", 12, "d", 0),
-                    ("Times-Italic", 8, "y", -2.5),
-                    ("Times-Roman", 7, "ref", 4.5),
-                    ("Times-Roman", 12, "|", 0),
+                    ("Helvetica", AXIS_LABEL_FONT_SIZE, "Vertical-displacement error, ", 0),
+                    ("Times-Roman", AXIS_LABEL_FONT_SIZE, "|", 0),
+                    ("Times-Italic", AXIS_LABEL_FONT_SIZE, "d", 0),
+                    ("Times-Italic", 10.5, "y", -3.25),
+                    ("Times-Roman", AXIS_LABEL_FONT_SIZE, " - ", 0),
+                    ("Times-Italic", AXIS_LABEL_FONT_SIZE, "d", 0),
+                    ("Times-Italic", 10.5, "y", -3.25),
+                    ("Times-Roman", 9, "ref", 5.75),
+                    ("Times-Roman", AXIS_LABEL_FONT_SIZE, "|", 0),
                 ],
             )
         else:

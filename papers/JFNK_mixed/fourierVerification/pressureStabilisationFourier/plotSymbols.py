@@ -34,7 +34,8 @@ def main():
     maps = rows(directory / f'symbolMaps_{resolution}.csv')
     # Representatives of the four distinct families; aliases are checked by the utility.
     models = ('laplacian', 'JST', 'gen2', 'RhieChow')
-    colors = dict(zip(models, ('#2868a3', '#df7c18', '#3e916c', '#965bb0')))
+    # Same method colours as linearElastic/cooksMembrane/plotScripts/plot_paper.py
+    colors = dict(zip(models, ('#5B8E55', '#4C78A8', '#7A2738', '#7B6AA8')))
     titles = (r'$\theta_y=0$', r'$\theta_y=\theta_x$', r'$\theta_x=\pi$')
 
     def amplitude(row, field, model):

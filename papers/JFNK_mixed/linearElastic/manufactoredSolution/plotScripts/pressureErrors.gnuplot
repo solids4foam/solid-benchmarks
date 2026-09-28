@@ -5,7 +5,7 @@ set output "mms_pressureErrors.pdf"
 
 set grid
 set xrange [1:50]
-set yrange [0.0005:10]
+set yrange [0.001:10]
 set xtics
 set xtics add (5, 25, 50)
 set ytics
