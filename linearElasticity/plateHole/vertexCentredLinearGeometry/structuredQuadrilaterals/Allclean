@@ -1,3 +1,0 @@
-#!/bin/bash
-
-rm -rf vertexCentredLinearGeometry.[1-9] vertexCentredLinearGeometry.*.txt
