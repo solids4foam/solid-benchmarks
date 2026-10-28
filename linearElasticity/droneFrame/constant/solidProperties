@@ -1,0 +1,56 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      solidProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// linearGeometry: assumes small strains and rotations
+solidModel     linearGeometryTotalDisplacement;
+
+linearGeometryTotalDisplacementCoeffs
+{
+    // Solution algorithm: segregated (default) or PETScSNES (Newton)
+    solutionAlgorithm    PETScSNES;
+
+    // High-order (quadratic) reconstruction of the displacement field
+    highOrderCoeffs
+    {
+        highOrderJacobian false;
+        highOrderResidual true;
+
+        displacement
+        {
+            polynomialOrder 2;
+
+            faceStencilExtraCells 55;
+
+            weightFunctionCoeffs
+            {
+                type radiallySymmetricExponential;
+                k 6;
+            }
+            calcConditionNumber false;
+        }
+    }
+
+    stabilisation
+    {
+        momentum
+        {
+            type        alpha;
+            scaleFactor 0.1;
+        }
+    }
+}
+
+// ************************************************************************* //
