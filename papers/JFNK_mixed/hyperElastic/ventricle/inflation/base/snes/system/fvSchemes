@@ -19,7 +19,7 @@ FoamFile
 
 d2dt2Schemes
 {
-    default                 backward;
+    default                 steadyState;
 }
 
 ddtSchemes
