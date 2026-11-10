@@ -7,7 +7,6 @@ pressure-stabilisation Fourier symbols and spectral normalisation.
 
 - `pressureStabilisationFourier/`: executable OpenFOAM case, analytical
   checker, plotting scripts, visualisation workflow and invalid-input tests.
-- `reports/verification-report.md`: verification report and provenance notes.
 
 Generated CSVs, plots, meshes, logs, ParaView fields and post-processing
 output are not publication source and are excluded by `.gitignore`. A local
@@ -37,8 +36,16 @@ On macOS, the solids4foam `Allrun` and `Allclean` scripts require GNU sed (`gsed
 cd pressureStabilisationFourier
 ./Allclean
 ./Allrun
-python3 checkResults.py
 ```
+
+`./Allrun` meshes and runs the three resolutions, checks the CSV results with
+`checkResults.py`, writes the table of maximum errors
+(`postProcessing/paperFigures/fourier_max_errors.txt`) with `tableMaxErrors.py`
+and draws the figures with `plotPaperFigures.py` in the shared manuscript style
+(`../plotStyle/paper_figure_style.py`). `./Allrun plots` repeats the check, the
+table and the figures on the existing results without running the utility, and
+`PLOTTER=none ./Allrun` stops after the check. From `papers/JFNK_mixed`,
+`./Allrun fourier` does the same and collects the figures.
 
 This recreates the complete 825-check numerical campaign below
 `postProcessing/stabilisationFourierCheck/` without consulting any historical

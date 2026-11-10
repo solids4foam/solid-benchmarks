@@ -1,6 +1,75 @@
 #!/bin/bash
+#
+# Fourier verification of the pressure-stabilisation operators (Section 5.1).
+#
+#   ./Allrun                 mesh and run the utility for N = 16, 32, 64, check the
+#                            CSV results, write the error table and the figures
+#   ./Allrun plots           check, tabulate and plot the existing results under
+#                            postProcessing/stabilisationFourierCheck; nothing is run
+#   PLOTTER=none ./Allrun    run and check only; no table and no figures
+#
+# PLOT_PYTHON selects the Python interpreter (NumPy and Matplotlib; default
+# python3). Figures are written to postProcessing/paperFigures and the table to
+# postProcessing/paperFigures/fourier_max_errors.txt.
 set -e
 cd "${0%/*}" || exit 1
+
+PLOTTER="${PLOTTER:-paper}"
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
+outputDir=postProcessing/stabilisationFourierCheck
+figureDir=postProcessing/paperFigures
+
+case "${1:-}" in
+    ""|plots) stage="${1:-all}" ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "Usage: ./Allrun [plots]" >&2; exit 2 ;;
+esac
+case "$PLOTTER" in
+    paper|none) ;;
+    *) echo "Unknown PLOTTER '$PLOTTER'; expected paper or none." >&2; exit 2 ;;
+esac
+
+# Check the CSV results against the analytical symbols, then write the table of
+# maximum errors and the manuscript figure. Every step stops the script on
+# failure, so a figure is never produced from results that failed the check.
+postProcess()
+{
+    for N in 16 32 64; do
+        if [ ! -s "$outputDir/results_${N}x${N}x1.csv" ]; then
+            echo "ERROR: missing result file $outputDir/results_${N}x${N}x1.csv" >&2
+            echo "       Run ./Allrun first; ./Allrun plots only reads existing results." >&2
+            exit 1
+        fi
+    done
+    if ! command -v "$PLOT_PYTHON" > /dev/null 2>&1; then
+        echo "ERROR: $PLOT_PYTHON not found (set PLOT_PYTHON)" >&2
+        exit 1
+    fi
+    echo "Checking the results in $outputDir"
+    "$PLOT_PYTHON" checkResults.py "$outputDir"
+
+    if [ "$PLOTTER" = none ]; then
+        echo "PLOTTER=none: the table and the figures were not written"
+        return 0
+    fi
+    mkdir -p "$figureDir"
+    echo "Writing $figureDir/fourier_max_errors.txt"
+    "$PLOT_PYTHON" tableMaxErrors.py "$outputDir" > "$figureDir/fourier_max_errors.txt"
+    cat "$figureDir/fourier_max_errors.txt"
+    echo "Plotting with plotPaperFigures.py"
+    MPLBACKEND=Agg "$PLOT_PYTHON" plotPaperFigures.py "$outputDir" --output "$figureDir" \
+        --dump-series "$figureDir/normalisedSpectralCuts_series.json"
+    if [ ! -s "$figureDir/normalisedSpectralCuts.pdf" ]; then
+        echo "ERROR: $figureDir/normalisedSpectralCuts.pdf was not produced" >&2
+        exit 1
+    fi
+    echo "Figures are in $(pwd -P)/$figureDir"
+}
+
+if [ "$stage" = plots ]; then
+    postProcess
+    exit 0
+fi
 
 . "$WM_PROJECT_DIR/bin/tools/RunFunctions"
 source solids4FoamScripts.sh
@@ -19,7 +88,6 @@ for N in 16 32 64; do
     tail -n 3 "log.stabilisationFourierCheck.N$N"
 done
 
-outputDir=postProcessing/stabilisationFourierCheck
 mkdir -p "$outputDir"
 rejectionCsv="$outputDir/rejectionChecks.csv"
 printf '# case=%s\ncase,exitCode,expectedText,pass\n' \
@@ -73,3 +141,6 @@ runRejection rejectNegativePower \
 if [ "$rejectionFailures" -ne 0 ]; then
     exit 1
 fi
+
+# The mesh-dictionary backup is restored by the EXIT trap above.
+postProcess

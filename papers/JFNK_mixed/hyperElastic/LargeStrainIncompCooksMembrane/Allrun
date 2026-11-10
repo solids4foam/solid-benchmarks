@@ -1,27 +1,229 @@
 #!/usr/bin/env bash
-
-# Source required functions
-. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
-source solids4FoamScripts.sh
+#
+# Nonlinear Cook's membrane, strongly near-incompressible response,
+# nu = 0.4999 (Section 5.4.2).
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${ROOT}" || exit 1
+# The plot script and its reference tables are shared with the compressible case
+PLOT_SCRIPT_DIR="${ROOT}/../cooksMembrane/plotScripts"
 BASE="base/hex.snes"
 NAME="hex_snes__evenlap_m2"
 
+# Stage: a full run by default; "extract" and "plots" work on an existing run
+# directory (default: the newest run_*) and start no solver.
+STAGE=run
+case "${1:-}" in
+    -h|--help)
+        echo "Usage: $0 [LAST_MESH]            mesh, solve, extract and plot meshes 2..LAST_MESH (default 8, the paper campaign)"
+        echo "       START_MESH=1 $0 [LAST_MESH] choose the first mesh (1-8); mesh 1 is not part of the paper figure"
+        echo "       $0 extract [RUN_DIR]      rebuild the summary of an existing run from its cases, then plot"
+        echo "       $0 plots [RUN_DIR]        plot the existing summary of a run"
+        echo "PLOTTER selects the plot: paper (default, shared manuscript style), gnuplot or none."
+        echo "RUN_PLOTS=false is the same as PLOTTER=none. PLOT_PYTHON selects the Python interpreter."
+        exit 0
+        ;;
+    extract|plots)
+        STAGE=$1
+        shift
+        if [[ $# -gt 1 ]]
+        then
+            echo "Usage: $0 ${STAGE} [RUN_DIR]" >&2
+            exit 2
+        fi
+        EXISTING_RUN_DIR=${1:-}
+        set --
+        ;;
+esac
+
+PLOTTER="${PLOTTER:-paper}"
+[[ "${RUN_PLOTS:-true}" == "false" ]] && PLOTTER=none
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
+case "${PLOTTER}" in
+    paper|gnuplot|none) ;;
+    *) echo "Unknown PLOTTER '${PLOTTER}'; expected paper, gnuplot or none." >&2; exit 2 ;;
+esac
+
+if [[ "${STAGE}" == run ]]
+then
+    # Source required functions
+    . "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+    source solids4FoamScripts.sh
+fi
+
+# Extract the results of the case in the current directory and append them as
+# row $1 of ../$2 (summary) and ../$3 (iteration counts).
+extract_case_results()
+{
+    local i=$1 SUMMARY=$2 ITERATIONS=$3
+    local MAX_MEMORY CLOCK_TIME DISP SNES_ITS MAX_LINEAR_ITS TOTAL_LINEAR_ITS
+    local point_file=postProcessing/0/solidPointDisplacement_pointDisp.dat
+
+    if [[ ! -s "${point_file}" ]]
+    then
+        echo "ERROR: expected displacement output is missing: ${PWD}/${point_file}" >&2
+        return 1
+    fi
+
+    if grep -q "Maximum resident" log.solids4Foam
+    then
+        MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+    else
+        MAX_MEMORY="NaN"
+    fi
+
+    CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
+    : "${CLOCK_TIME:=NaN}"
+    DISP=$(tail -1 "${point_file}" | awk '{print $3}')
+    if [[ -z "${DISP}" ]]
+    then
+        echo "ERROR: could not read the displacement from ${PWD}/${point_file}" >&2
+        return 1
+    fi
+
+    echo "$i $CLOCK_TIME $MAX_MEMORY $DISP" >> ../"${SUMMARY}"
+
+    SNES_ITS=$(grep "Nonlinear solve converged" log.solids4Foam | tail -n 1 | awk '{print $NF}')
+    read -r MAX_LINEAR_ITS TOTAL_LINEAR_ITS <<< \
+        "$(awk '/Linear solve/ && /iterations/ {sum += $NF; if ($NF > max) max = $NF} END {print max+0, sum+0}' log.solids4Foam)"
+
+    echo "$i ${SNES_ITS:-NaN} $MAX_LINEAR_ITS $TOTAL_LINEAR_ITS" >> ../"${ITERATIONS}"
+}
+
+# Newest run_* directory of this case, empty when there is none
+newest_run_dir()
+{
+    local candidate newest=""
+    for candidate in "${ROOT}"/run_*
+    do
+        [[ -d "${candidate}" ]] || continue
+        if [[ -z "${newest}" || "${candidate}" -nt "${newest}" ]]
+        then
+            newest=${candidate}
+        fi
+    done
+    printf '%s' "${newest}"
+}
+
+# Rebuild the summary of stabilisation $2 in the existing run directory $1
+# from its completed cases (meshes without gaps, each with a solver log that
+# reached "End").
+extract_run_dir()
+{
+    local run_dir=$1 stem=$2 i first="" last="" CASE
+    cd "${run_dir}" || return 1
+    for i in 1 2 3 4 5 6 7 8
+    do
+        if [[ -d "${stem}.${i}" ]]
+        then
+            [[ -n "${first}" ]] || first=$i
+            last=$i
+        fi
+    done
+    if [[ -z "${first}" ]]
+    then
+        echo "ERROR: no case directories ${stem}.<mesh> in ${run_dir}" >&2
+        return 1
+    fi
+    echo "# Mesh Time Mem D" > "${stem}.summary.txt"
+    echo "# Mesh SNESIts MaxLinearIts TotalLinearIts" > "${stem}.iterations.txt"
+    for i in $(seq "${first}" "${last}")
+    do
+        CASE="${stem}.${i}"
+        if [[ ! -f "${CASE}/log.solids4Foam" ]] || ! grep -q '^End' "${CASE}/log.solids4Foam"
+        then
+            echo "ERROR: ${run_dir}/${CASE} has no completed solver log; the run is incomplete" >&2
+            return 1
+        fi
+        ( cd "${CASE}" && extract_case_results "$i" "${stem}.summary.txt" "${stem}.iterations.txt" ) || return 1
+    done
+    echo; echo "${stem}.summary.txt (meshes ${first}-${last}):"; cat "${stem}.summary.txt"
+    cd "${ROOT}" || return 1
+}
+
+# Plot the evenlap_m2 results of run directory $1 alongside the reference results
+make_plots()
+{
+    local run_dir=$1
+    local figure="largeStrainIncompCooksMembrane-neoHookeanTipDispConvergenceStabCompatible.pdf"
+    case "${PLOTTER}" in
+        none)
+            echo "Skipping plots (PLOTTER=none or RUN_PLOTS=false)"
+            return 0
+            ;;
+        paper)
+            if [[ ! -s "${run_dir}/hex_snes__evenlap_m2.summary.txt" ]]
+            then
+                echo "ERROR: ${run_dir}/hex_snes__evenlap_m2.summary.txt is missing or empty;" \
+                     "the paper figure shows the evenlap_m2 results" >&2
+                return 1
+            fi
+            if ! command -v "${PLOT_PYTHON}" > /dev/null 2>&1
+            then
+                echo "ERROR: ${PLOT_PYTHON} not found (set PLOT_PYTHON, or PLOTTER=gnuplot|none)" >&2
+                return 127
+            fi
+            echo "Plotting with plot_nonlinear_cooks.py"
+            MPLBACKEND=Agg "${PLOT_PYTHON}" "${PLOT_SCRIPT_DIR}/plot_nonlinear_cooks.py" \
+                --incompressible-data "${run_dir}" --output-dir "${run_dir}" \
+                --dump-series "${run_dir}/nonlinearCooks_series.json" || return 1
+            if [[ ! -s "${run_dir}/${figure}" ]]
+            then
+                echo "ERROR: expected figure was not produced: ${run_dir}/${figure}" >&2
+                return 1
+            fi
+            echo "Figure: ${run_dir}/${figure}"
+            ;;
+        gnuplot)
+            if ! command -v gnuplot > /dev/null 2>&1
+            then
+                echo "ERROR: gnuplot is required for PLOTTER=gnuplot" >&2
+                return 127
+            fi
+            cp "${ROOT}/plotScripts/stabVsLiterature.gnuplot" "${run_dir}"/
+            echo "Running gnuplot on stabVsLiterature.gnuplot"
+            ( cd "${run_dir}" && gnuplot stabVsLiterature.gnuplot ) || return 1
+            ;;
+    esac
+}
+
+if [[ "${STAGE}" != run ]]
+then
+    [[ -n "${EXISTING_RUN_DIR}" ]] || EXISTING_RUN_DIR=$(newest_run_dir)
+    if [[ -z "${EXISTING_RUN_DIR}" || ! -d "${EXISTING_RUN_DIR}" ]]
+    then
+        echo "ERROR: no run directory to post-process: '${EXISTING_RUN_DIR:-${ROOT}/run_*}'" >&2
+        exit 1
+    fi
+    EXISTING_RUN_DIR="$(cd "${EXISTING_RUN_DIR}" && pwd)"
+    if [[ "${STAGE}" == extract ]]
+    then
+        echo "Rebuilding the summary of ${EXISTING_RUN_DIR} from its cases"
+        extract_run_dir "${EXISTING_RUN_DIR}" "${NAME}" || exit 1
+    fi
+    echo "Post-processing ${EXISTING_RUN_DIR}"
+    make_plots "${EXISTING_RUN_DIR}" || exit 1
+    exit 0
+fi
+
 # Mesh input files are defined from 1 to 8. A positional argument selects the
-# final mesh, so ./Allrun 3 runs meshes 1, 2 and 3.
+# final mesh, so ./Allrun 3 runs meshes 2 and 3.
 if (( $# > 1 ))
 then
     echo "Usage: $0 [LAST_MESH]" >&2
     exit 2
 fi
 
-START_MESH=1
+# The paper campaign is meshes 2 to 8 (Figure 11), so the first mesh is 2 by
+# default. START_MESH in the environment selects another first mesh, for
+# example START_MESH=1 ./Allrun 4 for meshes 1 to 4.
+START_MESH=${START_MESH:-2}
 END_MESH=${1:-8}
 
-if [[ ! "${END_MESH}" =~ ^[1-8]$ ]]
+if [[ ! "${END_MESH}" =~ ^[1-8]$ || ! "${START_MESH}" =~ ^[1-8]$ || "${START_MESH}" -gt "${END_MESH}" ]]
 then
-    echo "LAST_MESH must be an integer from 1 to 8" >&2
+    echo "The mesh range must satisfy 1 <= START_MESH (${START_MESH}) <= LAST_MESH (${END_MESH}) <= 8;" \
+         "set START_MESH=1 to include mesh 1" >&2
     exit 2
 fi
 
@@ -109,21 +311,7 @@ do
         exit "${SOLVER_STATUS}"
     fi
 
-    if grep -q "Maximum resident" log.solids4Foam
-    then
-        MAX_MEMORY=$(grep "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
-    else
-        MAX_MEMORY="NaN"
-    fi
-
-    CLOCK_TIME=$(grep "ClockTime" log.solids4Foam | tail -n 1 | awk '{print $7}')
-    DISP=$(tail -1 postProcessing/0/solidPointDisplacement_pointDisp.dat | awk '{print $3}')
-    echo "${i} ${CLOCK_TIME} ${MAX_MEMORY} ${DISP}" >> ../"${SUMMARY}"
-
-    SNES_ITS=$(grep "Nonlinear solve converged" log.solids4Foam | tail -n 1 | awk '{print $NF}')
-    read -r MAX_LINEAR_ITS TOTAL_LINEAR_ITS <<< \
-        "$(awk '/Linear solve/ && /iterations/ {sum += $NF; if ($NF > max) max = $NF} END {print max+0, sum+0}' log.solids4Foam)"
-    echo "${i} ${SNES_ITS} ${MAX_LINEAR_ITS} ${TOTAL_LINEAR_ITS}" >> ../"${ITERATIONS}"
+    extract_case_results "${i}" "${SUMMARY}" "${ITERATIONS}" || exit 1
 
     cd ..
 done
@@ -136,18 +324,14 @@ echo "${ITERATIONS} file:"
 cat "${ITERATIONS}"
 echo
 
-# The m2HPCdata result has one applicable plot: comparison with the literature.
-if [[ "${RUN_PLOTS:-true}" != "false" ]]
-then
-    if command -v gnuplot &>/dev/null
-    then
-        cp ../plotScripts/stabVsLiterature.gnuplot .
+cd "${ROOT}"
 
-        echo "Running gnuplot on stabVsLiterature.gnuplot"
-        gnuplot stabVsLiterature.gnuplot
-    else
-        echo "gnuplot is not installed; skipping plot generation"
-    fi
+# The figure shows meshes 2 and finer against the Abaqus reference.
+if [[ "${END_MESH}" -lt 2 && "${PLOTTER}" != none ]]
+then
+    echo "INCOMPLETE: the figure shows meshes 2 and finer; no figure was produced for this run of mesh 1" >&2
+else
+    make_plots "${ROOT}/${RUN_DIR}" || exit 1
 fi
 
 cd "${ROOT}"

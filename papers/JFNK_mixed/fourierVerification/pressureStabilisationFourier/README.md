@@ -33,7 +33,7 @@ cd ../..
 wmake applications/utilities/stabilisationFourierCheck
 export PATH="$FOAM_MODULE_APPBIN:$PWD/applications/scripts:$PATH"
 
-cd /path/to/paper1Code/papers/JFNK_mixed/fourierVerification/pressureStabilisationFourier
+cd /path/to/solid-benchmarks/papers/JFNK_mixed/fourierVerification/pressureStabilisationFourier
 ./Allclean
 ./Allrun
 python3 checkResults.py
@@ -186,16 +186,22 @@ checkerboard response.
 
 ## Paper figures
 
-The plotting scripts require NumPy and Matplotlib. On the validated macOS
-system these are provided by `/opt/miniconda3/bin/python`; another Python
-environment containing both packages is equally suitable.
+The plotting scripts require a Python environment with NumPy and Matplotlib.
 
-After the standard Fourier campaign, generate the quantitative paper figures
-from the exported CSV data with:
+`./Allrun` generates the quantitative paper figures from the exported CSV data
+after the campaign and the result check. To repeat them on the existing
+results:
 
 ```bash
-/opt/miniconda3/bin/python plotPaperFigures.py
+./Allrun plots
+# or directly, with explicit input and output directories
+python3 plotPaperFigures.py postProcessing/stabilisationFourierCheck --output postProcessing/paperFigures
+python3 tableMaxErrors.py postProcessing/stabilisationFourierCheck
 ```
+
+The figures use the shared manuscript style in
+`../../plotStyle/paper_figure_style.py`; `--only-cuts` writes the manuscript
+figure `normalisedSpectralCuts.pdf` alone.
 
 This writes PNG and PDF versions of the reference-response comparison,
 normalised spectral cuts, normalised spectral maps and verification-error
@@ -207,7 +213,7 @@ After `./AllrunVisualisation`, generate the supplementary mode/filter montage
 with:
 
 ```bash
-/opt/miniconda3/bin/python plotVisualisationFields.py
+python3 plotVisualisationFields.py
 ```
 
 The montage uses representative operators by default. Pass `--models` followed
@@ -216,6 +222,14 @@ and `RhieChow` to change its columns. The montage is explicitly illustrative
 and is not a mixed-solver update.
 
 ## Raw and normalised symbols
+
+Index convention: in this section and in the utility's own naming, "paper order `m`" is the one-based order `m = laplacianPower + 1` that
+was in use when the utility was written. The manuscript indexes the coupled
+family by `m = laplacianPower`, so paper orders 1, 2 and 3 below are the
+manuscript's `m = 0`, `m = 1` and `m = 2`, and the exponent `m` in the
+normalised symbol below is the manuscript's `m + 1`. The plot legends written
+by `plotPaperFigures.py` and `plotVisualisationFields.py` use the manuscript
+index.
 
 The raw Laplacian and generalised power 0 have symbol `-4*s*sigma`, whereas
 JST/generalised powers 1 and 2 retain a factor `1/h^2`. At fixed mode angles,

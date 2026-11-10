@@ -1,9 +1,9 @@
 # Linear Cook's membrane paper reproduction
 
-This directory prepares and plots the normalised pressure-stabilisation Cook's
-membrane campaign for Paper 1. The cases and visual conventions come from the
-historical plots. Full paper plots are now generated directly from the new HPC
-archive; the plotting workflow only reads that archive.
+This directory prepares, runs and plots the normalised pressure-stabilisation
+Cook's membrane campaign for Paper 1. The plots are drawn in the shared
+manuscript style (`../../plotStyle/paper_figure_style.py`) from the results of
+the campaign run in this checkout.
 
 ## Historical baseline
 
@@ -11,7 +11,7 @@ The original reproduction contained 180 simulations:
 
 - 36 structured accuracy/timing cases: six pressure operators on six meshes,
   with `sp=10.0` and `sm=0.1`;
-- 108 structured pressure-scale cases: paper orders `m=1`, `m=2` and `m=3`
+- 108 structured pressure-scale cases: coupled orders `m=0`, `m=1` and `m=2`
   on six meshes at `sp=0.01, 0.1, 1, 10, 100, 1000`, with `sm=0.1`;
 - 36 unstructured verification cases: six pressure operators on six meshes,
   with `sp=10.0` and `sm=1.0`.
@@ -39,9 +39,16 @@ not the preconditioner. It never tracks `sp`. `scripts/validate_campaign.py`
 re-reads the generated dictionaries and fails if the two are ever relinked.
 
 The nominal `sp` values are unchanged. The generalised model mapping is
-`paper m = laplacianPower + 1`, so powers 0, 1 and 2 are paper orders 1, 2 and
-3. Rhie--Chow is a separate operator with its own spectral shape; it is not
-labelled as coupled `m=2`.
+`paper m = laplacianPower`, so powers 0, 1 and 2 are the coupled orders
+`m=0`, `m=1` and `m=2` of the manuscript. The figure file names
+`figure6_pressure_scale_{m1,m2,m3}_*` and the run names keep an earlier
+one-based tag: file `m1` is `m=0`, `m2` is `m=1` and `m3` is `m=2`, while
+`evenlap_mN` already means `laplacianPower N`. The campaign manifests also keep
+their `method_label` and `paper_m` (`laplacianPower + 1`) columns in that
+one-based form, so that newly generated manifests stay identical to the
+archived campaign; only the plot legends use the manuscript index. Rhie--Chow
+is a separate operator with its own spectral shape; it is not labelled as
+coupled `m=1`.
 
 The full 396-case matrix is:
 
@@ -73,7 +80,16 @@ normalisation commit:
 329898141971d40e201ff2ee6ae4d19e8a97643c
 ```
 
-The current integration branch is `pr/spectral-normalisation`. On the HPC
+That commit is on the `pr/spectral-normalisation` branch used for the paper
+runs. The same change is in `solids4foam/solids4foam` on the
+`fix-pressure-solid` branch as squash-merge commit
+
+```text
+12059d360780aab125d36170331c9c7d68b0ade2
+```
+
+(pull request 462), whose source tree is identical to the tip of
+`pr/spectral-normalisation`. The workflow accepts either commit. On the HPC
 system, load the desired OpenFOAM environment and build that solids4foam
 checkout normally, for example:
 
@@ -87,7 +103,7 @@ cd "$SOLIDS4FOAM_SOURCE"
 
 If the models library is outside `$FOAM_USER_LIBBIN` or `$FOAM_LIBBIN`, also
 set `SOLIDS4FOAM_MODELS_LIB` to its absolute path. Before creating cases, the
-workflow checks that the required commit is an ancestor of the selected source
+workflow checks that one of these commits is an ancestor of the selected source
 HEAD, that the source and compiled library contain normalisation markers, that
 the solver links `libsolids4FoamModels`, and that `solids4Foam -help` loads.
 The checked source HEAD, executable and library are recorded in generated run
@@ -131,13 +147,25 @@ Individual stages are available as:
 ./Allrun plots
 ```
 
-In full mode, the plotting stage reads raw results from a case-local `DataHPC`
-directory when present, otherwise from the repository-level `../../dataHPC`
-archive used by this checkout. It reads each campaign manifest,
-point-displacement file and solver log without changing the archive. If the
-archive is stored elsewhere, set `COOKS_HPC_DATA_DIR` to its root. The
-cheap-test plotting stage continues to read its locally generated
-`results/test` tables.
+The plotting stage reads the processed tables that the three studies of this
+checkout wrote, `results/<mode>/normalised_r2/sm*/{structured,parameter,unstructured}.tsv`,
+and stops if one of them is missing: all three studies have to be complete. It
+never looks for a campaign anywhere else on its own.
+
+To plot a raw campaign directory instead, name it: with
+`COOKS_HPC_DATA_DIR=/path/to/campaign` (full mode only) the plotting stage reads
+each campaign manifest, point-displacement file and solver log under that
+directory without changing it. `COOKS_HPC_DATA_DIR=$PWD/runs/full ./Allrun plots`
+re-extracts the campaign of this checkout in that way; a campaign run on
+another machine can be plotted by copying its `runs/full` directory and naming
+the copy.
+
+`PLOTTER=none ./Allrun` runs the three studies without the plotting stage;
+`./Allrun plots` makes the figures afterwards. The figures need Python with
+NumPy and Matplotlib (`COOKS_PLOT_PYTHON` selects the interpreter). The
+execution-time panels take the coupled `m = 2` result on the finest mesh of
+the campaign as the displacement reference and show the meshes between the
+coarsest and the finest.
 
 For SLURM, preserve the historical serial execution convention:
 
@@ -146,9 +174,10 @@ sbatch --export=ALL,OPENFOAM_BASHRC=/path/to/bashrc,\
 SOLIDS4FOAM_SOURCE=/path/to/solids4foam run.slurm
 ```
 
-An optional module can be loaded with `OPENFOAM_MODULE`, and an individual
-stage can be selected with `COOKS_TARGET=structured`, `parameter`,
-`unstructured` or `plots`. Do not run stages concurrently in the same output
+The job runs `./Allrun` itself, so extraction and plotting follow the
+simulations inside the job and only when they succeeded. An optional module
+can be loaded with `OPENFOAM_MODULE`, and an individual stage can be selected
+with `COOKS_TARGET=structured`, `parameter`, `unstructured` or `plots`. Do not run stages concurrently in the same output
 tree. The workflow refuses to overwrite existing cases and records each case
 as `PENDING`, `RUNNING`, `OK` or `FAILED`; final result tables are written only
 after every requested simulation succeeds.
@@ -205,12 +234,9 @@ runs/<mode>/normalised_r2/provenance.txt
 runs/<mode>/normalised_r2/<sm>/*_{manifest,progress}.tsv
 ```
 
-Plots never combine momentum campaigns. The shared axis bounds and original
-fonts, dimensions, colours, markers, line styles and legend placement are
-retained wherever possible. The paper's displacement-axis headroom and linear
-tick spacing are retained so that the inside upper-right legends do not hide
-refined-mesh data. Rhie--Chow uses triangle markers with the existing `sp`
-colour. The generated PDFs are:
+Plots never combine momentum campaigns. Axis bounds are shared between the
+two momentum campaigns. Colours, markers, fonts and sizes come from the shared
+manuscript style. The generated PDFs, in `figures/<mode>/`, are:
 
 ```text
 figure5_structured_displacement_sm1p0.pdf

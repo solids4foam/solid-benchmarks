@@ -4,10 +4,11 @@
 # workflow as ./Allrun, including figure collection and the combined PDF, on a
 # much smaller mesh sequence:
 #
+#   Fourier verification                     N = 16, 32, 64 (as in the full run)
 #   manufactured solution                    meshes 1-2
 #   linear Cook's membrane                   meshes 1-2
 #   nonlinear Cook's membrane (nu=0.3)       meshes 1-2
-#   nonlinear Cook's membrane (nu=0.4999)    meshes 1-2
+#   nonlinear Cook's membrane (nu=0.4999)    meshes 2-3 (the paper campaign starts at mesh 2)
 #   heart tissue beam                        mesh levels 1-2
 #   idealised LV inflation                   mesh 1
 #   idealised LV active contraction          mesh 1

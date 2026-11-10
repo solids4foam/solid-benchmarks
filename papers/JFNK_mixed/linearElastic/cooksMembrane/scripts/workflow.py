@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,6 +34,13 @@ NORMALISE = "true"
 REFERENCE_NYQUIST_DIRECTIONS = 2
 NORMALISATION_TAG = "normalised_r2"
 REQUIRED_NORMALISATION_COMMIT = "329898141971d40e201ff2ee6ae4d19e8a97643c"
+# The same change was squash-merged into solids4foam/solids4foam (branch
+# fix-pressure-solid, pull request 462). That commit has a different id but an
+# identical source tree, so either one is accepted as an ancestor of HEAD.
+ACCEPTED_NORMALISATION_COMMITS = (
+    REQUIRED_NORMALISATION_COMMIT,
+    "12059d360780aab125d36170331c9c7d68b0ade2",
+)
 
 
 @dataclass(frozen=True)
@@ -484,23 +492,28 @@ def normalisation_build_provenance(solver: str) -> dict[str, str]:
         capture_output=True,
         text=True,
     ).stdout.strip()
-    ancestor = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(source),
-            "merge-base",
-            "--is-ancestor",
-            REQUIRED_NORMALISATION_COMMIT,
-            "HEAD",
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    if ancestor.returncode != 0:
+    matched_commit = None
+    for commit in ACCEPTED_NORMALISATION_COMMITS:
+        ancestor = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(source),
+                "merge-base",
+                "--is-ancestor",
+                commit,
+                "HEAD",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if ancestor.returncode == 0:
+            matched_commit = commit
+            break
+    if matched_commit is None:
         raise RuntimeError(
-            f"solids4foam HEAD {head} does not contain required normalisation "
-            f"commit {REQUIRED_NORMALISATION_COMMIT}"
+            f"solids4foam HEAD {head} does not contain a required normalisation "
+            f"commit ({' or '.join(ACCEPTED_NORMALISATION_COMMITS)})"
         )
     source_model = (
         source
@@ -546,7 +559,7 @@ def normalisation_build_provenance(solver: str) -> dict[str, str]:
     return {
         "solids4foam_source": str(source),
         "solids4foam_head": head,
-        "required_normalisation_commit": REQUIRED_NORMALISATION_COMMIT,
+        "required_normalisation_commit": matched_commit,
         "solver": str(Path(solver).resolve()),
         "libsolids4FoamModels": str(library),
         "wm_project_version": os.environ.get("WM_PROJECT_VERSION", "unknown"),
@@ -591,10 +604,10 @@ def preflight(target: str, prepare_only: bool) -> dict[str, str]:
     solver = ""
     for study in studies:
         solver = required_commands(study)["solids4Foam"]
-    if target == "plots" or (target == "all" and not prepare_only):
+    if target == "plots" or (target == "all" and not prepare_only and plots_enabled()):
         if not PLOTTER.is_file():
             raise RuntimeError(f"paper plot renderer is missing: {PLOTTER}")
-        reportlab_python()
+        plot_python()
         benchmark = ROOT / "plotScripts" / "Bijelona.csv"
         if not benchmark.is_file() or benchmark.stat().st_size == 0:
             raise RuntimeError(f"benchmark data are missing or empty: {benchmark}")
@@ -614,7 +627,8 @@ def write_provenance(mode: str, provenance: dict[str, str]) -> None:
     path.write_text(contents)
 
 
-def reportlab_python() -> str:
+def plot_python() -> str:
+    """Python interpreter for plotScripts/plot_paper.py (Matplotlib and NumPy)."""
     candidates = (
         os.environ.get("COOKS_PLOT_PYTHON"),
         os.environ.get("CONDA_PYTHON_EXE"),
@@ -628,14 +642,15 @@ def reportlab_python() -> str:
             continue
         checked.append(candidate)
         completed = subprocess.run(
-            [candidate, "-c", "import reportlab"],
+            [candidate, "-c", "import matplotlib, numpy"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
         if completed.returncode == 0:
             return candidate
     raise RuntimeError(
-        "the Python 'reportlab' package is required for plotting; install it or set COOKS_PLOT_PYTHON to a Python interpreter that provides it"
+        "the Python packages 'matplotlib' and 'numpy' are required for plotting; install them or set "
+        "COOKS_PLOT_PYTHON to a Python interpreter that provides them"
     )
 
 
@@ -907,23 +922,29 @@ def expected_figures(mode: str) -> tuple[Path, ...]:
     return tuple(figure_dir / name for name in names)
 
 
+def plots_enabled() -> bool:
+    """PLOTTER=none skips the plotting stage of a complete run."""
+    return os.environ.get("PLOTTER", "paper") != "none"
+
+
 def run_plots(mode: str) -> None:
-    command = [reportlab_python(), str(PLOTTER), "--mode", mode]
-    if mode == "full":
-        configured = os.environ.get("COOKS_HPC_DATA_DIR")
-        candidates = (
-            (Path(configured).expanduser(),)
-            if configured
-            else (ROOT / "DataHPC", ROOT.parents[1] / "dataHPC")
-        )
-        data_dir = next((path.resolve() for path in candidates if path.is_dir()), None)
-        if data_dir is None:
-            checked = ", ".join(str(path) for path in candidates)
-            raise RuntimeError(
-                "Cook's membrane HPC data directory was not found; checked " + checked
-            )
-        command.extend(("--data-dir", str(data_dir)))
+    figure_dir = ROOT / "figures" / mode
+    command = [plot_python(), str(PLOTTER), "--mode", mode,
+               "--dump-series", str(figure_dir / "linearCooks_series.json")]
+    configured = os.environ.get("COOKS_HPC_DATA_DIR")
+    if configured:
+        # Explicit request only: plot a raw campaign directory (manifests, point
+        # displacements and solver logs), e.g. runs/full of another checkout.
+        # No campaign directory is ever looked up automatically.
+        if mode != "full":
+            raise RuntimeError("COOKS_HPC_DATA_DIR is only valid in full mode")
+        data_dir = Path(configured).expanduser()
+        if not data_dir.is_dir():
+            raise RuntimeError(f"COOKS_HPC_DATA_DIR is not a directory: {data_dir}")
+        print(f"Plotting the campaign directory named by COOKS_HPC_DATA_DIR: {data_dir.resolve()}")
+        command.extend(("--data-dir", str(data_dir.resolve())))
     else:
+        print(f"Plotting the processed results of this checkout: {ROOT / 'results' / mode}")
         required_results = tuple(
             result_path(mode, study, sm)
             for study, scales in (
@@ -935,12 +956,17 @@ def run_plots(mode: str) -> None:
         )
         for path in required_results:
             if not path.is_file() or path.stat().st_size == 0:
-                raise RuntimeError(f"required processed result file is missing or empty: {path}")
-    completed = subprocess.run(command, cwd=ROOT)
+                raise RuntimeError(
+                    f"required processed result file is missing or empty: {path}; the three studies "
+                    "must have completed in this checkout (or set COOKS_HPC_DATA_DIR in full mode)"
+                )
+    started = time.time()
+    completed = subprocess.run(command, cwd=ROOT, env={**os.environ, "MPLBACKEND": "Agg"})
     if completed.returncode != 0:
         raise RuntimeError(f"paper plotting failed with exit code {completed.returncode}")
     missing = [
-        path for path in expected_figures(mode) if not path.is_file() or path.stat().st_size == 0
+        path for path in expected_figures(mode)
+        if not path.is_file() or path.stat().st_size == 0 or path.stat().st_mtime < started - 2.0
     ]
     if missing:
         raise RuntimeError(
@@ -993,7 +1019,10 @@ def main() -> int:
         for sm in study_scales:
             run_study(study, sm, specs, args.mode, args.prepare_only)
     if args.target == "all" and not args.prepare_only:
-        run_plots(args.mode)
+        if plots_enabled():
+            run_plots(args.mode)
+        else:
+            print("PLOTTER=none: the figures were not generated; run './Allrun plots' to create them")
     return 0
 
 
