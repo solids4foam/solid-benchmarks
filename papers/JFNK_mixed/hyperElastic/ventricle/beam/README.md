@@ -17,7 +17,7 @@ mesh, and runs solids4foam. The base case is never run in place.
 - PETSc/SNES support for the mixed pressure-displacement solution.
 - An MPI launcher is needed only when explicitly requesting a one-rank MPI
   launch with `USE_MPI=true`.
-- Python 3 and ReportLab are needed to create the convergence plot
+- Python 3 with NumPy and Matplotlib is needed to create the convergence plot
   automatically. A gnuplot version of the plot is also available.
 
 There are no local-machine paths or operating-system-specific library names in
@@ -112,9 +112,10 @@ with zero active tension. Its main parameters are `k = 2 kPa`, `cf = 8`,
 
 The solid model is nonlinear total-Lagrangian total displacement. The working
 configuration uses the mixed pressure-displacement PETSc SNES solution and the
-options in `petscOptions.split`. It uses the successful DataHPC Rhie-Chow
-pressure stabilisation settings: a momentum diff-stencil Laplacian scale factor
-of 0.1 and Rhie-Chow pressure scale/Jacobian scale factors of 1.
+options in `petscOptions.split`. The stabilisation is that of the paper: a
+momentum diff-stencil Laplacian scale factor of 0.1 and the generalised
+even-order Laplacian pressure stabilisation with `laplacianPower 2` (coupled
+`m = 2`), scale factor 0.1 and Jacobian scale factor 1.
 
 This is treated as a steady benchmark. `controlDict` advances directly from
 time 0 to time 1 with `deltaT 1`, applying the complete load in one solve. A
@@ -123,28 +124,37 @@ rather than the intermediate `0.1`, `0.2`, ... states.
 
 ## Plotting
 
-`Allrun` invokes the Python plot script automatically after all requested mesh
-levels have completed. It reads `runs/beam.summary.txt` and creates
+`Allrun` plots automatically after all requested mesh levels have completed.
+The default plotter, `plotScripts/plot_land_problem1.py`, draws the manuscript
+figure in the shared style (`../../../plotStyle/paper_figure_style.py`) from
+`runs/beam.summary.txt` and writes
 `plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf`.
 
-To use the gnuplot renderer instead, or to disable plotting, use:
+Column 4 of the summary is the z-displacement in metres. The benchmark
+quantity is the final z-coordinate of the monitored tip, whose initial
+coordinate is 0.001 m, so the plot uses `1 + 1000 * Dz` in millimetres. The
+three horizontal lines are the minimum (4.0247 mm), median (4.1681 mm) and
+maximum (4.1889 mm) of the 23 Land et al. (2015) values in
+`referenceData/land1Data.csv`; `referenceData/land_problem1_reference_stats.gp`
+holds them and is written by `plotScripts/extract_land_problem1_reference.py`.
+Mesh level 1 (10 cells) is not part of the figure and is left out.
 
 ```bash
-PLOTTER=gnuplot ./Allrun 3
-PLOTTER=none ./Allrun 3
+./Allrun plots               # plot the existing runs/beam.summary.txt; no solver
+./Allrun extract             # rebuild the summary from the completed runs/meshN, then plot
+PLOTTER=python ./Allrun 3    # earlier ReportLab figure (4.2 mm reference line)
+PLOTTER=gnuplot ./Allrun 3   # gnuplot figure
+PLOTTER=none ./Allrun 3      # no figure
 ```
 
-Set `PLOT_PYTHON` if the ReportLab-enabled interpreter is not named `python3`.
-Both plotting scripts may also be invoked directly from this directory. Column
-4 of the summary is the z-displacement in metres. The benchmark quantity is the
-final z-coordinate of the monitored tip, whose initial coordinate is 0.001 m,
-so the plot uses `1 + 1000 * Dz` in millimetres and includes the 4.2 mm
-reference result.
+Set `PLOT_PYTHON` if the interpreter with NumPy and Matplotlib is not named
+`python3`. `./Allrun extract` stops if a case under `runs/` has no completed
+solver log.
 
 ## Layout
 
 ```text
-problem1/
+beam/
 |-- Allrun
 |-- Allclean
 |-- README.md

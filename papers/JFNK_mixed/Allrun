@@ -8,19 +8,30 @@
 # a single PDF with a heading above the figures of each test case.
 #
 # Each case keeps its own Allrun; this script only selects the mesh sequence
-# used in the paper, runs that Allrun, and gathers the resulting plots.
+# used in the paper, runs that Allrun (case and mesh generation, simulation,
+# result extraction, plots in the manuscript style), and gathers the plots.
 #
 # Usage:
 #   ./Allrun                 # every case, using the paper mesh sequences
 #   ./Allrun mms beam        # only the named cases
 #   ./Allrun --list          # show the cases and the mesh sequences used
-#   ./Allrun --figures-only  # re-collect figures and rebuild the PDF only
+#   ./Allrun --no-plots      # run and extract only; no figures
+#   ./Allrun --plots-only    # plot the existing extracted results; no solver
+#   ./Allrun --extract       # re-extract from the existing completed runs, then plot
+#   ./Allrun --figures-only  # re-collect existing figures and rebuild the PDF only
 #   ./AllrunTest             # short verification run (see AllrunTest)
 #
 # Environment:
 #   RUN_MODE=full|test       # "test" is what AllrunTest sets
 #   STOP_ON_ERROR=true       # stop at the first failing case (default: false)
 #   BEAM_MESH_LEVELS="..."   # override the beam mesh levels (see below)
+#   PLOTTER=paper|none       # none is the same as --no-plots
+#   PLOT_PYTHON=...          # Python with NumPy, Matplotlib, ReportLab, pypdf
+#   LAND_OVERLAY_PDF=none    # ventricle cases: data layer only, no published curves
+#
+# The script exits with a non-zero status when a case failed or when an
+# expected figure of a case is missing; the summary lists every case as OK,
+# FAILED, INCOMPLETE or NO PLOTS.
 
 set -uo pipefail
 
@@ -34,7 +45,7 @@ COMBINE_SCRIPT="${ROOT}/scripts/combineFigures.py"
 MODE="${RUN_MODE:-full}"
 STOP_ON_ERROR="${STOP_ON_ERROR:-false}"
 
-# The heart tissue beam figure in the paper (Figure 11) spans cell sizes
+# The heart tissue beam figure in the paper (Figure 13) spans cell sizes
 # 0.5 mm down to 0.03125 mm, i.e. mesh levels 2 to 6 of the seven levels the
 # beam case defines. Level 1 (10 cells) is not part of that figure.
 BEAM_MESH_LEVELS="${BEAM_MESH_LEVELS:-2 3 4 5 6}"
@@ -46,22 +57,24 @@ BEAM_MESH_LEVELS="${BEAM_MESH_LEVELS:-2 3 4 5 6}"
 #
 # The mesh counts of the full run are those reported in the paper:
 #
-#   manufactured solution           6 meshes (h = 40 mm halved to 1.25 mm)
+#   Fourier verification            N = 16, 32 and 64 (not mesh-selectable)
+#   manufactured solution           5 meshes (h = 40 mm halved to 2.5 mm, Figures 3-5)
 #   linear Cook's membrane          6 meshes (3x3 to 96x96 cells)
-#   nonlinear Cook's, nu=0.3        8 meshes (Figure 8b, spacing 12.649 -> 0.099 mm)
-#   nonlinear Cook's, nu=0.4999     8 meshes (Figure 9,  spacing 12.649 -> 0.099 mm)
-#   heart tissue beam               5 meshes, levels 2-6 (Figure 11)
+#   nonlinear Cook's, nu=0.3        8 meshes (Figure 10b, spacing 12.649 -> 0.099 mm)
+#   nonlinear Cook's, nu=0.4999     7 meshes, 2-8 (Figure 11, spacing 6.32 -> 0.099 mm)
+#   heart tissue beam               5 meshes, levels 2-6 (Figure 13)
 #   LV inflation                    3 meshes (1,620 / 12,960 / 103,680 cells)
 #   LV active contraction           3 meshes (3,240 / 25,920 / 103,680 cells)
 #------------------------------------------------------------------------------
 CASES=(
-"mms|linearElastic/manufactoredSolution|6|2|5.1 Manufactured solution"
-"linearCooks|linearElastic/cooksMembrane|full|test|5.2 Linear Cook's membrane"
-"nonlinearCooksCompressible|hyperElastic/cooksMembrane|8|2|5.3.1 Nonlinear Cook's membrane, compressible response (nu = 0.3)"
-"nonlinearCooksIncompressible|hyperElastic/LargeStrainIncompCooksMembrane|8|2|5.3.2 Nonlinear Cook's membrane, strongly near-incompressible response (nu = 0.4999)"
-"beam|hyperElastic/ventricle/beam|${BEAM_MESH_LEVELS}|1 2|5.4 Heart tissue beam benchmark"
-"inflation|hyperElastic/ventricle/inflation|3|1|5.5 Idealised left-ventricle inflation benchmark"
-"contraction|hyperElastic/ventricle/contraction|3|1|5.6 Idealised left-ventricle active-contraction benchmark"
+"fourier|fourierVerification/pressureStabilisationFourier|run|run|5.1 Fourier verification of the pressure-stabilisation operators"
+"mms|linearElastic/manufactoredSolution|5|2|5.2 Manufactured solution"
+"linearCooks|linearElastic/cooksMembrane|full|test|5.3 Linear Cook's membrane"
+"nonlinearCooksCompressible|hyperElastic/cooksMembrane|8|2|5.4.1 Nonlinear Cook's membrane, compressible response (nu = 0.3)"
+"nonlinearCooksIncompressible|hyperElastic/LargeStrainIncompCooksMembrane|8|3|5.4.2 Nonlinear Cook's membrane, strongly near-incompressible response (nu = 0.4999)"
+"beam|hyperElastic/ventricle/beam|${BEAM_MESH_LEVELS}|1 2|5.5 Heart tissue beam benchmark"
+"inflation|hyperElastic/ventricle/inflation|3|1|5.6 Idealised left-ventricle inflation benchmark"
+"contraction|hyperElastic/ventricle/contraction|3|1|5.7 Idealised left-ventricle active-contraction benchmark"
 )
 
 field() { echo "$1" | cut -d'|' -f"$2"; }
@@ -73,13 +86,18 @@ Usage: ./Allrun [options] [case ...]
 
 Options:
   --list            print the cases and their mesh sequences, then exit
-  --figures-only    skip the solver runs; only collect figures and build the PDF
+  --no-plots        run and extract only; no figures (same as PLOTTER=none)
+  --plots-only      no solver: plot the existing extracted results of each case
+  --extract         no solver: re-extract the results of the existing completed
+                    runs, then plot (inflation and contraction need OpenFOAM)
+  --figures-only    no solver and no plotting: collect the existing figures
+                    and build the PDF
   --stop-on-error   stop at the first failing case (default: continue)
   -h, --help        show this message
 
 Cases:
-  mms  linearCooks  nonlinearCooksCompressible  nonlinearCooksIncompressible
-  beam  inflation  contraction
+  fourier  mms  linearCooks  nonlinearCooksCompressible
+  nonlinearCooksIncompressible  beam  inflation  contraction
 
 With no case names, every case is run in paper order.
 Set RUN_MODE=test (or use ./AllrunTest) for the short verification sequence.
@@ -94,6 +112,9 @@ mesh_description()
     local tag=$1 arg=$2
 
     case "$tag" in
+        fourier)
+            echo "N = 16, 32, 64"
+            ;;
         linearCooks)
             if [[ "$arg" == test ]]
             then echo "meshes 1-2"
@@ -102,6 +123,10 @@ mesh_description()
             ;;
         beam)
             echo "mesh levels ${arg}"
+            ;;
+        nonlinearCooksIncompressible)
+            # The case starts at mesh 2 (the paper campaign) unless START_MESH is set
+            echo "meshes ${START_MESH:-2}-${arg}"
             ;;
         *)
             if [[ "${arg}" == 1 ]]
@@ -117,9 +142,37 @@ mesh_description()
 #------------------------------------------------------------------------------
 run_case()
 {
-    local tag=$1 case_dir=$2 arg=$3
+    local tag=$1 case_dir=$2 arg=$3 stage=$4
+
+    # Post-processing of existing results: no solver is started
+    if [[ "${stage}" != run ]]
+    then
+        case "$tag" in
+            fourier)
+                ( cd "$case_dir" && ./Allrun plots )
+                ;;
+            linearCooks)
+                if [[ "${stage}" == extract && "${arg}" == full ]]
+                then
+                    # Read the raw campaign of this checkout (manifests, point
+                    # displacements and solver logs) instead of its result tables
+                    ( cd "$case_dir" && RUN_MODE="$arg" \
+                        COOKS_HPC_DATA_DIR="${COOKS_HPC_DATA_DIR:-${case_dir}/runs/full}" ./Allrun plots )
+                else
+                    ( cd "$case_dir" && RUN_MODE="$arg" ./Allrun plots )
+                fi
+                ;;
+            *)
+                ( cd "$case_dir" && ./Allrun "${stage}" )
+                ;;
+        esac
+        return
+    fi
 
     case "$tag" in
+        fourier)
+            ( cd "$case_dir" && ./Allrun )
+            ;;
         linearCooks)
             # This case selects its mesh count through RUN_MODE, not an argument.
             ( cd "$case_dir" && RUN_MODE="$arg" ./Allrun )
@@ -156,89 +209,186 @@ newest_run_dir()
 }
 
 #------------------------------------------------------------------------------
-# Figures produced by a case, printed one "path<TAB>caption" pair per line
+# Figures produced by a case, printed one "path<TAB>caption<TAB>kind" triple
+# per line. kind is "required" (a figure of the paper that the case must
+# produce) or "optional" (collected when present).
 #------------------------------------------------------------------------------
+emit()
+{
+    printf '%s\t%s\t%s\n' "$1" "$2" "${3:-required}"
+}
+
+# Figures 15 and 16 over the published curves are expected unless the
+# composite was switched off with LAND_OVERLAY_PDF=none
+LAND_FIGURE_KIND=required
+[[ "${LAND_OVERLAY_PDF:-}" == none ]] && LAND_FIGURE_KIND=optional
+
 case_figures()
 {
     local tag=$1 case_dir=$2
-    local run_dir figure_dir file
+    local run_dir figure_dir sm
 
     case "$tag" in
+        fourier)
+            figure_dir="${case_dir}/postProcessing/paperFigures"
+            emit "${figure_dir}/normalisedSpectralCuts.pdf"  "Normalised spectral cuts (Figure 1)"
+            emit "${figure_dir}/referenceResponse.pdf"       "Reference response of the operators" optional
+            emit "${figure_dir}/normalisedSpectralMaps.pdf"  "Normalised spectral maps" optional
+            emit "${figure_dir}/verificationErrors.pdf"      "Verification errors" optional
+            ;;
         mms)
             run_dir="$(newest_run_dir "${case_dir}")"
-            [[ -n "${run_dir}" ]] || return 0
-            emit "${run_dir}/mms_dispErrors.pdf"                "Displacement errors"
-            emit "${run_dir}/mms_disp_orderOfAccuracy.pdf"      "Order of accuracy, displacement"
-            emit "${run_dir}/mms_stressErrors_v2.pdf"           "Stress errors"
-            emit "${run_dir}/mms_stress_orderOfAccuracy_v2.pdf" "Order of accuracy, stress"
+            [[ -n "${run_dir}" ]] || run_dir="${case_dir}/run_NOT_FOUND"
+            emit "${run_dir}/mms_dispErrors.pdf"                "Displacement errors (Figure 3)"
+            emit "${run_dir}/mms_disp_orderOfAccuracy.pdf"      "Order of accuracy, displacement (Figure 3)"
+            emit "${run_dir}/mms_stressErrors_v2.pdf"           "Stress errors (Figure 4)"
+            emit "${run_dir}/mms_stress_orderOfAccuracy_v2.pdf" "Order of accuracy, stress (Figure 4)"
+            emit "${run_dir}/mms_pressureErrors.pdf"            "Pressure errors (Figure 5)"
+            emit "${run_dir}/mms_pressure_orderOfAccuracy.pdf"  "Order of accuracy, pressure (Figure 5)"
             ;;
         linearCooks)
             figure_dir="${case_dir}/figures/${MODE}"
-            emit "${figure_dir}/figure5_structured_displacement.pdf"   "Structured mesh refinement, upper-right corner displacement"
-            emit "${figure_dir}/figure5_execution_time_vs_error.pdf"   "Structured mesh refinement, execution time versus displacement error"
-            emit "${figure_dir}/figure6_pressure_scale_m1.pdf"         "Effect of the pressure-stabilisation scale factor, m = 1"
-            emit "${figure_dir}/figure6_pressure_scale_m2.pdf"         "Effect of the pressure-stabilisation scale factor, m = 2"
-            emit "${figure_dir}/figure6_pressure_scale_m3.pdf"         "Effect of the pressure-stabilisation scale factor, m = 3"
-            emit "${figure_dir}/figure7b_unstructured_displacement.pdf" "Unstructured mesh robustness verification"
+            for sm in 1p0 0p1
+            do
+                emit "${figure_dir}/figure5_structured_displacement_sm${sm}.pdf" "Structured mesh refinement, s_m = ${sm/p/.}"
+                emit "${figure_dir}/figure5_execution_time_vs_error_sm${sm}.pdf" "Execution time versus displacement error, s_m = ${sm/p/.}"
+                emit "${figure_dir}/figure6_pressure_scale_m1_sm${sm}.pdf"       "Pressure-stabilisation scale, m = 0, s_m = ${sm/p/.}"
+                emit "${figure_dir}/figure6_pressure_scale_m2_sm${sm}.pdf"       "Pressure-stabilisation scale, m = 1, s_m = ${sm/p/.}"
+                emit "${figure_dir}/figure6_pressure_scale_m3_sm${sm}.pdf"       "Pressure-stabilisation scale, m = 2, s_m = ${sm/p/.}"
+                emit "${figure_dir}/figure6_pressure_scale_rhiechow_sm${sm}.pdf" "Pressure-stabilisation scale, Rhie-Chow, s_m = ${sm/p/.}"
+            done
+            emit "${figure_dir}/figure7b_unstructured_displacement.pdf" "Unstructured mesh refinement"
             ;;
         nonlinearCooksCompressible)
             run_dir="$(newest_run_dir "${case_dir}")"
-            [[ -n "${run_dir}" ]] || return 0
-            emit "${run_dir}/cooksMembrane-neoHookeanTipDispConvergenceStabCompatible.pdf" \
-                 "Reference-point displacement under mesh refinement"
+            [[ -n "${run_dir}" ]] || run_dir="${case_dir}/run_NOT_FOUND"
+            emit "${run_dir}/LargeStrainCooksIncomp.pdf" \
+                 "Reference-point displacement under mesh refinement, nu = 0.3 (Figure 10b)"
             ;;
         nonlinearCooksIncompressible)
             run_dir="$(newest_run_dir "${case_dir}")"
-            [[ -n "${run_dir}" ]] || return 0
+            [[ -n "${run_dir}" ]] || run_dir="${case_dir}/run_NOT_FOUND"
             emit "${run_dir}/largeStrainIncompCooksMembrane-neoHookeanTipDispConvergenceStabCompatible.pdf" \
-                 "Reference-point displacement under mesh refinement"
+                 "Reference-point displacement under mesh refinement, nu = 0.4999 (Figure 11)"
             ;;
         beam)
             emit "${case_dir}/plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf" \
-                 "Deformed tip coordinate under mesh refinement"
-            emit "${case_dir}/plots/land_problem1_m1_m2_m3_verticalDisplacement_vs_cellSize.pdf" \
-                 "Deformed tip coordinate, m = 1, 2 and 3"
+                 "Deformed tip coordinate under mesh refinement (Figure 13)"
             ;;
         inflation)
-            emit "${case_dir}/land_problem2_m3_combined.pdf" \
-                 "Mid-wall line deformation with magnified apical and inflection regions"
+            emit "${case_dir}/land_problem2_m3_combined_layer.pdf" \
+                 "Mid-wall line deformation with magnified apical and inflection regions (data layer of Figure 15)"
+            emit "${case_dir}/land_problem2_m3_combined_overlay.pdf" \
+                 "Mid-wall line deformation over the published Land et al. (2015) results (Figure 15)" "${LAND_FIGURE_KIND}"
             ;;
         contraction)
-            emit "${case_dir}/land_problem3_m3_combined.pdf" \
-                 "Mid-wall line deformation with magnified apical and inflection regions"
-            emit "${case_dir}/ventricleInflation-midline-deformed.pdf" \
-                 "Complete longitudinal mid-wall line"
-            emit "${case_dir}/ventricleInflation-midline-apex-deformed.pdf" \
-                 "Apical region"
-            emit "${case_dir}/ventricleInflation-midline-inflection-deformed.pdf" \
-                 "Inflection region"
+            emit "${case_dir}/land_problem3_m3_combined_layer.pdf" \
+                 "Mid-wall line deformation with magnified apical and inflection regions (data layer of Figure 16)"
+            emit "${case_dir}/land_problem3_m3_combined_overlay.pdf" \
+                 "Mid-wall line deformation over the published Land et al. (2015) results (Figure 16)" "${LAND_FIGURE_KIND}"
             ;;
     esac
 }
 
-# Helper used by case_figures: print a figure only when it exists
-emit()
+#------------------------------------------------------------------------------
+# Completeness of the extracted results behind the figures of a case, for the
+# mesh sequence of the current mode. Prints a reason and returns 1 when the
+# results do not cover that sequence (possible with --plots-only, --extract
+# and --figures-only, which use whatever completed earlier).
+#------------------------------------------------------------------------------
+data_rows()
 {
-    [[ -f "$1" ]] && printf '%s\t%s\n' "$1" "$2"
+    # number of data rows of a whitespace-separated table
+    [[ -f "$1" ]] || { echo 0; return; }
+    awk 'NF && $1 !~ /^#/ {n++} END {print n+0}' "$1"
+}
+
+case_complete()
+{
+    local tag=$1 case_dir=$2 arg=$3
+    local run_dir family level n
+
+    case "$tag" in
+        mms)
+            run_dir="$(newest_run_dir "${case_dir}")"
+            for family in hex poly distHex
+            do
+                n=$(data_rows "${run_dir}/${family}.hypre.summary.txt")
+                if [[ "${n}" -ne "${arg}" ]]
+                then
+                    echo "${family}.hypre.summary.txt has ${n} mesh(es); this mode expects ${arg}"
+                    return 1
+                fi
+            done
+            ;;
+        nonlinearCooksCompressible|nonlinearCooksIncompressible)
+            # The near-incompressible campaign is meshes 2 and finer
+            run_dir="$(newest_run_dir "${case_dir}")"
+            n=1
+            [[ "${tag}" == nonlinearCooksIncompressible ]] && n=${START_MESH:-2}
+            for level in $(seq "${n}" "${arg}")
+            do
+                if ! awk -v level="${level}" 'NF && $1 !~ /^#/ && $1 == level {found=1} END {exit !found}' \
+                    "${run_dir}/hex_snes__evenlap_m2.summary.txt" 2>/dev/null
+                then
+                    echo "hex_snes__evenlap_m2.summary.txt has no row for mesh ${level}"
+                    return 1
+                fi
+            done
+            ;;
+        beam)
+            for level in ${arg}
+            do
+                if ! awk -v level="${level}" 'NF && $1 !~ /^#/ && $1 == level {found=1} END {exit !found}' \
+                    "${case_dir}/runs/beam.summary.txt" 2>/dev/null
+                then
+                    echo "runs/beam.summary.txt has no row for mesh level ${level}"
+                    return 1
+                fi
+            done
+            ;;
+        inflation|contraction)
+            for level in $(seq 1 "${arg}")
+            do
+                if [[ ! -s "${case_dir}/runs/mesh${level}/midLineDeformed.txt" ]]
+                then
+                    echo "runs/mesh${level}/midLineDeformed.txt is missing"
+                    return 1
+                fi
+            done
+            ;;
+    esac
     return 0
 }
 
 #------------------------------------------------------------------------------
-# Copy a case's figures into figures/NN_tag and append them to the manifest
+# Copy a case's figures into figures/NN_tag and append them to the manifest.
+# A figure counts only when it is not older than the stamp file $5 (when
+# given), so that a figure left by an earlier run is never taken for the
+# result of this one. Sets MISSING_FIGURES to the missing required figures.
 #------------------------------------------------------------------------------
 collect_figures()
 {
-    local index=$1 tag=$2 case_dir=$3 heading=$4
+    local index=$1 tag=$2 case_dir=$3 heading=$4 stamp=${5:-}
     local destination copied=0
-    local path caption
+    local path caption kind
 
+    MISSING_FIGURES=""
     destination="${FIGURE_DIR}/$(printf '%02d' "${index}")_${tag}"
     rm -rf "${destination}"
     mkdir -p "${destination}"
 
-    while IFS=$'\t' read -r path caption
+    while IFS=$'\t' read -r path caption kind
     do
         [[ -n "${path}" ]] || continue
+        if [[ ! -s "${path}" ]] || { [[ -n "${stamp}" ]] && [[ "${path}" -ot "${stamp}" ]]; }
+        then
+            if [[ "${kind}" == required ]]
+            then
+                MISSING_FIGURES="${MISSING_FIGURES} $(basename "${path}")"
+            fi
+            continue
+        fi
         cp -f "${path}" "${destination}/"
         printf '%s\t%s\t%s\t%s\n' \
             "${index}" "${heading}" "${caption}" \
@@ -246,12 +396,22 @@ collect_figures()
         copied=$((copied + 1))
     done < <(case_figures "${tag}" "${case_dir}")
 
+    # The Fourier error table is a text file: copied, not part of the PDF
+    if [[ "${tag}" == fourier && -s "${case_dir}/postProcessing/paperFigures/fourier_max_errors.txt" ]]
+    then
+        cp -f "${case_dir}/postProcessing/paperFigures/fourier_max_errors.txt" "${destination}/"
+    fi
+
     if [[ "${copied}" -eq 0 ]]
     then
         rmdir "${destination}" 2>/dev/null
         echo "  no figures found for ${tag}"
     else
         echo "  copied ${copied} figure(s) to ${destination#"${ROOT}"/}"
+    fi
+    if [[ -n "${MISSING_FIGURES}" ]]
+    then
+        echo "  missing expected figure(s):${MISSING_FIGURES}" >&2
     fi
 
     return 0
@@ -262,13 +422,18 @@ collect_figures()
 #------------------------------------------------------------------------------
 LIST_ONLY=false
 FIGURES_ONLY=false
+STAGE=run
 SELECTED=()
+PLOTTER="${PLOTTER:-paper}"
 
 for argument in "$@"
 do
     case "${argument}" in
         --list)          LIST_ONLY=true ;;
         --figures-only)  FIGURES_ONLY=true ;;
+        --plots-only)    STAGE=plots ;;
+        --extract)       STAGE=extract ;;
+        --no-plots)      PLOTTER=none ;;
         --stop-on-error) STOP_ON_ERROR=true ;;
         -h|--help)       usage; exit 0 ;;
         -*)
@@ -289,6 +454,28 @@ case "${MODE}" in
         exit 2
         ;;
 esac
+
+case "${PLOTTER}" in
+    paper) ;;
+    none)
+        # Understood by every case script; RUN_PLOTS is the older switch of
+        # the nonlinear Cook's membrane cases
+        export RUN_PLOTS=false
+        ;;
+    *)
+        echo "ERROR: PLOTTER must be 'paper' or 'none' here, not '${PLOTTER}'." >&2
+        echo "       The gnuplot and ReportLab plotters are available from the case Allrun scripts." >&2
+        exit 2
+        ;;
+esac
+export PLOTTER
+
+if [[ "${FIGURES_ONLY}" == true && "${STAGE}" != run ]] \
+    || [[ "${PLOTTER}" == none && ( "${STAGE}" != run || "${FIGURES_ONLY}" == true ) ]]
+then
+    echo "ERROR: --figures-only, --plots-only, --extract and --no-plots exclude one another" >&2
+    exit 2
+fi
 
 # Validate any requested case names against the table
 for wanted in "${SELECTED[@]+"${SELECTED[@]}"}"
@@ -341,7 +528,7 @@ fi
 #------------------------------------------------------------------------------
 # Environment check
 #------------------------------------------------------------------------------
-if [[ "${FIGURES_ONLY}" == false ]]
+if [[ "${FIGURES_ONLY}" == false && "${STAGE}" == run ]]
 then
     if [[ -z "${WM_PROJECT_DIR:-}" || ! -f "${WM_PROJECT_DIR}/bin/tools/RunFunctions" ]]
     then
@@ -376,7 +563,14 @@ echo " Started at $(date)"
 echo "=============================================================="
 
 FAILED=()
+STATUS_LINES=()
 INDEX=0
+
+record_status()
+{
+    # <tag> <status> <detail>
+    STATUS_LINES+=("$(printf '%-30s %-11s %s' "$1" "$2" "$3")")
+}
 
 for entry in "${CASES[@]}"
 do
@@ -394,6 +588,7 @@ do
 
     case_dir="${ROOT}/${directory}"
     log_file="${LOG_DIR}/${tag}.log"
+    stamp=""
 
     echo
     echo "--------------------------------------------------------------"
@@ -406,37 +601,75 @@ do
     then
         echo "ERROR: no executable Allrun in ${directory}" >&2
         FAILED+=("${tag}")
+        record_status "${tag}" "FAILED" "no executable Allrun in ${directory}"
         [[ "${STOP_ON_ERROR}" == true ]] && break
         continue
     fi
 
+    status=0
     if [[ "${FIGURES_ONLY}" == true ]]
     then
-        echo " skipping the solver run (--figures-only)"
+        echo " skipping the solver run and the plotting (--figures-only)"
+    elif [[ "${tag}" == fourier && "${STAGE}" == run ]] \
+        && ! command -v stabilisationFourierCheck >/dev/null 2>&1
+    then
+        echo "ERROR: stabilisationFourierCheck was not found on PATH; it is part of the" >&2
+        echo "       solids4foam build named in README.md (Requirements)." >&2
+        status=127
     else
-        echo " log       : ${log_file#"${ROOT}"/}"
+        case "${STAGE}" in
+            run)     echo " log       : ${log_file#"${ROOT}"/}" ;;
+            plots)   echo " plotting the existing extracted results (--plots-only)"
+                     log_file="${LOG_DIR}/${tag}.plots.log" ;;
+            extract) echo " re-extracting from the existing completed runs, then plotting (--extract)"
+                     log_file="${LOG_DIR}/${tag}.extract.log" ;;
+        esac
+        stamp="${LOG_DIR}/.${tag}.start"
+        : > "${stamp}"
         case_start=$(date +%s)
-        run_case "${tag}" "${case_dir}" "${argument}" 2>&1 | tee "${log_file}"
+        run_case "${tag}" "${case_dir}" "${argument}" "${STAGE}" 2>&1 | tee "${log_file}"
         status=${PIPESTATUS[0]}
         case_end=$(date +%s)
-
-        if [[ "${status}" -ne 0 ]]
-        then
-            echo
-            echo "ERROR: ${tag} failed with status ${status}; see ${log_file}" >&2
-            FAILED+=("${tag}")
-            if [[ "${STOP_ON_ERROR}" == true ]]
-            then
-                collect_figures "${INDEX}" "${tag}" "${case_dir}" "${heading}"
-                break
-            fi
-        else
-            echo
-            echo " ${tag} finished in $((case_end - case_start)) s"
-        fi
     fi
 
-    collect_figures "${INDEX}" "${tag}" "${case_dir}" "${heading}"
+    if [[ "${status}" -ne 0 ]]
+    then
+        echo
+        echo "ERROR: ${tag} failed with status ${status}; see ${log_file}" >&2
+        FAILED+=("${tag}")
+        record_status "${tag}" "FAILED" "exit status ${status}; see ${log_file#"${ROOT}"/}"
+        [[ "${STOP_ON_ERROR}" == true ]] && break
+        # Figures of a failed case are not collected
+        continue
+    fi
+
+    if [[ "${FIGURES_ONLY}" == false ]]
+    then
+        echo
+        echo " ${tag} finished in $((case_end - case_start)) s"
+    fi
+
+    if [[ "${PLOTTER}" == none ]]
+    then
+        record_status "${tag}" "NO PLOTS" "run and extraction completed; plotting was disabled"
+        continue
+    fi
+
+    collect_figures "${INDEX}" "${tag}" "${case_dir}" "${heading}" "${stamp}"
+
+    if [[ -n "${MISSING_FIGURES}" ]]
+    then
+        FAILED+=("${tag}")
+        record_status "${tag}" "INCOMPLETE" "missing figure(s):${MISSING_FIGURES}"
+        [[ "${STOP_ON_ERROR}" == true ]] && break
+    elif ! reason=$(case_complete "${tag}" "${case_dir}" "${argument}")
+    then
+        FAILED+=("${tag}")
+        record_status "${tag}" "INCOMPLETE" "figures drawn from a partial result set: ${reason}"
+        [[ "${STOP_ON_ERROR}" == true ]] && break
+    else
+        record_status "${tag}" "OK" "$(mesh_description "${tag}" "${argument}")"
+    fi
 done
 
 #------------------------------------------------------------------------------
@@ -447,7 +680,10 @@ echo "--------------------------------------------------------------"
 echo " Assembling the combined figure PDF"
 echo "--------------------------------------------------------------"
 
-if [[ -s "${MANIFEST}" ]]
+if [[ "${PLOTTER}" == none ]]
+then
+    echo " plotting was disabled; no figures were collected"
+elif [[ -s "${MANIFEST}" ]]
 then
     if python3 "${COMBINE_SCRIPT}" \
         --manifest "${MANIFEST}" \
@@ -480,9 +716,17 @@ echo " Figures      : ${FIGURE_DIR#"${ROOT}"/}"
 [[ -f "${COMBINED_PDF}" ]] && echo " Combined PDF : ${COMBINED_PDF#"${ROOT}"/}"
 echo " Logs         : ${LOG_DIR#"${ROOT}"/}"
 
+echo
+printf ' %-30s %-11s %s\n' "CASE" "STATUS" "DETAIL"
+for line in "${STATUS_LINES[@]+"${STATUS_LINES[@]}"}"
+do
+    echo " ${line}"
+done
+echo
+
 if [[ ${#FAILED[@]} -gt 0 ]]
 then
-    echo " Failed       : ${FAILED[*]}"
+    echo " Failed or incomplete : ${FAILED[*]}"
     echo "=============================================================="
     exit 1
 fi

@@ -1,14 +1,48 @@
 #!/bin/bash
+#
+# Manufactured-solution mesh study (Section 5.2).
+#
+#   ./Allrun [N]              mesh, solve and extract meshes 1..N (default 6) of the
+#                             three mesh families, then plot
+#   ./Allrun extract [DIR]    rebuild the summary tables of an existing run directory
+#                             from its solver logs, then plot; no solver is run
+#   ./Allrun plots [DIR]      plot the existing summary tables of a run directory
+#
+# DIR defaults to the newest run_* directory. PLOTTER selects the plots:
+# paper (default; plotScripts/mms_paper_figures.py, shared manuscript style),
+# gnuplot (the earlier gnuplot scripts) or none. PLOT_PYTHON selects the Python
+# interpreter for the paper plots (NumPy and Matplotlib; default python3).
 
-# Source required functions
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${ROOT}" || exit 1
 
-#sourcing gmsh manually
-export PATH="/Applications/Gmsh.app/Contents/MacOS:$PATH"
-echo "PATH = $PATH"
-which gmsh
+PLOTTER="${PLOTTER:-paper}"
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
+case "${PLOTTER}" in
+    paper|gnuplot|none) ;;
+    *) echo "Unknown PLOTTER '${PLOTTER}'; expected paper, gnuplot or none." >&2; exit 2 ;;
+esac
 
-source solids4FoamScripts.sh
+STAGE=run
+case "${1:-}" in
+    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    extract|plots) STAGE=$1; shift ;;
+esac
+
+if [ "${STAGE}" = run ]
+then
+    # Source required functions
+    . $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+    # Gmsh application bundle on macOS, when it is installed there
+    if [ -d /Applications/Gmsh.app/Contents/MacOS ]
+    then
+        export PATH="/Applications/Gmsh.app/Contents/MacOS:$PATH"
+    fi
+    which gmsh
+
+    source solids4FoamScripts.sh
+fi
 
 # Define configurations as space-separated strings
 configs=(
@@ -27,12 +61,238 @@ configs=(
 # Run the first six meshes by default. An optional argument limits the run to
 # the first N meshes; for example, "./Allrun 1" runs mesh 1 only.
 START_MESH=1
-END_MESH="${1:-6}"
-
-if [ "$#" -gt 1 ] || ! [[ "${END_MESH}" =~ ^[1-6]$ ]]
+if [ "${STAGE}" = run ]
 then
-    echo "Usage: $0 [number-of-meshes (1-6)]" >&2
-    exit 2
+    END_MESH="${1:-6}"
+
+    if [ "$#" -gt 1 ] || ! [[ "${END_MESH}" =~ ^[1-6]$ ]]
+    then
+        echo "Usage: $0 [number-of-meshes (1-6)]" >&2
+        echo "       $0 extract|plots [run directory]" >&2
+        exit 2
+    fi
+else
+    if [ "$#" -gt 1 ]
+    then
+        echo "Usage: $0 ${STAGE} [run directory]" >&2
+        exit 2
+    fi
+    if [ "$#" -eq 1 ]
+    then
+        EXISTING_RUN_DIR=$1
+    else
+        # Newest run directory of this case
+        EXISTING_RUN_DIR=""
+        for candidate in "${ROOT}"/run_*
+        do
+            [ -d "${candidate}" ] || continue
+            if [ -z "${EXISTING_RUN_DIR}" ] || [ "${candidate}" -nt "${EXISTING_RUN_DIR}" ]
+            then
+                EXISTING_RUN_DIR=${candidate}
+            fi
+        done
+    fi
+    if [ -z "${EXISTING_RUN_DIR}" ] || [ ! -d "${EXISTING_RUN_DIR}" ]
+    then
+        echo "ERROR: no run directory to post-process: '${EXISTING_RUN_DIR:-${ROOT}/run_*}'" >&2
+        exit 1
+    fi
+    EXISTING_RUN_DIR="$(cd "${EXISTING_RUN_DIR}" && pwd)"
+fi
+
+SUMMARY_HEADER="# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1 P_L2 P_Linf P_meanL1"
+
+# A solver log is complete when it reached "End" and the function object wrote
+# the displacement and stress error fields.
+solver_log_complete()
+{
+    grep -a -q '^End$' "$1" \
+        && grep -a -q 'Writing DDifference field' "$1" \
+        && grep -a -q 'Writing sigmaDifference field' "$1"
+}
+
+# Extract the results of the case in the current directory from its solver log
+# and append them as row $1 of the summary file ../$2.
+extract_case_results()
+{
+    local i=$1 SUMMARY=$2
+    local MAX_MEMORY CLOCK_TIME
+    local DISP_L2_ERROR DISP_LINF_ERROR DISP_MEAN_L1
+    local STRESS_L2_ERROR STRESS_LINF_ERROR STRESS_MEAN_L1
+    local PRESS_L2_ERROR PRESS_LINF_ERROR PRESS_MEAN_L1
+
+    if grep -a -q "Maximum resident" log.solids4Foam; then
+        MAX_MEMORY=$(grep -a "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
+    else
+        MAX_MEMORY="NaN"
+    fi
+
+    # Record the time
+    CLOCK_TIME=$(grep -a "ClockTime" log.solids4Foam | awk '{print $7}')
+    : "${CLOCK_TIME:=NaN}"
+
+    # The manufactured-solution function object prints three norms on one
+    # line, in this order:
+    #
+    #   Displacement error norms: mean L1, mean L2, LInf:
+    #   Magnitude:   <mean L1>      <mean L2>      <LInf>
+    #                    $2             $3             $4
+    #
+    # Columns 4 and 5 of the summary file are the two series plotted as the
+    # cell-wise RMS ("L_2" in the gnuplot scripts) and the maximum ("L_inf").
+    # They are taken from $3 and $4, i.e. the mean L2 and the true LInf. The
+    # mean L1 ($2) is recorded in the trailing columns.
+    DISP_L2_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+    DISP_LINF_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+    DISP_MEAN_L1=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+
+    STRESS_L2_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+    STRESS_LINF_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+    STRESS_MEAN_L1=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+
+    if [ -z "${DISP_L2_ERROR}" ] || [ -z "${DISP_LINF_ERROR}" ] \
+        || [ -z "${STRESS_L2_ERROR}" ] || [ -z "${STRESS_LINF_ERROR}" ]
+    then
+        echo "ERROR: displacement or stress error norms were not found in ${PWD}/log.solids4Foam" >&2
+        return 1
+    fi
+
+    # The pressure norms are only printed when the solid model solves for
+    # a pressure field, i.e. when "solvePressure" is enabled. For runs
+    # without a pressure unknown these are recorded as NaN.
+    PRESS_L2_ERROR=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
+    PRESS_LINF_ERROR=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
+    PRESS_MEAN_L1=$(grep -a "Writing pDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
+    : "${PRESS_L2_ERROR:=NaN}" "${PRESS_LINF_ERROR:=NaN}" "${PRESS_MEAN_L1:=NaN}"
+
+    # Catch the most likely mistake: a pressure-solving case run
+    # against a manufacturedSolution library that predates the
+    # cellPressure output, which would give NaN columns. The paper plots
+    # stop on NaN pressure errors; the gnuplot scripts skip them.
+    if [ "${PRESS_L2_ERROR}" = "NaN" ] \
+        && grep -a -q "solvePressure[[:space:]]*true" constant/solidProperties
+    then
+        echo "Warning: ${PWD##*/} solves for pressure but no pressure error" \
+             "norms were found in log.solids4Foam. Rebuild the" \
+             "manufacturedSolution library (cellPressure) if you want the" \
+             "pressure plots." >&2
+    fi
+
+    # Write data to file
+    echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1 $PRESS_L2_ERROR $PRESS_LINF_ERROR $PRESS_MEAN_L1" >> ../"${SUMMARY}"
+}
+
+# Calculate the order of accuracy from summary file $1 and write it to $2
+write_order_of_accuracy()
+{
+    echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress OrderOfAccuracyPressure" > "$2"
+    awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2), log(prev10/$10)/log(2), log(prev11/$11)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7; prev10=$10; prev11=$11}' "$1" >> "$2"
+}
+
+# Create the plots of the run directory $1 from its summary tables
+make_plots()
+{
+    local run_dir=$1 name f PLOT_STATUS
+    local figures="mms_dispErrors.pdf mms_disp_orderOfAccuracy.pdf mms_stressErrors_v2.pdf mms_stress_orderOfAccuracy_v2.pdf mms_pressureErrors.pdf mms_pressure_orderOfAccuracy.pdf"
+
+    case "${PLOTTER}" in
+        none)
+            echo "PLOTTER=none: no figures were produced"
+            return 0
+            ;;
+        paper)
+            if ! command -v "${PLOT_PYTHON}" > /dev/null 2>&1
+            then
+                echo "ERROR: ${PLOT_PYTHON} not found (set PLOT_PYTHON, or PLOTTER=gnuplot|none)" >&2
+                return 127
+            fi
+            echo "Plotting with plotScripts/mms_paper_figures.py"
+            MPLBACKEND=Agg "${PLOT_PYTHON}" "${ROOT}/plotScripts/mms_paper_figures.py" \
+                --data-dir "${run_dir}" --slope-dir "${ROOT}/plotScripts" \
+                --output-dir "${run_dir}" --dump-series "${run_dir}/mms_series.json" || return 1
+            ;;
+        gnuplot)
+            if ! command -v gnuplot > /dev/null 2>&1
+            then
+                echo "ERROR: gnuplot is required for PLOTTER=gnuplot" >&2
+                return 127
+            fi
+            # Copy gnuplot scripts
+            cp "${ROOT}"/plotScripts/*.gnuplot "${ROOT}"/plotScripts/orderOfAccuracySlopes*.dat "${run_dir}"/
+            PLOT_STATUS=0
+            for f in "${run_dir}"/*.gnuplot
+            do
+                echo "Running gnuplot on ${f##*/}"
+                if ! ( cd "${run_dir}" && gnuplot "${f##*/}" )
+                then
+                    echo "gnuplot failed for ${f##*/}" >&2
+                    PLOT_STATUS=1
+                fi
+            done
+            [ "${PLOT_STATUS}" -eq 0 ] || return 1
+            ;;
+    esac
+
+    for name in ${figures}
+    do
+        if [ ! -s "${run_dir}/${name}" ]
+        then
+            echo "ERROR: expected figure was not produced: ${run_dir}/${name}" >&2
+            return 1
+        fi
+    done
+    echo "Figures are in ${run_dir}"
+}
+
+# Rebuild the summary tables of the existing run directory $1 from the solver
+# logs of its cases. Every mesh family needs meshes 1..N without gaps.
+extract_run_dir()
+{
+    local run_dir=$1 config i n CASE SUMMARY ORDER
+    cd "${run_dir}" || return 1
+    for config in "${configs[@]}"
+    do
+        eval $config
+        SUMMARY="${NAME}.summary.txt"
+        n=0
+        for i in 1 2 3 4 5 6
+        do
+            [ -d "${NAME}.$i" ] || break
+            n=$i
+        done
+        if [ "$n" -eq 0 ]
+        then
+            echo "ERROR: no case directories ${NAME}.<mesh> in ${run_dir}" >&2
+            return 1
+        fi
+        echo "${SUMMARY_HEADER}" > "${SUMMARY}"
+        for i in $(seq 1 "$n")
+        do
+            CASE="${NAME}.$i"
+            if [ ! -f "${CASE}/log.solids4Foam" ] || ! solver_log_complete "${CASE}/log.solids4Foam"
+            then
+                echo "ERROR: ${run_dir}/${CASE} has no completed solver log; the run is incomplete" >&2
+                return 1
+            fi
+            ( cd "${CASE}" && extract_case_results "$i" "${SUMMARY}" ) || return 1
+        done
+        ORDER="${NAME}.orderOfAccuracy.txt"
+        write_order_of_accuracy "${SUMMARY}" "${ORDER}"
+        echo; echo "${SUMMARY} file (meshes 1-$n):"; cat "${SUMMARY}"
+    done
+    cd "${ROOT}" || return 1
+}
+
+if [ "${STAGE}" != run ]
+then
+    if [ "${STAGE}" = extract ]
+    then
+        echo "Rebuilding the summary tables of ${EXISTING_RUN_DIR} from its solver logs"
+        extract_run_dir "${EXISTING_RUN_DIR}" || exit 1
+    fi
+    echo "Post-processing ${EXISTING_RUN_DIR}"
+    make_plots "${EXISTING_RUN_DIR}" || exit 1
+    exit 0
 fi
 
 
@@ -72,7 +332,7 @@ do
     echo "USE_GMSH is $USE_GMSH"
     # Define results summary file name
     SUMMARY="${NAME}.summary.txt"
-    echo "# Mesh Time Mem D_L2 D_Linf S_L2 S_Linf D_meanL1 S_meanL1" > "${SUMMARY}"
+    echo "${SUMMARY_HEADER}" > "${SUMMARY}"
     # Loop over mesh densities in each configuration
     for i in `seq $START_MESH $END_MESH`
     do
@@ -160,9 +420,7 @@ do
             # teardown after the solution and MMS error fields are complete.
             # Keep those completed results, but still stop for genuine solver
             # failures that occur before the required output is written.
-            if grep -a -q '^End$' log.solids4Foam \
-                && grep -a -q 'Writing DDifference field' log.solids4Foam \
-                && grep -a -q 'Writing sigmaDifference field' log.solids4Foam
+            if solver_log_complete log.solids4Foam
             then
                 echo "Warning: solids4Foam returned ${SOLVER_STATUS} after completing ${CASE}; continuing with its written results" >&2
             else
@@ -173,37 +431,7 @@ do
 
         # Extract results from solver log and append them to a summary file
         echo; echo "Appending results to ${SUMMARY}"
-        if grep -a -q "Maximum resident" log.solids4Foam; then
-            MAX_MEMORY=$(grep -a "Maximum resident" log.solids4Foam | awk '{print int($6 / 1000)}')
-        else
-            MAX_MEMORY="NaN"
-        fi
-
-        # Record the time
-        CLOCK_TIME=$(grep -a "ClockTime" log.solids4Foam | awk '{print $7}')
-
-        # The manufactured-solution function object prints three norms on one
-        # line, in this order:
-        #
-        #   Displacement error norms: mean L1, mean L2, LInf:
-        #   Magnitude:   <mean L1>      <mean L2>      <LInf>
-        #                    $2             $3             $4
-        #
-        # Columns 4 and 5 of the summary file are the two series plotted by
-        # plotScripts/dispErrors.gnuplot as "L_2" and "L_inf". They are taken
-        # from $3 and $4, i.e. the mean L2 and the true LInf, matching the axis
-        # labels. The mean L1 ($2) is recorded in the trailing columns; the
-        # published figures plotted $2 and $3 (mean L1 and mean L2) instead.
-        DISP_L2_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-        DISP_LINF_ERROR=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
-        DISP_MEAN_L1=$(grep -a "Writing DDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
-
-        STRESS_L2_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $3}')
-        STRESS_LINF_ERROR=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $4}')
-        STRESS_MEAN_L1=$(grep -a "Writing sigmaDifference field" -A 2 log.solids4Foam | tail -1 | awk '{print $2}')
-
-        # Write data to file
-        echo "$i $CLOCK_TIME $MAX_MEMORY $DISP_L2_ERROR $DISP_LINF_ERROR $STRESS_L2_ERROR $STRESS_LINF_ERROR $DISP_MEAN_L1 $STRESS_MEAN_L1" >> ../"${SUMMARY}"
+        extract_case_results "$i" "${SUMMARY}" || exit 1
 
         cd ..
     done
@@ -214,45 +442,21 @@ do
     # Calculate the order of accuracy from the summary file
     ORDER="${NAME}.orderOfAccuracy.txt"
     echo; echo "Creating ${ORDER} file"
-    echo "# Mesh OrderOfAccuracyDisp OrderOfAccuracyStress" > "${ORDER}"
-    awk 'NR > 2 {print NR-2, log(prev4/$4)/log(2), log(prev5/$5)/log(2), log(prev6/$6)/log(2), log(prev7/$7)/log(2)} {prev4=$4; prev5=$5; prev6=$6; prev7=$7}' "${SUMMARY}" >> "${ORDER}"
+    write_order_of_accuracy "${SUMMARY}" "${ORDER}"
     cat "${ORDER}"
 done
 
 # Create plots after every mesh and configuration has finished.
-if command -v gnuplot &>/dev/null
+# Exit the run directory first: make_plots works with absolute paths.
+cd "${ROOT}"
+if [ "${END_MESH}" -lt 2 ] && [ "${PLOTTER}" != none ]
 then
-    # Copy gnuplot scripts
-    cp ../plotScripts/dispErrors.gnuplot .
-    cp ../plotScripts/stressErrors.gnuplot .
-    cp ../plotScripts/orderOfAccuracyDisp.gnuplot .
-    cp ../plotScripts/orderOfAccuracyStress.gnuplot .
-    cp ../plotScripts/orderOfAccuracySlopes*.dat .
-
-    # Run all scripts
-    PLOT_STATUS=0
-    for f in *gnuplot
-    do
-        echo "Running gnuplot on $f"
-        if ! gnuplot "$f"
-        then
-            echo "gnuplot failed for ${f}" >&2
-            PLOT_STATUS=1
-        fi
-    done
-
-    if [ "${PLOT_STATUS}" -ne 0 ]
-    then
-        echo "One or more plots failed in ${PWD}" >&2
-        exit "${PLOT_STATUS}"
-    fi
+    echo "INCOMPLETE: the order-of-accuracy figures need at least two meshes;" \
+         "no figures were produced for this one-mesh run" >&2
 else
-    echo "gnuplot is required to create the final plots" >&2
-    exit 127
+    make_plots "${ROOT}/${RUN_DIR}" || exit 1
 fi
 
-# Exit the run directory
-cd ..
 
 echo; echo; echo "Done!"; echo
 echo "View the PDF files in ${RUN_DIR}"

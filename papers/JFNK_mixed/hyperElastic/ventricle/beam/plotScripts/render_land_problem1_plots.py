@@ -284,9 +284,9 @@ def main() -> None:
     if not m3_path.is_file():
         raise SystemExit(f"Result summary not found: {m3_path}")
 
-    m1 = SeriesSpec(m1_path, "Even Laplacian, m=1", colors.HexColor("#D7AAAA"), False)
-    m2 = SeriesSpec(m2_path, "Even Laplacian, m=2", colors.HexColor("#B85C4B"), False)
-    m3 = SeriesSpec(m3_path, "Even Laplacian, m=3", colors.HexColor("#7A2738"), True)
+    m1 = SeriesSpec(m1_path, "Even Laplacian, m=0", colors.HexColor("#D7AAAA"), False)
+    m2 = SeriesSpec(m2_path, "Even Laplacian, m=1", colors.HexColor("#B85C4B"), False)
+    m3 = SeriesSpec(m3_path, "Even Laplacian, m=2", colors.HexColor("#7A2738"), True)
 
     m3_output = output_dir / "land_problem1_m3_verticalDisplacement_vs_cellSize.pdf"
     combined_output = output_dir / "land_problem1_m1_m2_m3_verticalDisplacement_vs_cellSize.pdf"
@@ -301,7 +301,7 @@ def main() -> None:
         render(combined_output, [m1, m2, m3])
         print(f"Wrote {combined_output}")
     else:
-        print("Comparison summaries were not found; wrote the m=3 plot only.")
+        print("Comparison summaries were not found; wrote the m=2 plot only.")
 
 
 if __name__ == "__main__":

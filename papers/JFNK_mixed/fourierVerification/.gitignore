@@ -1,0 +1,9 @@
+# Locally retained historical/curated numerical output is not publication
+# source. Every file in this directory is reproducible from the case.
+/results/
+
+# Platform and Python caches anywhere below this verification directory.
+.DS_Store
+**/.DS_Store
+**/__pycache__/
+**/*.py[cod]

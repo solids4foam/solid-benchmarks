@@ -7,28 +7,141 @@ set -eo pipefail
 # Examples:
 #   ./Allrun 3                  # run levels 1, 2 and 3
 #   MESH_LEVELS="2 4" ./Allrun # run only levels 2 and 4
+#   ./Allrun extract            # rebuild runs/beam.summary.txt from the completed
+#                               # cases under runs/, then plot; no solver is run
+#   ./Allrun plots              # plot the existing runs/beam.summary.txt
 BASE="base/snes"
 MESH_LEVELS="${MESH_LEVELS:-1}"
 MAX_MESH_LEVEL=7
 
-# Plot once every requested mesh level has finished. Prefer the active Conda
-# interpreter when one is exported because its executable may not be first on
-# PATH in an OpenFOAM shell.
-PLOTTER="${PLOTTER:-python}"
+# Plot once every requested mesh level has finished: paper (shared manuscript
+# style, plot_land_problem1.py), python (earlier ReportLab script), gnuplot or
+# none. Prefer the active Conda interpreter when one is exported because its
+# executable may not be first on PATH in an OpenFOAM shell.
+PLOTTER="${PLOTTER:-paper}"
 PLOT_PYTHON="${PLOT_PYTHON:-${CONDA_PYTHON_EXE:-python3}}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STAGE=run
+summary="$ROOT/runs/beam.summary.txt"
+
+case "$PLOTTER" in
+    paper|python|gnuplot|none) ;;
+    *) echo "Unknown PLOTTER '$PLOTTER'; expected paper, python, gnuplot or none." >&2; exit 2 ;;
+esac
+
+# Append the final tip displacement of runs/mesh<level> to the summary
+append_summary_row()
+{
+    local mesh_level=$1 case_dir="$ROOT/runs/mesh$1" cell_size cells dz mag_d
+    local point_file="$case_dir/postProcessing/0/solidPointDisplacement_pointDisp.dat"
+
+    if [[ ! -f "$point_file" ]]; then
+        echo "Expected tip-displacement output was not written: $point_file" >&2
+        return 1
+    fi
+
+    case "$mesh_level" in
+        1) cell_size="1";           cells="10" ;;
+        2) cell_size="0.5";         cells="80" ;;
+        3) cell_size="0.25";        cells="640" ;;
+        4) cell_size="0.125";       cells="5120" ;;
+        5) cell_size="0.0625";      cells="40960" ;;
+        6) cell_size="0.03125";     cells="327680" ;;
+        7) cell_size="0.0138888889"; cells="3732480" ;;
+        *) echo "Invalid mesh level '$mesh_level'" >&2; return 1 ;;
+    esac
+
+    dz="$(awk 'NF && $1 !~ /^#/ {last=$4} END {print last}' "$point_file")"
+    mag_d="$(awk 'NF && $1 !~ /^#/ {last=$5} END {print last}' "$point_file")"
+    if [[ -z "$dz" || -z "$mag_d" ]]; then
+        echo "Could not read the final displacement from $point_file" >&2
+        return 1
+    fi
+
+    printf '%s %s %s %s %s\n' \
+        "$mesh_level" "$cell_size" "$cells" "$dz" "$mag_d" >> "$summary"
+}
+
+# Plot runs/beam.summary.txt with the selected plot script
+make_plots()
+{
+    local figure="$ROOT/plots/land_problem1_m3_verticalDisplacement_vs_cellSize.pdf"
+    local PAPER_PLOT="$ROOT/plotScripts/plot_land_problem1.py"
+    local PYTHON_PLOT="$ROOT/plotScripts/render_land_problem1_plots.py"
+    local GNUPLOT_PLOT="$ROOT/plotScripts/dz.gnuplot"
+
+    if [[ "$PLOTTER" == none ]]; then
+        echo "PLOTTER=none: no figure was produced"
+        return 0
+    fi
+    if [[ ! -s "$summary" ]]; then
+        echo "Tip-displacement summary not found: $summary" >&2
+        return 1
+    fi
+
+    if [[ "$PLOTTER" == paper ]] \
+        && [[ "$(awk 'NF && $1 !~ /^#/ && $1 >= 2 {n++} END {print n+0}' "$summary")" -eq 0 ]]; then
+        echo "INCOMPLETE: the paper figure shows mesh levels 2 and finer;" \
+             "no figure was produced from a summary that holds level 1 only." >&2
+        return 0
+    fi
+
+    # Both earlier scripts use paths relative to the case root. Changing
+    # directory here makes plotting independent of the directory from which
+    # Allrun was invoked.
+    cd "$ROOT"
+    : > "$ROOT/runs/.plotStamp"
+
+    case "$PLOTTER" in
+        paper|python)
+            if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
+                echo "$PLOT_PYTHON not found (set PLOT_PYTHON, or PLOTTER=gnuplot|none)." >&2
+                return 127
+            fi
+            echo
+            if [[ "$PLOTTER" == paper ]]; then
+                echo "Plotting with plotScripts/$(basename "$PAPER_PLOT")"
+                MPLBACKEND=Agg "$PLOT_PYTHON" "$PAPER_PLOT" --summary "$summary" \
+                    --output-dir "$ROOT/plots" --dump-series "$ROOT/plots/beam_series.json" || return 1
+            else
+                echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
+                "$PLOT_PYTHON" "$PYTHON_PLOT" || return 1
+            fi
+            ;;
+        gnuplot)
+            if ! command -v gnuplot >/dev/null 2>&1; then
+                echo "gnuplot not found (PLOTTER=gnuplot)." >&2
+                return 127
+            fi
+            echo
+            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
+            gnuplot "$GNUPLOT_PLOT" || return 1
+            ;;
+    esac
+
+    if [[ "$PLOTTER" != gnuplot ]] && [[ ! -s "$figure" || "$figure" -ot "$ROOT/runs/.plotStamp" ]]; then
+        echo "Expected figure was not produced: $figure" >&2
+        return 1
+    fi
+    echo "Figures are in $ROOT/plots"
+}
 
 case "${1:-}" in
     -h|--help)
         echo "Usage: ./Allrun [number-of-mesh-levels]"
         echo "       MESH_LEVELS=\"1 3 5\" ./Allrun"
         echo "       PLOTTER=gnuplot ./Allrun 3"
+        echo "       ./Allrun extract    rebuild the summary from the completed cases, then plot"
+        echo "       ./Allrun plots      plot the existing summary"
         echo "Available mesh levels: 1-${MAX_MESH_LEVEL}"
-        echo "PLOTTER selects the final plot script: python, gnuplot or none."
+        echo "PLOTTER selects the final plot script: paper, python, gnuplot or none."
         exit 0
         ;;
     "")
+        ;;
+    extract|plots)
+        STAGE=$1
         ;;
     *)
         if ! [[ "$1" =~ ^[1-7]$ ]]; then
@@ -38,6 +151,34 @@ case "${1:-}" in
         MESH_LEVELS="$(seq 1 "$1")"
         ;;
 esac
+
+if [[ "$STAGE" != run ]]; then
+    if [[ "$STAGE" == extract ]]; then
+        # Rebuild the summary from every completed case under runs/
+        levels=""
+        for mesh_level in 1 2 3 4 5 6 7; do
+            [[ -d "$ROOT/runs/mesh${mesh_level}" ]] || continue
+            log="$ROOT/runs/mesh${mesh_level}/log.solids4Foam"
+            if [[ ! -f "$log" ]] || ! grep -q '^End' "$log"; then
+                echo "runs/mesh${mesh_level} has no completed solver log; the run is incomplete." >&2
+                exit 1
+            fi
+            levels="$levels $mesh_level"
+        done
+        if [[ -z "$levels" ]]; then
+            echo "No runs/meshN cases found under $ROOT/runs." >&2
+            exit 1
+        fi
+        echo "# Mesh CellSize_mm Cells Dz_m MagD_m" > "$summary"
+        for mesh_level in $levels; do
+            append_summary_row "$mesh_level" || exit 1
+        done
+        echo "Rebuilt $summary from mesh level(s):$levels"
+        cat "$summary"
+    fi
+    make_plots
+    exit $?
+fi
 
 for mesh_level in $MESH_LEVELS; do
     if ! [[ "$mesh_level" =~ ^[1-7]$ ]]; then
@@ -62,7 +203,6 @@ if [[ ! -d "$ROOT/$BASE" ]]; then
 fi
 
 mkdir -p "$ROOT/runs"
-summary="$ROOT/runs/beam.summary.txt"
 if [[ ! -f "$summary" ]]; then
     echo "# Mesh CellSize_mm Cells Dz_m MagD_m" > "$summary"
 fi
@@ -103,31 +243,7 @@ for mesh_level in $MESH_LEVELS; do
         fi
     )
 
-    point_file="$case_dir/postProcessing/0/solidPointDisplacement_pointDisp.dat"
-    if [[ ! -f "$point_file" ]]; then
-        echo "Expected tip-displacement output was not written: $point_file" >&2
-        exit 1
-    fi
-
-    case "$mesh_level" in
-        1) cell_size="1";           cells="10" ;;
-        2) cell_size="0.5";         cells="80" ;;
-        3) cell_size="0.25";        cells="640" ;;
-        4) cell_size="0.125";       cells="5120" ;;
-        5) cell_size="0.0625";      cells="40960" ;;
-        6) cell_size="0.03125";     cells="327680" ;;
-        7) cell_size="0.0138888889"; cells="3732480" ;;
-    esac
-
-    dz="$(awk 'NF && $1 !~ /^#/ {last=$4} END {print last}' "$point_file")"
-    mag_d="$(awk 'NF && $1 !~ /^#/ {last=$5} END {print last}' "$point_file")"
-    if [[ -z "$dz" || -z "$mag_d" ]]; then
-        echo "Could not read the final displacement from $point_file" >&2
-        exit 1
-    fi
-
-    printf '%s %s %s %s %s\n' \
-        "$mesh_level" "$cell_size" "$cells" "$dz" "$mag_d" >> "$summary"
+    append_summary_row "$mesh_level" || exit 1
 done
 
 echo
@@ -135,40 +251,4 @@ echo "Completed mesh level(s): $MESH_LEVELS"
 echo "Results are under $ROOT/runs."
 echo "Tip-displacement summary: $summary"
 
-# Both scripts use paths relative to the case root. Changing directory here
-# makes plotting independent of the directory from which Allrun was invoked.
-PYTHON_PLOT="$ROOT/plotScripts/render_land_problem1_plots.py"
-GNUPLOT_PLOT="$ROOT/plotScripts/dz.gnuplot"
-
-cd "$ROOT"
-
-case "$PLOTTER" in
-    gnuplot)
-        if ! command -v gnuplot >/dev/null 2>&1; then
-            echo "gnuplot not found: skipping the figure." >&2
-        elif [[ ! -f "$GNUPLOT_PLOT" ]]; then
-            echo "Plot script not found: $GNUPLOT_PLOT" >&2
-        else
-            echo
-            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
-            gnuplot "$GNUPLOT_PLOT"
-        fi
-        ;;
-    python)
-        if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
-            echo "$PLOT_PYTHON not found: skipping the figure." >&2
-        elif [[ ! -f "$PYTHON_PLOT" ]]; then
-            echo "Plot script not found: $PYTHON_PLOT" >&2
-        else
-            echo
-            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
-            "$PLOT_PYTHON" "$PYTHON_PLOT"
-        fi
-        ;;
-    none)
-        ;;
-    *)
-        echo "Unknown PLOTTER '$PLOTTER'; expected python, gnuplot or none." >&2
-        exit 2
-        ;;
-esac
+make_plots

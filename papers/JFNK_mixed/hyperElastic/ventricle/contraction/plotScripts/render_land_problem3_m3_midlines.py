@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render individual and combined Land problem 3 m=3 midline figures.
+"""Render individual and combined Land problem 3 m=2 midline figures.
 
 The source results are read directly from the meshN directories beneath the
 data directory, which defaults to the runs directory created by Allrun. Every
@@ -308,7 +308,7 @@ def draw_legend(
 
 
 def set_metadata(pdf: canvas.Canvas, subject: str) -> None:
-    pdf.setTitle("Land Problem 3: m=3 mid-wall deformation")
+    pdf.setTitle("Land Problem 3: m=2 mid-wall deformation")
     pdf.setSubject(subject)
     pdf.setAuthor("solids4foam")
 
@@ -414,7 +414,7 @@ def main() -> None:
     # parent: results are under <case>/runs and figures go to <case>.
     case_dir = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(
-        description="Render Land problem 3 m=3 mid-wall figures for every mesh level run."
+        description="Render Land problem 3 m=2 mid-wall figures for every mesh level run."
     )
     parser.add_argument(
         "--data-dir",

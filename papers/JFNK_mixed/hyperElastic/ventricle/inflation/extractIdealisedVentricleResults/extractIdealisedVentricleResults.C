@@ -33,6 +33,7 @@ Author
 #include "argList.H"
 #include "pointFields.H"
 #include "meshSearch.H"
+#include "interpolationCellPoint.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -131,13 +132,28 @@ int main(int argc, char *argv[])
         << "    inside = " << insideApexZ << nl
         << "    outside = " << outsideApexZ << endl;
 
+    // Define the middle-wall dimensions from Land et al. benchmark problem 2
+    const scalar rs = 0.5*(0.007 + 0.010);
+    const scalar rl = 0.5*(0.017 + 0.020);
+    const scalar zBase = 0.005;
+    const scalar zBaseOverRl = zBase/rl;
+    if (!(zBaseOverRl > -1.0 && zBaseOverRl < 1.0))
+    {
+        FatalError
+            << "Invalid middle-wall base ratio zBase/rl = "
+            << zBaseOverRl << nl
+            << "The ratio must be greater than -1 and less than 1 before "
+            << "calling acos(). zBase = " << zBase << ", rl = " << rl
+            << abort(FatalError);
+    }
+
     // Define uniformly-sampled u field
     const label NUM_SAMPLES = 100;
     scalarField u(NUM_SAMPLES, 0);
-    const scalar uMax = -Foam::acos(5.0/20.0);
     const scalar uMin = -constant::mathematical::pi;
+    const scalar uMax = -Foam::acos(zBaseOverRl);
     const scalar uStep = (uMax - uMin)/(u.size() - 1);
-    for(int i = 0; i < u.size(); ++i)
+    forAll(u, i)
     {
         u[i] = uMin + i*uStep;
     }
@@ -145,68 +161,282 @@ int main(int argc, char *argv[])
 
     // Define undeformed coordinates along the mid-line (t = 0.5)
     vectorField midLine(u.size(), vector::zero);
-    const scalar rs = (0.007 + 0.010)/2.0;
-    const scalar rl = (0.017 + 0.020)/2.0;
     forAll(midLine, pI)
     {
         midLine[pI] = vector(rs*Foam::sin(u[pI]), 0, rl*Foam::cos(u[pI]));
     }
     // Info<< nl << "midLine (undeformed) = " << midLine << endl;
+
+    const label fixedPatchID = mesh.boundaryMesh().findPatchID("fixed");
+    if (fixedPatchID == -1)
+    {
+        FatalError
+            << "Cannot find the fixed base patch named 'fixed'"
+            << abort(FatalError);
+    }
+
+    const fvPatchVectorField& fixedBaseD = D.boundaryField()[fixedPatchID];
+    scalar maxFixedBaseDisp = 0.0;
+    forAll(fixedBaseD, faceI)
+    {
+        maxFixedBaseDisp = max(maxFixedBaseDisp, mag(fixedBaseD[faceI]));
+    }
+
+    if (!fixedBaseD.fixesValue() || maxFixedBaseDisp > SMALL)
+    {
+        FatalError
+            << "The exact base endpoint can only be assigned zero "
+            << "displacement after confirming a fixed zero displacement "
+            << "condition on the 'fixed' patch." << nl
+            << "Patch type = " << fixedBaseD.type()
+            << ", fixesValue = " << fixedBaseD.fixesValue()
+            << ", max(|D|) = " << maxFixedBaseDisp
+            << abort(FatalError);
+    }
+
     // Find the cells containing the midLine points
     meshSearch searchEngine(mesh);
     labelList midLineCellIDs(midLine.size(), -1);
     label seedCellID = -1;
-    forAll(midLineCellIDs, I)
+    label failedFindCellCalls = 0;
+    label interiorFailedFindCellCalls = 0;
+    bool baseEndpointSpecialHandling = false;
+    scalar baseEndpointSearchInset = 0.0;
+
+    const label basePointI = midLineCellIDs.size() - 1;
+    for(label I = 0; I < basePointI; ++I)
     {
-      midLineCellIDs[I] = searchEngine.findCell(midLine[I], seedCellID);
-      //midLineCellIDs[I] = searchEngine.findNearestCell(midLine[I]);
-      //midLineCellIDs[I] = searchEngine.findNearestCell(midLine[I], seedCellID);
-      seedCellID = midLineCellIDs[I];
-      //midLineDisp[I] = interpD.interpolate(midLine[I], midLineCellIDs[I]);
-      //midLineCoord[I] = midLine[I] + midLineDisp[I];
-    }
-    // Info<< "midLineCellIDs = " << midLineCellIDs << endl;
-    if (min(midLineCellIDs) == -1)
-    {
-        FatalError
-            << "Could not find cells on the mid line" << abort(FatalError);
+        midLineCellIDs[I] = searchEngine.findCell(midLine[I], seedCellID);
+        //midLineCellIDs[I] = searchEngine.findNearestCell(midLine[I]);
+        //midLineCellIDs[I] =
+        //    searchEngine.findNearestCell(midLine[I], seedCellID);
+
+        if (midLineCellIDs[I] == -1)
+        {
+            ++failedFindCellCalls;
+            ++interiorFailedFindCellCalls;
+        }
+        else
+        {
+            seedCellID = midLineCellIDs[I];
+        }
     }
 
-    // Determine the displacement of the midLine points
-    // We have many options for this interpolation: let's extrapolate from the
-    // cell centre using the displacement gradient and see if it's good enough.
-    // Ideally, we would blend between values from neighbouring cells to avoid
-    // step jumps, but let's keep it simple first.
+    if (interiorFailedFindCellCalls)
+    {
+        FatalError
+            << "Could not find containing cells for "
+            << interiorFailedFindCellCalls
+            << " non-base midline sample(s)" << abort(FatalError);
+    }
+
+    // The exact final middle-wall point lies on the fixed base boundary.  Some
+    // mesh-search implementations report no containing cell for such boundary
+    // points, so try the exact point first, then search at an extremely small
+    // inward z-offset only to obtain an interpolation cell.  The physical
+    // deformed endpoint is still written exactly at the fixed base with zero
+    // displacement, after the fixed zero displacement condition is checked
+    // above.
+    midLineCellIDs[basePointI] =
+        searchEngine.findCell(midLine[basePointI], seedCellID);
+    if (midLineCellIDs[basePointI] == -1)
+    {
+        ++failedFindCellCalls;
+        baseEndpointSpecialHandling = true;
+
+        scalar baseInset = 1e-10*rl;
+        for(label attempt = 0; attempt < 4; ++attempt)
+        {
+            const vector baseSearchPoint =
+                midLine[basePointI] - vector(0, 0, baseInset);
+
+            midLineCellIDs[basePointI] =
+                searchEngine.findCell(baseSearchPoint, seedCellID);
+
+            if (midLineCellIDs[basePointI] != -1)
+            {
+                baseEndpointSearchInset = baseInset;
+                break;
+            }
+
+            ++failedFindCellCalls;
+            baseInset *= 10.0;
+        }
+    }
+
+    if (midLineCellIDs[basePointI] == -1)
+    {
+        FatalError
+            << "Could not find an interpolation cell for the exact fixed "
+            << "base endpoint or for a small inward z-offset"
+            << abort(FatalError);
+    }
+    seedCellID = midLineCellIDs[basePointI];
+    // Info<< "midLineCellIDs = " << midLineCellIDs << endl;
+
+    // Determine the displacement of the midLine points with the continuous
+    // cell-point interpolator.  Also preserve the original one-cell Taylor
+    // reconstruction for comparison.
+    interpolationCellPoint<vector> interpD(D);
     const volTensorField gradD(fvc::grad(D));
     const vectorField& DI = D;
     const vectorField& CI = mesh.C();
     const tensorField& gradDI = gradD;
-    vectorField midLineDisp(midLineCellIDs.size(), vector::zero);
-    vectorField midLineCoord(midLineCellIDs.size(), vector::zero);
+    vectorField midLineDispCellPoint(midLineCellIDs.size(), vector::zero);
+    vectorField midLineCoordCellPoint(midLineCellIDs.size(), vector::zero);
+    vectorField midLineDispTaylor(midLineCellIDs.size(), vector::zero);
+    vectorField midLineCoordTaylor(midLineCellIDs.size(), vector::zero);
+    scalarField displacementDifference(midLineCellIDs.size(), 0.0);
+    scalarField coordinateDifference(midLineCellIDs.size(), 0.0);
+
     forAll(midLineCellIDs, cI)
     {
         const label cellID = midLineCellIDs[cI];
-        const vector d = midLine[cI] - CI[cellID];
-        midLineDisp[cI] = DI[cellID] + (d & gradDI[cellID]);
-        midLineCoord[cI] = midLine[cI] + midLineDisp[cI];
-    }
-    // Info<< "midLineDisp = " << midLineDisp << endl;
-    // Info<< "midLineCoord = " << midLineCoord << endl;
 
-    // Write the midLine to a file
+        if (cI == basePointI)
+        {
+            midLineDispCellPoint[cI] = vector::zero;
+            midLineDispTaylor[cI] = vector::zero;
+        }
+        else
+        {
+            midLineDispCellPoint[cI] =
+                interpD.interpolate(midLine[cI], cellID);
+
+            const vector d = midLine[cI] - CI[cellID];
+            midLineDispTaylor[cI] = DI[cellID] + (d & gradDI[cellID]);
+        }
+
+        midLineCoordCellPoint[cI] =
+            midLine[cI] + midLineDispCellPoint[cI];
+        midLineCoordTaylor[cI] =
+            midLine[cI] + midLineDispTaylor[cI];
+
+        displacementDifference[cI] =
+            mag(midLineDispCellPoint[cI] - midLineDispTaylor[cI]);
+        coordinateDifference[cI] =
+            mag(midLineCoordCellPoint[cI] - midLineCoordTaylor[cI]);
+    }
+    // Info<< "midLineDispCellPoint = " << midLineDispCellPoint << endl;
+    // Info<< "midLineCoordCellPoint = " << midLineCoordCellPoint << endl;
+    // Info<< "midLineDispTaylor = " << midLineDispTaylor << endl;
+    // Info<< "midLineCoordTaylor = " << midLineCoordTaylor << endl;
+
+    scalar minInterpDiff = GREAT;
+    scalar maxInterpDiff = -GREAT;
+    scalar meanInterpDiff = 0.0;
+    label maxInterpDiffI = -1;
+    forAll(displacementDifference, I)
+    {
+        const scalar diff = displacementDifference[I];
+        if (diff < minInterpDiff)
+        {
+            minInterpDiff = diff;
+        }
+
+        if (diff > maxInterpDiff)
+        {
+            maxInterpDiff = diff;
+            maxInterpDiffI = I;
+        }
+
+        meanInterpDiff += diff;
+    }
+    meanInterpDiff /= displacementDifference.size();
+
+    // Write the primary cell-point interpolated midLine to a file
     OFstream outFile("midLineDeformed.txt");
+    outFile.precision(16);
     Info<< nl
-        << "Writing the deformed midline coordinates to midLineDeformed.txt"
+        << "Writing the cell-point deformed midline coordinates to "
+        << "midLineDeformed.txt"
         << endl;
     outFile
         << "# x y z" << endl;
-    forAll(midLineCoord, cI)
+    forAll(midLineCoordCellPoint, cI)
     {
         outFile
-            << midLineCoord[cI].x() << " "
-            << midLineCoord[cI].y() << " "
-            << midLineCoord[cI].z() << endl;
+            << midLineCoordCellPoint[cI].x() << " "
+            << midLineCoordCellPoint[cI].y() << " "
+            << midLineCoordCellPoint[cI].z() << endl;
     }
+
+    OFstream taylorOutFile("midLineDeformedTaylor.txt");
+    taylorOutFile.precision(16);
+    Info<< "Writing the Taylor reconstructed midline coordinates to "
+        << "midLineDeformedTaylor.txt"
+        << endl;
+    taylorOutFile
+        << "# x y z" << endl;
+    forAll(midLineCoordTaylor, cI)
+    {
+        taylorOutFile
+            << midLineCoordTaylor[cI].x() << " "
+            << midLineCoordTaylor[cI].y() << " "
+            << midLineCoordTaylor[cI].z() << endl;
+    }
+
+    OFstream comparisonOutFile("midLineInterpolationComparison.txt");
+    comparisonOutFile.precision(16);
+    Info<< "Writing interpolation comparison diagnostics to "
+        << "midLineInterpolationComparison.txt"
+        << endl;
+    comparisonOutFile
+        << "# index u cellID Xx Xy Xz "
+        << "Dx_cellPoint Dy_cellPoint Dz_cellPoint "
+        << "Dx_Taylor Dy_Taylor Dz_Taylor "
+        << "x_cellPoint y_cellPoint z_cellPoint "
+        << "x_Taylor y_Taylor z_Taylor "
+        << "displacementDifference coordinateDifference" << endl;
+    forAll(midLine, cI)
+    {
+        comparisonOutFile
+            << cI << " "
+            << u[cI] << " "
+            << midLineCellIDs[cI] << " "
+            << midLine[cI].x() << " "
+            << midLine[cI].y() << " "
+            << midLine[cI].z() << " "
+            << midLineDispCellPoint[cI].x() << " "
+            << midLineDispCellPoint[cI].y() << " "
+            << midLineDispCellPoint[cI].z() << " "
+            << midLineDispTaylor[cI].x() << " "
+            << midLineDispTaylor[cI].y() << " "
+            << midLineDispTaylor[cI].z() << " "
+            << midLineCoordCellPoint[cI].x() << " "
+            << midLineCoordCellPoint[cI].y() << " "
+            << midLineCoordCellPoint[cI].z() << " "
+            << midLineCoordTaylor[cI].x() << " "
+            << midLineCoordTaylor[cI].y() << " "
+            << midLineCoordTaylor[cI].z() << " "
+            << displacementDifference[cI] << " "
+            << coordinateDifference[cI] << endl;
+    }
+
+    Info<< nl
+        << "Midline extraction diagnostics:" << nl
+        << "    samples = " << midLine.size() << nl
+        << "    rs = " << rs << " m" << nl
+        << "    rl = " << rl << " m" << nl
+        << "    zBase = " << zBase << " m" << nl
+        << "    uMin = " << uMin << nl
+        << "    uMax = " << uMax << nl
+        << "    first reference coordinate = " << midLine.first() << nl
+        << "    final reference coordinate = " << midLine.last() << nl
+        << "    final reference z = " << midLine.last().z() << nl
+        << "    min interpolation difference = " << minInterpDiff << nl
+        << "    max interpolation difference = " << maxInterpDiff << nl
+        << "    mean interpolation difference = " << meanInterpDiff << nl
+        << "    max difference index = " << maxInterpDiffI << nl
+        << "    max difference reference coordinate = "
+        << midLine[maxInterpDiffI] << nl
+        << "    failed findCell() calls = " << failedFindCellCalls << nl
+        << "    fixed base special handling required = "
+        << baseEndpointSpecialHandling << nl
+        << "    fixed base patch type = " << fixedBaseD.type() << nl
+        << "    fixed base max(|D|) = " << maxFixedBaseDisp << nl
+        << "    fixed base search inset = " << baseEndpointSearchInset
+        << endl;
 
     Info<< nl << "End" << nl << endl;
 
