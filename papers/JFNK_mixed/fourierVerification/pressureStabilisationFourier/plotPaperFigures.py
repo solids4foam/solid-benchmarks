@@ -9,7 +9,29 @@ come directly from the raw and normalised result rows.
 
 import argparse
 import csv
+import os
+import sys
 from pathlib import Path
+
+
+def _load_paper_style():
+    """Import papers/JFNK_mixed/plotStyle/paper_figure_style.py.
+
+    The module is looked up upwards from this file (works from the case
+    directory and from archive copies) or via $JFNK_PAPER_STYLE_DIR.
+    """
+    candidates = [Path(os.environ["JFNK_PAPER_STYLE_DIR"])] if "JFNK_PAPER_STYLE_DIR" in os.environ else []
+    candidates += [parent / "plotStyle" for parent in Path(__file__).resolve().parents]
+    for directory in candidates:
+        if (directory / "paper_figure_style.py").is_file():
+            sys.path.insert(0, str(directory))
+            import paper_figure_style  # noqa: E402
+
+            return paper_figure_style
+    raise SystemExit("ERROR: paper_figure_style.py not found (set JFNK_PAPER_STYLE_DIR)")
+
+
+pfs = _load_paper_style()
 
 
 MODEL_ORDER = (
@@ -21,29 +43,45 @@ MODEL_ORDER = (
     "diffStencil",
     "RhieChow",
 )
+# Operator index convention of the manuscript (29 Oct 2026): m = laplacianPower,
+# i.e. m = 0 Laplacian (order 2), m = 1 bi-Laplacian (order 4), m = 2 sixth
+# order.  The CSV model names gen0/gen1/gen2 already use this index.
 MODEL_LABELS = {
     "laplacian": "Laplacian",
-    "gen0": "Generalised $m=1$",
-    "JST": "JST",
-    "gen1": "Generalised $m=2$",
-    "gen2": "Generalised $m=3$",
-    "diffStencil": "diffStencil",
-    "RhieChow": "Rhie--Chow",
+    "gen0": "Generalised $m=0$",
+    "JST": "JST-type",
+    "gen1": "Generalised $m=1$",
+    "gen2": "Generalised $m=2$",
+    "diffStencil": "Difference of Laplacians",
+    "RhieChow": "Rhie–Chow",
 }
 REPRESENTATIVES = ("laplacian", "JST", "gen2", "RhieChow")
 REPRESENTATIVE_LABELS = {
-    "laplacian": "Coupled $m=1$",
-    "JST": "Coupled $m=2$ / JST",
-    "gen2": "Coupled $m=3$",
-    "RhieChow": "diffStencil / Rhie--Chow",
+    "laplacian": "Coupled $m=0$",
+    "JST": "Coupled $m=1$ / JST-type",
+    "gen2": "Coupled $m=2$",
+    "RhieChow": "Rhie–Chow",
 }
-# Same method colours as linearElastic/cooksMembrane/plotScripts/plot_paper.py
-COLORS = {
-    "laplacian": "#5B8E55",
-    "JST": "#4C78A8",
-    "gen2": "#7A2738",
-    "RhieChow": "#7B6AA8",
+# Reader-facing labels for the normalised-cut figure (manuscript Figure 1).
+# The laplacian and JST implementations are verified identical to the coupled
+# m = 0 and m = 1 members (manuscript Section "Fourier verification"), so the
+# curves are labelled and coloured as the coupled family members they
+# represent; the Rhie-Chow curve keeps its own identity.
+CUT_LABELS = {
+    "laplacian": "Coupled $m = 0$",
+    "JST": "Coupled $m = 1$ / JST-type",
+    "gen2": "Coupled $m = 2$",
+    "RhieChow": "Rhie–Chow",
 }
+CUT_STYLE_KEYS = {
+    "laplacian": "coupled_m0",
+    "JST": "coupled_m1",
+    "gen2": "coupled_m2",
+    "RhieChow": "rhiechow",
+}
+# Method colours from the shared paper style (identical to the linear Cook's
+# membrane figures).
+COLORS = {model: pfs.method_style(key).colour for model, key in CUT_STYLE_KEYS.items()}
 
 
 def csv_rows(path):
@@ -80,12 +118,12 @@ def require_one(selected, description):
     return selected[0]
 
 
-def save_figure(fig, output_directory, stem):
+def save_figure(fig, output_directory, stem, bbox_inches="tight"):
     output_directory.mkdir(parents=True, exist_ok=True)
     png = output_directory / f"{stem}.png"
     pdf = output_directory / f"{stem}.pdf"
-    fig.savefig(png, dpi=300, bbox_inches="tight")
-    fig.savefig(pdf, bbox_inches="tight")
+    fig.savefig(png, dpi=300, bbox_inches=bbox_inches)
+    fig.savefig(pdf, bbox_inches=bbox_inches)
     print(f"Wrote {png} and {pdf}")
 
 
@@ -185,6 +223,12 @@ def cut_coordinate(row, cut):
     return float(row["thetaY_over_pi"] if cut == 2 else row["thetaX_over_pi"])
 
 
+def mesh_label(tag):
+    """Format a result tag such as 16x16x1 as a 2-D mesh label."""
+    nx, ny = tag.split("x")[:2]
+    return f"{nx} \u00d7 {ny}"
+
+
 def plot_normalised_cuts(
     plt,
     np,
@@ -193,38 +237,63 @@ def plot_normalised_cuts(
     measurements,
     output,
 ):
-    """Plot normalised analytical cuts and production measurements."""
+    """Plot normalised analytical cuts and production measurements.
+
+    Drawn in the shared manuscript style at the printed width (\\linewidth).
+    """
+    with plt.rc_context(pfs.RC_PARAMS):
+        _plot_normalised_cuts(
+            plt, np, symbol_rows, map_rows, measurements, output
+        )
+
+
+def _plot_normalised_cuts(
+    plt,
+    np,
+    symbol_rows,
+    map_rows,
+    measurements,
+    output,
+):
     reference = raw_reference_responses(map_rows, np)
     titles = (
         r"Axial: $\boldsymbol{\theta}=(\theta,0)$",
         r"Diagonal: $\boldsymbol{\theta}=(\theta,\theta)$",
         r"Off-axis: $\boldsymbol{\theta}=(\pi,\theta)$",
     )
+    # Marker shape encodes the MESH of a measured ratio (16x16, 32x32, 64x64);
+    # colour encodes the operator (shared paper identities).
     markers = ("o", "s", "^")
-    fig, axes = plt.subplots(
-        1,
-        3,
-        figsize=(14.2, 4.6),
-        sharey=True,
-        constrained_layout=True,
-    )
+    ticks = np.linspace(0, 1, 6)
+    fig, axes = pfs.new_figure(1.0, height_in=2.95, ncols=3, sharey=True)
+    fig.get_layout_engine().set(w_pad=0.02, h_pad=0.02, wspace=0.06)
+    figure_name = "normalisedSpectralCuts.pdf"
 
     for cut, ax in enumerate(axes):
+        pfs.style_axes(ax)
         for model in REPRESENTATIVES:
             curve = [
                 row
                 for row in symbol_rows
                 if row["model"] == model and int(row["cut"]) == cut
             ]
+            # On the diagonal, coupled m = 1 and Rhie-Chow coincide exactly;
+            # dash m = 1 above the solid Rhie-Chow curve so both stay visible.
+            coincident = cut == 1 and model == "JST"
+            curve_x = [float(row["theta_over_pi"]) for row in curve]
+            curve_y = [abs(float(row["lambda_exact"])) / reference[model] for row in curve]
             ax.plot(
-                [float(row["theta_over_pi"]) for row in curve],
-                [abs(float(row["lambda_exact"])) / reference[model] for row in curve],
+                curve_x,
+                curve_y,
                 color=COLORS[model],
-                linewidth=2,
-                label=REPRESENTATIVE_LABELS[model],
+                linewidth=pfs.LINE_WIDTH,
+                linestyle=(0, (5, 4)) if coincident else "-",
+                zorder=2.5 if coincident else 2,
+                label=CUT_LABELS[model],
             )
+            pfs.record_series(figure_name, f"cut{cut}:{model}:analytical", curve_x, curve_y)
 
-            for resolution_index, (_, rows) in enumerate(measurements):
+            for resolution_index, (tag, rows) in enumerate(measurements):
                 selected = [
                     row
                     for row in rows
@@ -232,29 +301,42 @@ def plot_normalised_cuts(
                     and row["model"] == model
                     and on_cut(row, cut, np)
                 ]
+                meas_x = [cut_coordinate(row, cut) for row in selected]
+                meas_y = [
+                    abs(float(row["lambda_num"]))
+                    / abs(float(row["lambda_ref"]))
+                    for row in selected
+                ]
                 ax.plot(
-                    [cut_coordinate(row, cut) for row in selected],
-                    [
-                        abs(float(row["lambda_num"]))
-                        / abs(float(row["lambda_ref"]))
-                        for row in selected
-                    ],
+                    meas_x,
+                    meas_y,
                     linestyle="none",
                     marker=markers[resolution_index],
-                    markersize=7,
+                    markersize=pfs.MARKER_SIZE,
+                    markeredgewidth=pfs.MARKER_EDGE_WIDTH,
                     markerfacecolor="none",
                     markeredgecolor=COLORS[model],
                     zorder=3,
                 )
+                pfs.record_series(figure_name, f"cut{cut}:{model}:measured:{tag}", meas_x, meas_y)
 
-        ax.set_title(titles[cut])
+        if cut == 1:
+            pfs.annotate(
+                ax,
+                "Coupled $m = 1$ and\nRhie–Chow coincide",
+                (0.05, 0.95),
+                va="top",
+                ha="left",
+            )
+        ax.set_title(titles[cut], fontsize=pfs.FONT_SIZES["title"], pad=4)
         ax.set_xlabel(r"$\theta/\pi$")
         ax.set_xlim(0, 1)
         ax.set_ylim(-0.02, 1.05)
-        ax.grid(alpha=0.2)
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+        pfs.record_axes(figure_name + f"#cut{cut}", ax)
 
-    axes[0].set_ylabel(r"Normalised damping response $|\lambda|/|\lambda_{\rm ref}|$")
-    axes[0].legend(fontsize=8, loc="upper left")
+    axes[0].set_ylabel("Normalised spectral response")
 
     from matplotlib.lines import Line2D
 
@@ -262,25 +344,40 @@ def plot_normalised_cuts(
         Line2D(
             [],
             [],
-            color="black",
+            color=pfs.INK,
             linestyle="none",
             marker=markers[index],
+            markersize=pfs.MARKER_SIZE,
+            markeredgewidth=pfs.MARKER_EDGE_WIDTH,
             markerfacecolor="none",
-            label=tag,
+            label=mesh_label(tag),
         )
         for index, (tag, _) in enumerate(measurements)
     ]
-    axes[2].legend(
+    # Legends sit below the panels so that no curve or marker is covered.
+    fig.legend(
+        handles=axes[0].get_lines()[:: 1 + len(measurements)],
+        title="Analytical symbols",
+        ncols=2,
+        loc="outside lower left",
+        frameon=False,
+        columnspacing=1.2,
+        handlelength=2.2,
+    )
+    fig.legend(
         handles=resolution_handles,
-        title="Production measurements",
-        fontsize=8,
-        loc="lower right",
+        title="Measured ratios (mesh)",
+        ncols=3,
+        loc="outside lower right",
+        frameon=False,
+        columnspacing=1.0,
     )
-    fig.suptitle(
-        r"Normalised operator spectra, $r_\star=2$: "
-        "curves are exported analytical symbols"
-    )
-    save_figure(fig, output, "normalisedSpectralCuts")
+    # No figure title: the manuscript caption states what is plotted.
+    output.mkdir(parents=True, exist_ok=True)
+    pdf = pfs.save(fig, output / figure_name, close=False,
+                   title="Normalised pressure-stabilisation spectra (Fourier verification)")
+    fig.savefig(output / "normalisedSpectralCuts.png", dpi=300)
+    print(f"Wrote {pdf} and {output / 'normalisedSpectralCuts.png'}")
     plt.close(fig)
 
 
@@ -445,6 +542,16 @@ def main():
         default="postProcessing/paperFigures",
         help="output directory for PNG and PDF figures",
     )
+    parser.add_argument(
+        "--dump-series",
+        type=Path,
+        help="write a JSON record of the plotted Figure 1 series (verification)",
+    )
+    parser.add_argument(
+        "--only-cuts",
+        action="store_true",
+        help="only produce the manuscript figure normalisedSpectralCuts",
+    )
     args = parser.parse_args()
     directory = Path(args.directory)
     output = Path(args.output)
@@ -483,13 +590,14 @@ def main():
     map_rows = csv_rows(map_path)
     tolerance = float(metadata(finest_path).get("tolerance", "1e-9"))
 
-    plot_reference_response(
-        plt,
-        np,
-        finest_rows,
-        finest_resolution,
-        output,
-    )
+    if not args.only_cuts:
+        plot_reference_response(
+            plt,
+            np,
+            finest_rows,
+            finest_resolution,
+            output,
+        )
     plot_normalised_cuts(
         plt,
         np,
@@ -498,8 +606,11 @@ def main():
         measurements,
         output,
     )
-    plot_normalised_maps(plt, np, map_rows, output)
-    plot_verification_errors(plt, np, measurements, tolerance, output)
+    if args.dump_series is not None:
+        pfs.write_records(args.dump_series)
+    if not args.only_cuts:
+        plot_normalised_maps(plt, np, map_rows, output)
+        plot_verification_errors(plt, np, measurements, tolerance, output)
 
 
 if __name__ == "__main__":

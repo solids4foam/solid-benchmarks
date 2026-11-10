@@ -15,11 +15,11 @@ MODE_LABELS = {
 }
 DEFAULT_MODELS = ("laplacian", "JST", "gen2", "RhieChow")
 MODEL_LABELS = {
-    "laplacian": "Coupled $m=1$",
-    "JST": "Coupled $m=2$ / JST",
-    "gen0": "Generalised $m=1$",
-    "gen1": "Generalised $m=2$",
-    "gen2": "Coupled $m=3$",
+    "laplacian": "Coupled $m=0$",
+    "JST": "Coupled $m=1$ / JST",
+    "gen0": "Generalised $m=0$",
+    "gen1": "Generalised $m=1$",
+    "gen2": "Coupled $m=2$",
     "diffStencil": "diffStencil",
     "RhieChow": "Rhie--Chow",
 }
