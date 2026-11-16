@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+cd "${0%/*}" || exit 1
+
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+source solids4FoamScripts.sh
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::convertCaseFormat .
+
+# Keep this workflow isolated from the three-mesh CSV regression campaign.
+meshDictBackup=$(mktemp system/blockMeshDict.XXXXXX)
+cp system/blockMeshDict "$meshDictBackup"
+trap 'cp "$meshDictBackup" system/blockMeshDict; rm -f "$meshDictBackup"' EXIT
+foamDictionary system/blockMeshDict \
+    -disableFunctionEntries -entry nCells -set 16 > /dev/null
+
+rm -f 0/pMode_* 0/S_* 0/pIllustrativeFiltered_*
+rm -rf postProcessing/stabilisationFourierVisualisation
+runApplication -o -s Visualisation blockMesh
+runApplication -o -s Visualisation stabilisationFourierCheck \
+    -dict stabilisationFourierVisualisationDict -writeFields
+python3 createIllustrativeFilteredFields.py
+
+nPressure=$(find 0 -maxdepth 1 -name 'pMode_*' | wc -l | tr -d ' ')
+nStabilisation=$(find 0 -maxdepth 1 -name 'S_*' | wc -l | tr -d ' ')
+nFiltered=$(find 0 -maxdepth 1 -name 'pIllustrativeFiltered_*' | wc -l | tr -d ' ')
+if [ "$nPressure" -ne 3 ] || [ "$nStabilisation" -ne 21 ] \
+    || [ "$nFiltered" -ne 21 ]
+then
+    echo "Unexpected field counts: p=$nPressure S=$nStabilisation filtered=$nFiltered"
+    exit 1
+fi
+
+echo "All 45 visualisation fields are available in the 0 directory."
+echo "Run paraFoam from this case directory to inspect them."

@@ -71,7 +71,7 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
     const vectorField& CI = C;
 
     // Point analytical fields
-    if (pointDisplacement_ || pointStress_)
+    if (pointDisplacement_ || pointStress_ || cellPressure_)
     {
         volSymmTensorField analyticalStress
         (
@@ -290,6 +290,51 @@ bool Foam::manufacturedSolutionFunctionObject::writeData()
 
         if
         (
+            cellPressure_
+         && mesh.foundObject<volScalarField>("p")
+        )
+        {
+            // The mixed displacement-pressure solid model stores the
+            // compression-positive hydrostatic stress, i.e.
+            //     sigma = dev(sigma) - p*I    =>    p = -tr(sigma)/3
+            // so the analytical pressure follows directly from the
+            // analytical stress and no new manufactured field is required
+            const volScalarField analyticalP
+            (
+                IOobject
+                (
+                    "analyticalP",
+                    time_.timeName(),
+                    mesh,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                -tr(analyticalStress)/3.0
+            );
+
+            Info<< "Writing analyticalP" << nl << endl;
+            analyticalP.write();
+
+            const volScalarField& p =
+                mesh.lookupObject<volScalarField>("p");
+
+            const volScalarField diff
+            (
+                "pDifference", analyticalP - p
+            );
+            Info<< "Writing pDifference field" << endl;
+            diff.write();
+
+            const scalarField& diffI = diff;
+            Info<< "    Pressure error norms: mean L1, mean L2, LInf: " << nl
+                << "    Magnitude: " << gAverage(mag(diffI))
+                << " " << Foam::sqrt(gAverage(magSqr(diffI)))
+                << " " << gMax(mag(diffI))
+                << endl;
+        }
+
+        if
+        (
             pointStress_
          && mesh.foundObject<pointSymmTensorField>("pEpsilon")
         )
@@ -365,6 +410,10 @@ Foam::manufacturedSolutionFunctionObject::manufacturedSolutionFunctionObject
     pointStress_
     (
         dict.lookupOrDefault<Switch>("pointStress", true)
+    ),
+    cellPressure_
+    (
+        dict.lookupOrDefault<Switch>("cellPressure", true)
     )
 {
     Info<< "Creating " << this->name() << " function object" << endl;

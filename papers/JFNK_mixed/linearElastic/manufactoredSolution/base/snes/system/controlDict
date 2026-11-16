@@ -61,6 +61,10 @@ functions
         pointDisplacement yes;
 	cellStress yes;
 	pointStress yes;
+
+        // Pressure error: only calculated when the solid model solves for a
+        // pressure field (solvePressure in solidProperties)
+        cellPressure yes;
     }
 }
 

@@ -15,9 +15,13 @@ run in place.
 - A configured OpenFOAM environment. `WM_PROJECT_DIR` must be set.
 - A compatible solids4foam build containing the models used by this case.
 - PETSc/SNES support for the mixed pressure-displacement solution.
-- The `setLand2015FibreField` utility available on `PATH`.
+- The `setLand2015FibreField` utility. `Allrun` builds it from
+  `../setLand2015FibreField/` when it is not already on `PATH`.
 - An MPI launcher is optional. If `mpirun` is available, the solver is launched
   as a one-rank MPI job; otherwise it is launched directly.
+- Python 3 with ReportLab for the default final plot (and pypdf when the
+  Land et al. overlay is used). `PLOT_PYTHON` selects the interpreter;
+  `PLOTTER=gnuplot` or `PLOTTER=none` avoid it.
 
 The portable source for the fibre utility is stored beside this case:
 
@@ -25,12 +29,13 @@ The portable source for the fibre utility is stored beside this case:
 ../setLand2015FibreField/
 ```
 
-After sourcing OpenFOAM, build it once with:
+It needs only OpenFOAM, not solids4foam. To build it by hand after sourcing
+OpenFOAM:
 
 ```bash
 cd ../setLand2015FibreField
 wmake
-cd ../problem3
+cd ../contraction
 ```
 
 `wmake` installs the executable in `FOAM_USER_APPBIN` according to the active
@@ -152,32 +157,40 @@ once the solver finishes, so every mesh level ends up with its own
 `midLineDeformed.txt`. The utility is compiled from the copy in
 `extractIdealisedVentricleResults/` when it is not already on the path.
 
-After the last mesh level, `Allrun` renders the figures into this directory
-from every `runs/meshN/midLineDeformed.txt` present, so repeated runs at
-different levels accumulate into one comparison. `PLOTTER` selects the script:
+After the last mesh level, the default plotter,
+`../plotScripts/render_land_midline_layers.py`, draws the data layer of the
+manuscript figure in the shared style and writes
+`land_problem3_m3_combined_layer.pdf` here. It plots every level from 1 to 3
+that has a case directory under `runs/`; each of them must have its mid-wall
+file, otherwise the script stops. When fewer than the three levels of the
+paper figure are present, it says so.
 
 ```bash
-PLOTTER=python  ./Allrun 3   # plotScripts/render_land_problem3_m3_midlines.py (default)
-PLOTTER=gnuplot ./Allrun 3   # plotScripts/midline.gnuplot
-PLOTTER=none    ./Allrun 3   # solve only
+./Allrun plots                 # plot the existing mid-wall lines; no solver
+./Allrun extract               # run the extraction utility on every completed
+                               # case under runs/, then plot (needs OpenFOAM)
+PLOTTER=python  ./Allrun 3     # earlier ReportLab figures, ventricleInflation-midline-*.pdf
+PLOTTER=gnuplot ./Allrun 3     # plotScripts/midline.gnuplot
+PLOTTER=none    ./Allrun 3     # no figure
 ```
 
-Both scripts write the same `ventricleInflation-midline-*.pdf` filenames, so
-only one of them runs. The python script needs `reportlab` and adds a combined
-three-panel figure; the gnuplot script additionally overlays
+A case counts as completed when `log.solids4Foam` reached `End` and every load
+increment converged; `Allrun` and `./Allrun extract` stop otherwise.
+
+The data layer is then placed over faint crops of the published
+Land et al. (2015) results, giving `land_problem3_m3_combined_overlay.pdf`,
+the form of the printed Figure 16. The crops are in `../referenceData/` with
+their attribution and hold the published curves only. `LAND_OVERLAY_PDF=none`
+skips this step; the step needs the Python package `pypdf`.
+
+The two earlier scripts write the same `ventricleInflation-midline-*.pdf`
+filenames, so only one of them runs. The gnuplot script additionally overlays
 `referenceData/land3PlotData.csv` when that file is present.
-
-Either script can also be run by hand from this directory once the data exists:
-
-```bash
-python3 plotScripts/render_land_problem3_m3_midlines.py
-gnuplot plotScripts/midline.gnuplot
-```
 
 ## Directory layout
 
 ```text
-problem3/
+contraction/
 |-- Allrun
 |-- Allclean
 |-- README.md

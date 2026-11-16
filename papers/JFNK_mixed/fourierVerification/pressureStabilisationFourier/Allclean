@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+cd "${0%/*}" || exit 1
+
+. "$WM_PROJECT_DIR/bin/tools/CleanFunctions"
+source solids4FoamScripts.sh
+solids4Foam::caseDoesNotRunWithFoamExtend
+cleanCase
+rm -rf constant/polyMesh postProcessing regressionTests log.*
+rm -rf __pycache__ .pytest_cache .mypy_cache .ruff_cache
+rm -f -- *.foam *.OpenFOAM system/blockMeshDict.*
+# Optional fields use only these names; never faceStabilisation(p).
+rm -f 0/fourierP_* 0/fourierS_*
+rm -f 0/pMode_* 0/S_* 0/pIllustrativeFiltered_*

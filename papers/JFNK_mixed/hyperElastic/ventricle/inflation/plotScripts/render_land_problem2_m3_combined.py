@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the combined Land problem 2 m=3 mid-wall deformation figure.
+"""Render the combined Land problem 2 m=2 mid-wall deformation figure.
 
 The plotted inputs are discovered from ``runs/mesh*/midLineDeformed.txt``.
 This allows the script to plot either the default single-mesh run or any
@@ -335,7 +335,7 @@ def render(runs_dir: Path, output: Path) -> Path:
         pagesize=(PAGE_WIDTH, PAGE_HEIGHT),
         pageCompression=1,
     )
-    pdf.setTitle("Land Problem 2: m=3 mid-wall deformation")
+    pdf.setTitle("Land Problem 2: m=2 mid-wall deformation")
     pdf.setSubject("Combined full-line, apical, and inflection-region result plots")
     pdf.setAuthor("solids4foam")
 

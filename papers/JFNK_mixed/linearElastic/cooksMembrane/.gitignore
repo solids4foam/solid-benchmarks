@@ -1,0 +1,8 @@
+/runs/
+/results/
+/figures/
+/scripts/__pycache__/
+/plotScripts/__pycache__/
+log.*
+slurm-*.out
+slurm-*.err

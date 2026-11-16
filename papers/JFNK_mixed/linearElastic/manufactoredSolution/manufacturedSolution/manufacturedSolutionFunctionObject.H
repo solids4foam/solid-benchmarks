@@ -20,7 +20,8 @@ Class
 
 Description
     FunctionObject that generates a manufactured solution and calculates
-    the displacement and stress errors for a solid solver.
+    the displacement, stress and (for mixed displacement-pressure solid
+    models) pressure errors for a solid solver.
 
 Author
     Philip Cardiff, UCD.
@@ -78,6 +79,11 @@ class manufacturedSolutionFunctionObject
 
         //- Calculate point stress fields
         const Switch pointStress_;
+
+        //- Calculate cell pressure fields
+        //  Only active when the solid model solves for a pressure field,
+        //  i.e. when "solvePressure" is enabled in solidProperties
+        const Switch cellPressure_;
 
 
     // Private Member Functions

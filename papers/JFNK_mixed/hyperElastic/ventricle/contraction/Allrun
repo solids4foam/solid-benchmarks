@@ -8,15 +8,142 @@ set -eo pipefail
 # Examples:
 #   ./Allrun 3                 # run levels 1, 2 and 3
 #   MESH_LEVELS="2 4" ./Allrun # run only levels 2 and 4
+#   ./Allrun extract           # extract the mid-wall line of every completed
+#                              # case under runs/, then plot; no solver is run
+#   ./Allrun plots             # plot the existing runs/mesh*/midLineDeformed.txt
 BASE="base/snes"
 MESH_LEVELS="${MESH_LEVELS:-1}"
 MAX_MESH_LEVEL=6
 EXTRACT="extractIdealisedVentricleResults"
+FIBRE_UTILITY="setLand2015FibreField"
 
-# Plot script run once every mesh level has finished: python, gnuplot or none.
-PLOTTER="${PLOTTER:-python}"
+# Plot script run once every mesh level has finished: paper (shared manuscript
+# style), python (earlier ReportLab script), gnuplot or none.
+PLOTTER="${PLOTTER:-paper}"
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STAGE=run
+
+case "$PLOTTER" in
+    paper|python|gnuplot|none) ;;
+    *) echo "Unknown PLOTTER '$PLOTTER'; expected paper, python, gnuplot or none." >&2; exit 2 ;;
+esac
+
+# A solver log is complete when it reached "End" and every load increment
+# converged.
+check_solver_log()
+{
+    local log=$1
+    if [[ ! -f "$log" ]] || ! grep -q '^End' "$log"; then
+        echo "Solver log is missing or did not reach End: $log" >&2
+        return 1
+    fi
+    if grep -q 'Nonlinear solve did not converge' "$log"; then
+        echo "$(grep -c 'Nonlinear solve did not converge' "$log") load increment(s) did not converge: $log" >&2
+        return 1
+    fi
+}
+
+# Mesh levels 1-3 that have a case directory under runs/. Levels above 3 are
+# not part of the paper figure.
+plot_levels()
+{
+    local level levels=""
+    for level in 1 2 3; do
+        [[ -d "$ROOT/runs/mesh${level}" ]] && levels="$levels $level"
+    done
+    printf '%s' "${levels# }"
+}
+
+# Plot the mid-wall lines under runs/ with the selected plot script
+make_plots()
+{
+    local PAPER_PLOT="$ROOT/../plotScripts/render_land_midline_layers.py"
+    local COMPOSITE="$ROOT/../plotScripts/composite_land_overlay.py"
+    local PYTHON_PLOT="$ROOT/plotScripts/render_land_problem3_m3_midlines.py"
+    local GNUPLOT_PLOT="$ROOT/plotScripts/midline.gnuplot"
+    local layer="$ROOT/land_problem3_m3_combined_layer.pdf"
+    local composite="$ROOT/land_problem3_m3_combined_overlay.pdf"
+    local levels overlay_pdf=""
+
+    # Run the selected plot script from this directory. The plotters use paths
+    # relative to it, irrespective of where Allrun was invoked.
+    cd "$ROOT"
+
+    case "$PLOTTER" in
+        none)
+            echo "PLOTTER=none: no figure was produced"
+            ;;
+        paper)
+            levels="${PLOT_MESH_LEVELS:-$(plot_levels)}"
+            if [[ -z "$levels" ]]; then
+                echo "No runs/mesh1, runs/mesh2 or runs/mesh3 case to plot under $ROOT/runs." >&2
+                return 1
+            fi
+            if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
+                echo "$PLOT_PYTHON not found (set PLOT_PYTHON, or PLOTTER=gnuplot|none)." >&2
+                return 127
+            fi
+            echo
+            echo "Plotting mesh level(s) $levels with ../plotScripts/$(basename "$PAPER_PLOT")"
+            : > "$ROOT/runs/.plotStamp"
+            # shellcheck disable=SC2086
+            "$PLOT_PYTHON" "$PAPER_PLOT" --problem 3 --data-dir "$ROOT/runs" --runs-subdir "" \
+                --meshes $levels --output "$layer" \
+                --dump-series "$ROOT/land_problem3_series.json" || return 1
+            if [[ ! -s "$layer" || "$layer" -ot "$ROOT/runs/.plotStamp" ]]; then
+                echo "Expected figure was not produced: $layer" >&2
+                return 1
+            fi
+
+            # Composite with the published Land et al. (2015) curves. The
+            # reference layers in ../referenceData hold the published curves
+            # only, so the composite shows no results other than those of
+            # $layer. LAND_OVERLAY_PDF names another overlay file (a pasted
+            # plot in it is removed, or the file is rejected); LAND_OVERLAY_PDF=none
+            # skips the composite.
+            overlay_pdf="${LAND_OVERLAY_PDF:-$ROOT/../referenceData/land2015_problem3_reference_layers.pdf}"
+            if [[ "$overlay_pdf" == none ]]; then
+                echo "LAND_OVERLAY_PDF=none: the comparison with the published curves was not composed"
+            else
+                if [[ ! -f "$overlay_pdf" ]]; then
+                    echo "Land et al. reference layers not found: $overlay_pdf" >&2
+                    return 1
+                fi
+                if ! "$PLOT_PYTHON" -c "import pypdf" >/dev/null 2>&1; then
+                    echo "The Python package pypdf is needed to place the data layer over the published" >&2
+                    echo "Land et al. curves; install it, or set LAND_OVERLAY_PDF=none to write the data layer only." >&2
+                    return 1
+                fi
+                "$PLOT_PYTHON" "$COMPOSITE" --problem 3 --overlay "$overlay_pdf" \
+                    --layer "$layer" --output "$composite" || return 1
+                if [[ ! -s "$composite" || "$composite" -ot "$ROOT/runs/.plotStamp" ]]; then
+                    echo "Expected figure was not produced: $composite" >&2
+                    return 1
+                fi
+            fi
+            ;;
+        python)
+            if ! command -v "$PLOT_PYTHON" >/dev/null 2>&1; then
+                echo "$PLOT_PYTHON not found (set PLOT_PYTHON, or PLOTTER=gnuplot|none)." >&2
+                return 127
+            fi
+            echo
+            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
+            "$PLOT_PYTHON" "$PYTHON_PLOT" || return 1
+            ;;
+        gnuplot)
+            if ! command -v gnuplot >/dev/null 2>&1; then
+                echo "gnuplot not found (PLOTTER=gnuplot)." >&2
+                return 127
+            fi
+            echo
+            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
+            gnuplot "$GNUPLOT_PLOT" || return 1
+            ;;
+    esac
+}
 
 case "${1:-}" in
     -h|--help)
@@ -24,10 +151,15 @@ case "${1:-}" in
         echo "       MESH_LEVELS=\"1 3 5\" ./Allrun"
         echo "       PLOTTER=gnuplot ./Allrun 3"
         echo "Available mesh levels: 1-${MAX_MESH_LEVEL}"
-        echo "PLOTTER selects the final plot script: python, gnuplot or none."
+        echo "       ./Allrun extract    extract the mid-wall lines of the completed cases, then plot"
+        echo "       ./Allrun plots      plot the existing mid-wall lines"
+        echo "PLOTTER selects the final plot script: paper, python, gnuplot or none."
         exit 0
         ;;
     "")
+        ;;
+    extract|plots)
+        STAGE=$1
         ;;
     *)
         if ! [[ "$1" =~ ^[1-6]$ ]]; then
@@ -44,6 +176,11 @@ for mesh_level in $MESH_LEVELS; do
         exit 2
     fi
 done
+
+if [[ "$STAGE" == plots ]]; then
+    make_plots
+    exit $?
+fi
 
 if [[ -z "${WM_PROJECT_DIR:-}" ]] \
     || [[ ! -f "$WM_PROJECT_DIR/bin/tools/RunFunctions" ]]; then
@@ -75,6 +212,54 @@ if ! command -v "$EXTRACT" >/dev/null 2>&1; then
     echo "$EXTRACT is not available." >&2
     echo "Compile it with: (cd $EXTRACT && wmake)" >&2
     exit 1
+fi
+
+# The Land fibre-field utility is built from ../setLand2015FibreField when it
+# is not already on the path.
+if ! command -v "$FIBRE_UTILITY" >/dev/null 2>&1 \
+    && [[ -d "$ROOT/../$FIBRE_UTILITY" ]]; then
+    echo "Compiling $FIBRE_UTILITY"
+    (
+        cd "$ROOT/../$FIBRE_UTILITY"
+        wmake
+    )
+    hash -r
+fi
+
+if ! command -v "$FIBRE_UTILITY" >/dev/null 2>&1; then
+    echo "$FIBRE_UTILITY is not available." >&2
+    echo "Compile it with: (cd ../$FIBRE_UTILITY && wmake)" >&2
+    exit 1
+fi
+
+if [[ "$STAGE" == extract ]]; then
+    # Extract the mid-wall line of every completed case under runs/
+    found=""
+    for mesh_level in 1 2 3 4 5 6; do
+        case_dir="$ROOT/runs/mesh${mesh_level}"
+        [[ -d "$case_dir" ]] || continue
+        check_solver_log "$case_dir/log.solids4Foam" || {
+            echo "runs/mesh${mesh_level} is incomplete; nothing was extracted or plotted." >&2
+            exit 1
+        }
+        echo "Extracting the deformed midline for mesh level ${mesh_level}"
+        (
+            cd "$case_dir"
+            "$EXTRACT" > log.extractIdealisedVentricleResults 2>&1
+        ) || { echo "$EXTRACT failed in $case_dir; see log.extractIdealisedVentricleResults" >&2; exit 1; }
+        if [[ ! -s "$case_dir/midLineDeformed.txt" ]]; then
+            echo "$EXTRACT did not write midLineDeformed.txt in $case_dir" >&2
+            exit 1
+        fi
+        found="$found $mesh_level"
+    done
+    if [[ -z "$found" ]]; then
+        echo "No runs/meshN cases found under $ROOT/runs." >&2
+        exit 1
+    fi
+    echo "Extracted mesh level(s):$found"
+    make_plots
+    exit $?
 fi
 
 mkdir -p "$ROOT/runs"
@@ -112,7 +297,7 @@ for mesh_level in $MESH_LEVELS; do
         # Generate the Land transmural coordinate and fibre fields on the
         # selected mesh.
         cp 0/org/t 0/t
-        runApplication setLand2015FibreField
+        runApplication "$FIBRE_UTILITY"
 
         # Avoid the diagnostic field "a" colliding with acceleration "A" on
         # case-insensitive filesystems.
@@ -131,6 +316,8 @@ for mesh_level in $MESH_LEVELS; do
         fi
 
         # Write midLineDeformed.txt for this mesh level, next to the case.
+        check_solver_log log.solids4Foam
+
         echo "Extracting the deformed midline for mesh level ${mesh_level}"
         runApplication "$EXTRACT"
 
@@ -145,39 +332,5 @@ echo
 echo "Completed mesh level(s): $MESH_LEVELS"
 echo "Results are under $ROOT/runs."
 
-# Plot every mesh level currently under runs/, not just the ones run above.
-# The plot scripts resolve their inputs relative to the case directory.
-PYTHON_PLOT="$ROOT/plotScripts/render_land_problem3_m3_midlines.py"
-GNUPLOT_PLOT="$ROOT/plotScripts/midline.gnuplot"
-
-cd "$ROOT"
-
-case "$PLOTTER" in
-    python)
-        if ! command -v python3 >/dev/null 2>&1; then
-            echo "python3 not found: skipping the figures." >&2
-        elif [[ ! -f "$PYTHON_PLOT" ]]; then
-            echo "Plot script not found: $PYTHON_PLOT" >&2
-        else
-            echo
-            echo "Plotting with plotScripts/$(basename "$PYTHON_PLOT")"
-            python3 "$PYTHON_PLOT" || echo "Plotting failed." >&2
-        fi
-        ;;
-    gnuplot)
-        if ! command -v gnuplot >/dev/null 2>&1; then
-            echo "gnuplot not found: skipping the figures." >&2
-        elif [[ ! -f "$GNUPLOT_PLOT" ]]; then
-            echo "Plot script not found: $GNUPLOT_PLOT" >&2
-        else
-            echo
-            echo "Plotting with plotScripts/$(basename "$GNUPLOT_PLOT")"
-            gnuplot "$GNUPLOT_PLOT" || echo "Plotting failed." >&2
-        fi
-        ;;
-    none)
-        ;;
-    *)
-        echo "Unknown PLOTTER '$PLOTTER'; expected python, gnuplot or none." >&2
-        ;;
-esac
+# Plot every mesh level 1-3 currently under runs/.
+make_plots

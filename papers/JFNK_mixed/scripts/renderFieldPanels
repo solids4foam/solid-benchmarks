@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+#
+# Render a field-image panel of the paper from a completed case of THIS
+# checkout, with ParaView. This is a separate, manual step: ./Allrun never
+# calls it and never copies an archived image into its output.
+#
+#   scripts/renderFieldPanels mms       <case directory> [output directory]
+#   scripts/renderFieldPanels cooks     <case directory> [output directory]
+#   scripts/renderFieldPanels inflation <case directory> [output directory]
+#
+# Panel      Figure   Case to pass (as used for the paper)                      Time  Output file
+# mms        2(b)     linearElastic/manufactoredSolution/run_*/poly.hypre.3     1     MMS_SigmaXX (2).pdf
+# cooks      10(a)    hyperElastic/cooksMembrane/run_*/hex_snes__evenlap_m2.7   30    sigmaCompressibleLargeStrainCooks_cropped_kPa.png
+# inflation  14(b)    hyperElastic/ventricle/inflation/runs/mesh3               1     LandDeformed.png
+#
+# The camera, slice or clip, colour map, number of levels and COLOUR RANGE are
+# those of the published panels (the ranges are fixed numbers taken from the
+# paper runs; values of a new run outside a range saturate, and the colour-bar
+# end labels remain the published ones). The case is read through symbolic
+# links; nothing is written into it. Output: <output directory>, by default
+# figures/fieldPanels under papers/JFNK_mixed.
+#
+# Requirements: ParaView 5.13 pvpython (PVPYTHON=/path/to/pvpython when it is
+# not on PATH) and Python with NumPy, Matplotlib and Pillow (PLOT_PYTHON).
+#
+# Not covered: Figure 12(b), the deformed beam. Its published panel was
+# exported by hand (|D| on the deformed beam, colour bar 0 to 3.2 mm) and has
+# no scripted camera; it has to be redrawn by hand in ParaView.
+# The drawings and mesh screenshots (Figures 2(a), 6, 9(a), 12(a), 14(a)) are
+# static illustrations and are not produced by this repository.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS="${ROOT}/imageFigureScripts"
+PLOT_PYTHON="${PLOT_PYTHON:-python3}"
+
+usage() { sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; }
+
+if [[ $# -lt 2 || $# -gt 3 ]]
+then
+    usage >&2
+    exit 2
+fi
+
+panel=$1
+case_dir=$2
+out_dir=${3:-${ROOT}/figures/fieldPanels}
+
+case "${panel}" in
+    mms)       time=1 ;;
+    cooks)     time=30 ;;
+    inflation) time=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "ERROR: unknown panel '${panel}'; expected mms, cooks or inflation" >&2; exit 2 ;;
+esac
+
+if [[ ! -d "${case_dir}/constant/polyMesh" || ! -d "${case_dir}/${time}" ]]
+then
+    echo "ERROR: ${case_dir} is not a completed case: constant/polyMesh and the time directory ${time} are required" >&2
+    exit 1
+fi
+case_dir="$(cd "${case_dir}" && pwd)"
+
+PV="${PVPYTHON:-$(command -v pvpython || true)}"
+if [[ -z "${PV}" || ! -x "${PV}" ]]
+then
+    echo "ERROR: pvpython was not found; set PVPYTHON=/path/to/pvpython (ParaView 5.13)" >&2
+    exit 1
+fi
+command -v "${PLOT_PYTHON}" >/dev/null 2>&1 || { echo "ERROR: ${PLOT_PYTHON} not found (set PLOT_PYTHON)" >&2; exit 1; }
+
+mkdir -p "${out_dir}"
+out_dir="$(cd "${out_dir}" && pwd)"
+work="${out_dir}/_work/${panel}"
+mkdir -p "${work}/case"
+for sub in constant system 0 "${time}"
+do
+    [[ -e "${case_dir}/${sub}" ]] && ln -sfn "${case_dir}/${sub}" "${work}/case/${sub}"
+done
+: > "${work}/case/case.foam"
+layer="${work}/${panel}_layer"
+
+render()  { "${PV}" "${SCRIPTS}/render_field_layer.py" --case "${work}/case/case.foam" --time "${time}" "$@" --out "${layer}.png" --dump "${layer}.json"; }
+compose() { MPLBACKEND=Agg "${PLOT_PYTHON}" "${SCRIPTS}/compose_field_figure.py" --layer "${layer}.png" --metadata "${layer}.json" "$@"; }
+
+echo "Rendering panel '${panel}' from ${case_dir} (time ${time})"
+case "${panel}" in
+    mms)
+        render --array sigma:0 --point-data "--range=-1584000,4297000" --levels 11 \
+            "--slice=0.1,0.1,0.1,1,0,1" --wireframe-opacity 0.7 --wire-width 0.8 \
+            "--camera=0.3863,-0.5204,0.3100,0.1,0.1,0.1,0,0,1" --view-angle 30 --size 1800 1700
+        compose --width-fraction 0.51 --aspect 0.56 "--range=-1.58399,4.2972" --levels 11 \
+            "--ticks=-1.58399,0,1,2,3,4.2972" "--tick-labels=−1.6,0,1,2,3,4.3" \
+            --title '$\sigma_{xx}$ [MPa]' --title-top --image-box "0.0,0.02,0.74,0.96" \
+            --bar-box "0.80,0.10,0.04,0.72" --out "${out_dir}/MMS_SigmaXX (2).pdf"
+        produced="${out_dir}/MMS_SigmaXX (2).pdf"
+        ;;
+    cooks)
+        render --array sigmaEq --point-data "--range=3207.794921875,336758" --levels 11 \
+            --warp D --parallel --size 1800 2200
+        compose --width-fraction 0.40 --aspect 1.0 "--range=3.207794921875,336.758" --levels 11 \
+            "--ticks=3.207794921875,50,100,150,200,250,300,336.758" \
+            "--tick-labels=3.2,50,100,150,200,250,300,337" --title "Equivalent stress [kPa]" \
+            --image-box "0.0,0.02,0.70,0.96" --bar-box "0.73,0.10,0.045,0.80" \
+            --out "${out_dir}/sigmaCompressibleLargeStrainCooks_cropped_kPa.png"
+        produced="${out_dir}/sigmaCompressibleLargeStrainCooks_cropped_kPa.png"
+        ;;
+    inflation)
+        render --array D:mag --point-data --surface-from-patches "--range=0,0.009485" --warp D \
+            "--clip=0,0,0,0,1,0" "--camera=0.08368,-0.05229,0.02841,0,0,-0.0075,0,0,1" \
+            --view-angle 30 --size 1800 2100
+        compose --width-fraction 0.50 --aspect 1.01 "--range=0,9.485" --levels 0 \
+            "--ticks=0,2,4,6,8,9.485" "--tick-labels=0,2,4,6,8,9.5" \
+            --title "Displacement magnitude |D| [mm]" --image-box "0.0,0.02,0.72,0.96" \
+            --bar-box "0.76,0.12,0.045,0.76" --out "${out_dir}/LandDeformed.png"
+        produced="${out_dir}/LandDeformed.png"
+        ;;
+esac
+
+if [[ ! -s "${produced}" ]]
+then
+    echo "ERROR: the panel was not produced: ${produced}" >&2
+    exit 1
+fi
+echo "Wrote ${produced}"
+echo "Source case: ${case_dir}"

@@ -17,6 +17,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CASE_DIRS=(
+    "fourierVerification/pressureStabilisationFourier"
     "linearElastic/manufactoredSolution"
     "linearElastic/cooksMembrane"
     "hyperElastic/cooksMembrane"
@@ -29,10 +30,16 @@ CASE_DIRS=(
 # Plots written into a case directory that the case's own Allclean leaves.
 STRAY_FILES=(
     "hyperElastic/ventricle/inflation/land_problem2_m3_combined.pdf"
+    "hyperElastic/ventricle/inflation/land_problem2_m3_combined_layer.pdf"
+    "hyperElastic/ventricle/inflation/land_problem2_m3_combined_overlay.pdf"
+    "hyperElastic/ventricle/inflation/land_problem2_series.json"
     "hyperElastic/ventricle/inflation/midline.pdf"
     "hyperElastic/ventricle/inflation/midline_apex.pdf"
     "hyperElastic/ventricle/inflation/midline_inflection.pdf"
     "hyperElastic/ventricle/contraction/land_problem3_m3_combined.pdf"
+    "hyperElastic/ventricle/contraction/land_problem3_m3_combined_layer.pdf"
+    "hyperElastic/ventricle/contraction/land_problem3_m3_combined_overlay.pdf"
+    "hyperElastic/ventricle/contraction/land_problem3_series.json"
     "hyperElastic/ventricle/contraction/ventricleInflation-midline-deformed.pdf"
     "hyperElastic/ventricle/contraction/ventricleInflation-midline-apex-deformed.pdf"
     "hyperElastic/ventricle/contraction/ventricleInflation-midline-inflection-deformed.pdf"
@@ -94,6 +101,15 @@ do
         echo "    removing ${platform#"${ROOT}"/}"
         rm -rf -- "${platform}"
     done
+done
+
+# Object files of the shared setLand2015FibreField utility used by the
+# contraction case. The Make/files and Make/options sources are kept.
+for platform in "${ROOT}"/hyperElastic/ventricle/setLand2015FibreField/Make/*/
+do
+    [[ -d "${platform}" ]] || continue
+    echo "    removing ${platform#"${ROOT}"/}"
+    rm -rf -- "${platform}"
 done
 
 #------------------------------------------------------------------------------

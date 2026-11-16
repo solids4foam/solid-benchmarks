@@ -1,4 +1,4 @@
-# Land problem 1: Even-Laplacian m=3 deformed tip-coordinate convergence.
+# Land problem 1: Even-Laplacian m=2 (laplacianPower 2) deformed tip-coordinate convergence.
 # Run from the beam case directory with: gnuplot plotScripts/dz.gnuplot
 
 system "mkdir -p plots"
@@ -37,4 +37,4 @@ set style line 99 lc rgb "#111111" dt 2 lw 2.2
 
 plot \
     referenceZmm with lines ls 99 title "Land et al. ≈ 4.2 mm", \
-    "runs/beam.summary.txt" using 2:(initialTipZmm + 1e3*$4) with linespoints ls 1 title "Even Laplacian, m=3"
+    "runs/beam.summary.txt" using 2:(initialTipZmm + 1e3*$4) with linespoints ls 1 title "Even Laplacian, m=2"

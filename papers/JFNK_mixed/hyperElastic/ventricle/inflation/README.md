@@ -18,7 +18,8 @@ and runs solids4foam. The base case is never run in place.
   launched as a one-rank MPI job; otherwise it is launched directly.
 - Python 3 with ReportLab for the default final plot. Set `PLOTTER=gnuplot`
   to use the supplied gnuplot script instead, or `PLOTTER=none` to skip plots.
-  If needed, `PLOT_PYTHON` can select a Python interpreter that has ReportLab.
+  If needed, `PLOT_PYTHON` can select a Python interpreter that has ReportLab
+  (and pypdf when the Land et al. overlay is used).
 
 No local OpenFOAM installation path is hard-coded in the case.
 
@@ -136,40 +137,54 @@ mixed pressure-displacement PETSc SNES solution with the working
 `petscOptions.split` configuration. The time step is 0.01, the end time is 1,
 and fields are written every 0.1 time units.
 
+The calculation is quasi-static. `system/fvSchemes` sets
+`d2dt2Schemes default steadyState`, so the inertial term is absent from the
+momentum residual, from the approximate Jacobian and from the pressure
+stabilisation weighting; the 100 time steps are 100 equal load increments.
+`ddtSchemes default backward` is retained: no damping is set in
+`constant/solidProperties` (`dampingCoeff` defaults to zero), so the first time
+derivative does not enter the equilibrium residual and is used only by the
+load-increment predictor (`predictor yes`), which requires a non-steady `ddt`
+scheme. The density is consequently inactive in the solved equations.
+
 ## Plotting
 
-The default Python plotter discovers every available
-`runs/mesh*/midLineDeformed.txt`, so it works for the default one-level run as
-well as a multi-level study. `Allrun` calls it automatically. It can also be
-run manually from this directory with:
+`Allrun` plots automatically once the selected levels have finished. The
+default plotter, `../plotScripts/render_land_midline_layers.py`, draws the data
+layer of the manuscript figure in the shared style from
+`runs/mesh{1,2,3}/midLineDeformed.txt` and writes
+`land_problem2_m3_combined_layer.pdf` here. It plots every level from 1 to 3
+that has a case directory under `runs/`; each of them must have its mid-wall
+file, otherwise the script stops. When fewer than the three levels of the
+paper figure are present, it says so. Levels 4 to 6 are not part of the
+figure.
 
 ```bash
-python3 plotScripts/render_land_problem2_m3_combined.py
+./Allrun plots                 # plot the existing mid-wall lines; no solver
+./Allrun extract               # run the extraction utility on every completed
+                               # case under runs/, then plot (needs OpenFOAM)
+PLOT_MESH_LEVELS="1 2" ./Allrun plots   # explicit selection
+PLOTTER=python ./Allrun 3      # earlier ReportLab figure, land_problem2_m3_combined.pdf
+PLOTTER=gnuplot ./Allrun 3     # midline.pdf, midline_apex.pdf, midline_inflection.pdf
+PLOTTER=none ./Allrun 3        # no figure
 ```
 
-This writes `land_problem2_m3_combined.pdf` here. All paths are derived from
-the location of the script, so the repository can be moved or cloned to a
-different local directory without editing paths.
+A case counts as completed when `log.solids4Foam` reached `End` and every load
+increment converged; `Allrun` and `./Allrun extract` stop otherwise.
 
-The original gnuplot plotter remains available. To select it from `Allrun`:
+The data layer is then placed over faint crops of the published
+Land et al. (2015) results, giving `land_problem2_m3_combined_overlay.pdf`,
+the form of the printed Figure 15. The crops are in `../referenceData/` with
+their attribution and hold the published curves only. `LAND_OVERLAY_PDF=none`
+skips this step; the step needs the Python package `pypdf`.
 
-```bash
-PLOTTER=gnuplot ./Allrun 3
-```
-
-Or invoke it manually from this directory:
-
-```bash
-gnuplot plotScripts/midline.gnuplot
-```
-
-It creates `midline.pdf`, `midline_apex.pdf`, and
-`midline_inflection.pdf`.
+All paths are derived from the location of the scripts, so the repository can
+be moved or cloned to a different directory without editing paths.
 
 ## Directory layout
 
 ```text
-problem2/
+inflation/
 |-- Allrun
 |-- Allclean
 |-- README.md
