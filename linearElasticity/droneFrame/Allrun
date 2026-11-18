@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Source solids4Foam scripts
+source solids4FoamScripts.sh
+
+# Check case version is correct
+solids4Foam::convertCaseFormat .
+
+# Case only tested with OpenFOAM.com
+solids4Foam::caseDoesNotRunWithFoamExtend
+solids4Foam::caseDoesNotRunWithOpenFOAMOrg
+
+if ! command -v gmsh &> /dev/null
+then
+    echo
+    echo "gmsh command not found, which is required for this case."
+    echo "Please install Gmsh (https://gmsh.info)"
+    exit 0
+fi
+
+# Download the geometry (STEP file of the quarter model, in millimetres)
+if [[ ! -f droneFrame.stp ]]
+then
+    wget https://www.solids4foam.com/tutorials/archive/droneFrame.zip
+    unzip -o droneFrame.zip droneFrame.stp
+    rm -f droneFrame.zip
+fi
+
+# Generate the tetrahedral mesh with Gmsh (geometry in mm, mesh written in m)
+solids4Foam::runApplication gmsh -3 droneFrame.geo -o droneFrame.msh
+
+# Convert the Gmsh mesh to OpenFOAM format
+solids4Foam::runApplication gmshToFoam droneFrame.msh
+
+# Set the patch type of the symmetry planes (gmshToFoam makes all patches 'patch')
+solids4Foam::requireGnuSed
+"${SOLIDS4FOAM_SED}" -i \
+    -e '/symX/,/}/ s/type            patch;/type            symmetry;/' \
+    -e '/symZ/,/}/ s/type            patch;/type            symmetry;/' \
+    constant/polyMesh/boundary
+
+# Check the mesh quality
+solids4Foam::runApplication checkMesh
+
+# Run the solver
+solids4Foam::runApplication solids4Foam
